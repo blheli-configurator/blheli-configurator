@@ -1,0 +1,32 @@
+{
+	"manifest_version": 2,
+	"minimum_chrome_version": "38",
+	"version": "0.0.1",
+	"author": "DieHertz",
+	"name": "BLHeli - Configurator",
+	"short_name": "blheli-conf",
+	"description": "Cross-platform configuration tool for BLHeli-based electornic speed controllers",
+
+	"icons": {
+		"128": "images/icon_128.png"
+	},
+
+	"offline_enabled": true,
+
+	"default_locale": "en",
+
+	"app": {
+		"background": {
+			"scripts": [ "eventPage.js" ],
+			"persistent": false
+		}
+	},
+
+	"permissions": [
+		"https://*.github.com/",
+		"https://*.githubusercontent.com/",
+		"serial",
+		"usb",
+		"storage"
+	]
+}

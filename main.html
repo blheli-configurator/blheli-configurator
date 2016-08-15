@@ -1,0 +1,132 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="author" content="cTn" />
+<link type="text/css" rel="stylesheet" href="./main.css" media="all"/>
+<link type="text/css" rel="stylesheet" href="./js/libraries/jquery.nouislider.min.css" />
+<link type="text/css" rel="stylesheet" href="./js/libraries/jquery.nouislider.pips.min.css" />
+<link type="text/css" rel="stylesheet" href="./tabs/landing.css" media="all" />
+<link type="text/css" rel="stylesheet" href="./tabs/esc.css" media="all" />
+<link type="text/css" rel="stylesheet" href="./css/opensans_webfontkit/fonts.css" media="all" />
+<link type="text/css" rel="stylesheet" href="./css/dropdown-lists/css/style_lists.css" media="all" />
+<link type="text/css" rel="stylesheet" href="./js/libraries/switchery/switchery.css" media="all" />
+<link rel="stylesheet" type="text/css" href="./js/libraries/jbox/jBox.css" />
+<script type="text/javascript" src="./js/libraries/q.js"></script>
+<script type="text/javascript" src="./js/libraries/google-analytics-bundle.js"></script>
+<script type="text/javascript" src="./js/libraries/jquery-2.1.4.min.js"></script>
+<script type="text/javascript" src="./js/libraries/jquery-ui-1.11.4.min.js"></script>
+<script type="text/javascript" src="./js/libraries/d3.min.js"></script>
+<script type="text/javascript" src="./js/libraries/jquery.nouislider.all.min.js"></script>
+<script type="text/javascript" src="./js/libraries/semver.js"></script>
+<script type="text/javascript" src="./js/libraries/jbox/jBox.min.js"></script>
+<script type="text/javascript" src="./js/libraries/switchery/switchery.js"></script>
+<script type="text/javascript" src="./js/port_handler.js"></script>
+<script type="text/javascript" src="./js/port_usage.js"></script>
+<script type="text/javascript" src="./js/serial.js"></script>
+<script type="text/javascript" src="./js/gui.js"></script>
+<script type="text/javascript" src="./js/serial_backend.js"></script>
+<script type="text/javascript" src="./js/data_storage.js"></script>
+<script type="text/javascript" src="./js/fc.js"></script>
+<script type="text/javascript" src="./js/msp.js"></script>
+<script type="text/javascript" src="./js/localization.js"></script>
+<script type="text/javascript" src="./js/_4way_if.js"></script>
+<script type="text/javascript" src="./js/blheli_eeprom_layout.js"></script>
+<script type="text/javascript" src="./main.js"></script>
+<script type="text/javascript" src="./tabs/landing.js"></script>
+<title></title>
+</head>
+<body>
+    <div id="main-wrapper">
+        <div class="headerbar">
+            <div id="logo">
+                <div class="logo_text">
+                    CONFIGURATOR
+                    <div class="version"></div>
+                </div>
+            </div>
+            <a id="options" href="#" i18n_title="options_title"></a>
+            <div id="port-picker">
+                <div class="connect_controls" id="connectbutton">
+                    <div class="connect_b">
+                        <a class="connect" href="#"></a>
+                    </div>
+                    <a class="connect_state" i18n="connect"></a>
+                </div>
+                <div id="portsinput">
+                    <div class="dropdown dropdown-dark">
+                        <select class="dropdown-select" id="port" title="Port">
+                            <option value="manual">Manual</option>
+                            <!-- port list gets generated here -->
+                        </select>
+                    </div>
+                    <div class="dropdown dropdown-dark">
+                        <select class="dropdown-select" id="baud" title="Baud Rate">
+                            <option value="115200" selected="selected">115200</option>
+                            <option value="57600">57600</option>
+                            <option value="38400">38400</option>
+                            <option value="28800">28800</option>
+                            <option value="19200">19200</option>
+                            <option value="14400">14400</option>
+                            <option value="9600">9600</option>
+                            <option value="4800">4800</option>
+                            <option value="2400">2400</option>
+                            <option value="1200">1200</option>
+                        </select>
+                    </div>
+                    <div id="port-override-option">
+                        <label for="port-override">Port: <input id="port-override" type="text"
+                            value="/dev/rfcomm0" /></label>
+                    </div>
+                    <div class="dropdown dropdown-dark">
+                        <select class="dropdown-select" id="interface" title="Interface">
+                            <option value="m4WFCIntf" selected>FC passthrough</option>
+                            <option value="m4WIntf" disabled>4-way</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="header-wrapper">
+            </div>
+        </div>
+        <div class="clear-both"></div>
+        <div id="log">
+            <div class="logswitch">
+                <a href="#" id="showlog">Show Log</a>
+            </div>
+            <div id="scrollicon"></div>
+            <div class="wrapper"></div>
+        </div>
+        <div class="tab_container">
+            <div id="tabs">
+                <ul class="mode-disconnected">
+                    <li class="tab_landing"><a href="#" i18n="tabLanding" class="tabicon ic_welcome" title="Welcome"></a></li>
+                </ul>
+                <ul class="mode-connected">
+                    <li class="tab_esc"><a href="#" i18n="tabESC" class="tabicon ic_cli" title="ESCs"></a></li>
+                    -->
+                </ul>
+            </div>
+            <div class="clear-both"></div>
+        </div>
+        <div id="content"></div>
+        <div id="status-bar">
+            <div>
+                <span i18n="statusbar_port_utilization"></span> <span class="port_usage_down">D: 0%</span> <span
+                    class="port_usage_up">U: 0%</span>
+            </div>
+            <div>
+                <span i18n="statusbar_packet_error"></span> <span class="packet-error">0</span>
+            </div>
+            <div class="version">
+                <!-- configuration version generated here -->
+            </div>
+        </div>
+        <div id="cache">
+            <div class="data-loading">
+                <p>Waiting for data ...</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

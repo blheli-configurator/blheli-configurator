@@ -1,0 +1,275 @@
+<div class="tab-esc toolbar_fixed_bottom">
+    <div class="content_wrapper">
+        <div class="tab_title" i18n="tabESC">ESC Programming</div>
+        <div class="cf_doc_version_bt">
+            <a id="button-documentation" href="https://github.com/cleanflight/cleanflight/releases" target="_blank"></a>
+        </div>
+        <div class="note" style="margin-bottom: 20px">
+            <div class="note_spacer">
+                <p i18n="escFeaturesHelp"></p>
+            </div>
+        </div>
+<!--         <div class="mixer">
+            <div class="mixerPreview">
+                <img src="./resources/motor_order/custom.svg" />
+            </div>
+        </div>
+        <div class="clear-both"></div> -->
+        <div class="leftWrapper common-config">
+            <div class="gui_box grey">
+                <div class="gui_box_titlebar">
+                    <div class="spacer_box_title">Common Parameters</div>
+                </div>
+                <div class="spacer_box">
+                    <div class="checkbox">
+                        <input type="checkbox" name="PROGRAMMING_BY_TX" id="PROGRAMMING_BY_TX" class="toggle" checked />
+                        <label>
+                            <span i18n="escProgrammingByTX"></span>
+                        </label>
+                    </div>
+                    <div class="select">
+                        <label>
+                            <select id="GOVERNOR_MODE" disabled>
+                                <option value="1">HiRange</option>
+                                <option value="2">MidRange</option>
+                                <option value="3">LoRange</option>
+                                <option value="4" selected>Off</option>
+                            </select>
+                            <span i18n="escClosedLoopMode"></span>
+                        </label>
+                    </div>
+                    <div class="select" style="display:none">
+                        <label>
+                            <select id="P_GAIN" disabled>
+                                <option value="1">0.13</option>
+                                <option value="2">0.17</option>
+                                <option value="3">0.25</option>
+                                <option value="4">0.38</option>
+                                <option value="5">0.50</option>
+                                <option value="6">0.75</option>
+                                <option value="7">1.00</option>
+                                <option value="8">1.50</option>
+                                <option value="9" selected>2.00</option>
+                                <option value="10">3.00</option>
+                                <option value="11">4.00</option>
+                                <option value="12">6.00</option>
+                                <option value="13">8.00</option>
+                            </select>
+                            <span i18n="escClosedLoopPGain"></span>
+                        </label>
+                    </div>
+                    <div class="select" style="display:none">
+                        <label>
+                            <select id="I_GAIN" disabled>
+                                <option value="1">0.13</option>
+                                <option value="2">0.17</option>
+                                <option value="3">0.25</option>
+                                <option value="4">0.38</option>
+                                <option value="5">0.50</option>
+                                <option value="6">0.75</option>
+                                <option value="7">1.00</option>
+                                <option value="8">1.50</option>
+                                <option value="9" selected>2.00</option>
+                                <option value="10">3.00</option>
+                                <option value="11">4.00</option>
+                                <option value="12">6.00</option>
+                                <option value="13">8.00</option>
+                            </select>
+                            <span i18n="escClosedLoopIGain"></span>
+                        </label>
+                    </div>
+                    <div class="select">
+                        <label>
+                            <select id="MOTOR_GAIN" disabled>
+                                <option value="1">0.75</option>
+                                <option value="2">0.88</option>
+                                <option value="3" selected>1.00</option>
+                                <option value="4">1.12</option>
+                                <option value="5">1.25</option>
+                            </select>
+                            <span i18n="escMotorGain"></span>
+                        </label>
+                    </div>
+                    <div class="select">
+                        <label>
+                            <select id="STARTUP_POWER" disabled>
+                                <option value="1">0.031</option>
+                                <option value="2">0.047</option>
+                                <option value="3">0.063</option>
+                                <option value="4">0.094</option>
+                                <option value="5">0.125</option>
+                                <option value="6">0.188</option>
+                                <option value="7">0.25</option>
+                                <option value="8">0.38</option>
+                                <option value="9">0.50</option>
+                                <option value="10" selected>0.75</option>
+                                <option value="11">1.00</option>
+                                <option value="12">1.25</option>
+                                <option value="13">1.50</option>
+                            </select>
+                            <span i18n="escStartupPower"></span>
+                        </label>
+                    </div>
+                    <div class="checkbox">
+                        <input type="checkbox" name="TEMPERATURE_PROTECTION" id="TEMPERATURE_PROTECTION" class="toggle" checked />
+                        <label>
+                            <span i18n="escTemperatureProtection"></span>
+                        </label>
+                    </div>
+                    <div class="select">
+                        <label>
+                            <select id="PWM_DITHER" disabled>
+                                <option value="1">Off</option>
+                                <option value="2">3</option>
+                                <option value="3" selected>7</option>
+                                <option value="4">15</option>
+                                <option value="5">31</option>
+                            </select>
+                            <span i18n="escPWMOutputDither"></span>
+                        </label>
+                    </div>
+                    <div class="checkbox">
+                        <input type="checkbox" name="LOW_RPM_POWER_PROTECTION" id="LOW_RPM_POWER_PROTECTION" class="toggle" checked />
+                        <label>
+                            <span i18n="escLowRPMPowerPortection"></span>
+                        </label>
+                    </div>
+                    <div class="checkbox">
+                        <input type="checkbox" name="BRAKE_ON_STOP" id="BRAKE_ON_STOP" class="toggle" />
+                        <label>
+                            <span i18n="escBrakeOnStop"></span>
+                        </label>
+                    </div>
+                    <div class="select">
+                        <label>
+                            <select id="DEMAG_COMPENSATION" disabled>
+                                <option value="1">Off</option>
+                                <option value="2" selected>Low</option>
+                                <option value="3">High</option>
+                            </select>
+                            <span i18n="escDemagCompensation"></span>
+                        </label>
+                    </div>
+                    <div class="select">
+                        <label>
+                            <select id="PWM_FREQUENCY" disabled>
+                                <option value="1">Off</option>
+                                <option value="2">Low</option>
+                                <option value="3" selected>DampedLight</option>
+                            </select>
+                            <span i18n="escPWMFrequencyDamped"></span>
+                        </label>
+                    </div>
+                    <div class="checkbox">
+                        <input type="checkbox" name="PWM_INPUT" id="PWM_INPUT" class="toggle" />
+                        <label>
+                            <span i18n="escEnablePWMInput"></span>
+                        </label>
+                    </div>
+                    <div class="select">
+                        <label>
+                            <select id="COMMUTATION_TIMING" disabled>
+                                <option value="1">Low</option>
+                                <option value="2">MediumLow</option>
+                                <option value="3" selected>Medium</option>
+                                <option value="4">MediumHigh</option>
+                                <option value="5">High</option>
+                            </select>
+                            <span i18n="escMotorTiming"></span>
+                        </label>
+                    </div>
+                    <div class="select">
+                        <label>
+                            <select id="INPUT_PWM_POLARITY" disabled>
+                                <option value="1" selected>Positive</option>
+                                <option value="2">Negative</option>
+                            </select>
+                            <span i18n="escInputPolarity"></span>
+                        </label>
+                    </div>
+                    <div class="number">
+                        <label>
+                            <input type="number" name="BEEP_STRENGTH" id="BEEP_STRENGTH" step="1" min="1" max="255" value="40" disabled />
+                            <span i18n="escBeepStrength"></span>
+                        </label>
+                    </div>
+                    <div class="number">
+                        <label>
+                            <input type="number" name="BEACON_STRENGTH" id="BEACON_STRENGTH" step="1" min="1" max="255" value="80" disabled />
+                            <span i18n="escBeaconStrength"></span>
+                        </label>
+                    </div>
+                    <div class="select">
+                        <label>
+                            <select id="BEACON_DELAY" disabled>
+                                <option value="1">1 minute</option>
+                                <option value="2">2 minutes</option>
+                                <option value="3">5 minutes</option>
+                                <option value="4" selected>10 minutes</option>
+                                <option value="5">Infinite</option>
+                            </select>
+                            <span i18n="escBeaconDelay"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="rightWrapper individual-config">
+            <div class="gui_box grey template" style="display: none">
+                <div class="gui_box_titlebar">
+                    <div class="spacer_box_title escNumber">ESC #</div>
+                    <div class="spacer_box_title escInfo"></div>
+                </div>
+                <div class="spacer_box">
+                    <div class="select">
+                        <label>
+                            <select id="MOTOR_DIRECTION" data-multiplier="1" data-offset="0" disabled>
+                                <option value="1" selected>Normal</option>
+                                <option value="2">Reversed</option>
+                                <option value="3">Bidirectional</option>
+                            </select>
+                            <span i18n="escMotorDirection"></span>
+                        </label>
+                    </div>
+                    <div class="number">
+                        <label>
+                            <input type="number" name="PPM_MIN_THROTTLE" id="PPM_MIN_THROTTLE" step="4" min="1000" max="1500" value="1148" data-multiplier="4" data-offset="1000" disabled />
+                            <span i18n="escPPMMinThrottle"></span>
+                        </label>
+                    </div>
+                    <div class="number">
+                        <label>
+                            <input type="number" name="PPM_MAX_THROTTLE" id="PPM_MAX_THROTTLE" step="4" min="1520" max="2020" value="1832" data-multiplier="4" data-offset="1000" disabled />
+                            <span i18n="escPPMMaxThrottle"></span>
+                        </label>
+                    </div>
+                    <div class="number" style="display:none">
+                        <label>
+                            <input type="number" name="PPM_CENTER_THROTTLE" id="PPM_CENTER_THROTTLE" step="4" min="1000" max="2020" value="1488" data-multiplier="4" data-offset="1000" disabled />
+                            <span i18n="escPPMCenterThrottle"></span>
+                        </label>
+                    </div>
+                    <div class="half">
+                        <div class="default_btn half flash_btn">
+                            <a class="flash disabled" href="#" i18n="escButtonFlash"></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="clear-both"></div>
+        <div class="backdrop">
+            <div class="window">
+                <div class="wrapper"></div>
+            </div>
+        </div>
+    </div>
+    <div class="content_toolbar">
+        <div class="btn read_btn">
+            <a class="read" href="#" i18n="escButtonRead"></a>
+        </div>
+        <div class="btn write_btn">
+            <a class="write disabled" href="#" i18n="escButtonWrite"></a>
+        </div>
+    </div>
+</div>

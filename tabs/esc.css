@@ -1,0 +1,185 @@
+.tab-esc {
+    position: relative;
+    height: 100%;
+}
+
+.tab-esc .leftWrapper {
+    float: left;
+    width: calc(50% - 20px);
+}
+
+.tab-esc .rightWrapper {
+    float: left;
+    width: calc(50% - 0px);
+    margin: 0 0 0 20px;
+}
+
+.tab-esc .quarterLeft {
+    width: calc(50% - 10px);
+}
+
+.tab-esc .quarterRight {
+    width: calc(50% - 5px);
+    margin-left: 10px;
+}
+
+.tab-esc .backdrop {
+    border: 1px solid silver;
+    background-color: rgba(0, 0, 0, 0.75);
+    margin-top: 0px;
+    height: 100%;
+    background-repeat: no-repeat;
+    background-position: 50% 80%;
+    background-size: 600px;
+    border-radius: 5px;
+    box-shadow: inset 0px 0px 20px rgba(0, 0, 0, 0.80);
+    width: 100%;
+    overflow: hidden;
+}
+
+.tab-esc .window {
+    height: 100%;
+    width: 100%;
+    padding: 5px;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    font-family: monospace;
+    color: white;
+    box-sizing: border-box;
+    -webkit-user-select: text;
+    float: left;
+}
+
+.tab-esc textarea {
+    -webkit-box-sizing: border-box;
+    width: 100%;
+    margin-top: 8px;
+    height: 22px;
+    line-height: 20px;
+    padding-left: 5px;
+    border: 1px solid silver;
+    resize: none;
+}
+
+.tab-esc .window .wrapper {
+    white-space: pre-wrap;
+}
+
+.tab-esc .mixerPreview {
+    margin: auto;
+    width: 35%;
+    background-color: #eeeeee;
+    text-align: center;
+    border-radius: 5px;
+    margin-top: 5px;
+}
+
+.tab-esc .mixerPreview img {
+    padding: 5%;
+}
+
+.tab-esc .number input {
+    width: 95px;
+    padding-left: 3px;
+    height: 20px;
+    line-height: 20px;
+    text-align: left;
+    border: 1px solid silver;
+    border-radius: 3px;
+    margin: 0 11px 5px 0;
+    font-size: 12px;
+    font-weight: normal;
+}
+
+.tab-esc .number .disabled {
+    width: 43px;
+    padding: 0px 5px;
+    background-color: #ececec;
+}
+
+.tab-esc .number span {
+    margin-left: 0px;
+}
+
+.tab-esc .spacer_box {
+    padding-bottom: 10px;
+    float: left;
+    width: calc(100% - 20px);
+}
+
+
+.tab-esc .number,
+.tab-esc .select
+ {
+    margin-bottom: 5px;
+    clear: left;
+/*    padding-bottom: 5px;*/
+/*    border-bottom: 1px solid #ddd;*/
+    width: 100%;
+    float: left;
+}
+
+.tab-esc .number:last-child,
+.tab-esc .select:last-child {
+    border-bottom: none;
+    padding-bottom: 0px;
+    margin-bottom: 0px;
+}
+
+.tab-esc .gui_box_titlebar {
+    margin-bottom: 0px;
+}
+
+.tab-esc .numberspacer {
+    float: left;
+    width: 65px;
+    height: 21px;
+}
+
+.tab-esc .gui_box {
+    margin-bottom: 10px;
+    float: left;
+}
+
+.tab-esc .gui_box {
+    font-weight: bold;
+    font-family: 'open_sanssemibold', Arial;
+}
+
+.tab-esc .gui_box span {
+    font-weight: normal;
+    font-family: 'open_sansregular', Arial;
+    line-height: 19px;
+    color: #4F4F4F;
+    font-size: 11px;
+}
+
+.tab-esc .select select {
+    float: left;
+    width: 100px;
+    height: 20px;
+    margin: 0 14px 5px 0;
+    border: 1px solid silver;
+    border-radius: 3px;
+}
+
+.tab-esc .checkbox {
+    float: left;
+    width: 100%;
+    margin-bottom: 6px;
+    padding-bottom: 5px;
+    /*border-bottom: 1px solid #ddd;*/
+    margin-top: 0;
+}
+
+.tab-esc .checkbox:last-child {
+    border-bottom: none;
+}
+
+.tab-esc .checkbox span:last-child {
+    margin-left: 64px;
+}
+
+.tab-esc .escInfo {
+    float: right;
+}
