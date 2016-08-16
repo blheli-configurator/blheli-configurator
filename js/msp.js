@@ -266,11 +266,6 @@ var MSP = {
                 CONFIG.activeSensors = data.getUint16(4, 1);
                 CONFIG.mode = data.getUint32(6, 1);
                 CONFIG.profile = data.getUint8(10);
-                $('select[name="profilechange"]').val(CONFIG.profile);
-
-                sensor_status(CONFIG.activeSensors);
-                $('span.i2c-error').text(CONFIG.i2cError);
-                $('span.cycle-time').text(CONFIG.cycleTime);
                 break;
             case MSP_codes.MSP_RAW_IMU:
                 // 512 for mpu6050, 256 for mma
@@ -1022,28 +1017,6 @@ var MSP = {
                 break;
             case MSP_codes.MSP_SET_LED_STRIP_MODECOLOR:
                 console.log('Led strip mode colors saved');
-                break;
-                
-                
-                
-            case MSP_codes.MSP_DATAFLASH_SUMMARY:
-                if (data.byteLength >= 13) {
-                    var
-                        flags = data.getUint8(0);
-                    DATAFLASH.ready = (flags & 1) != 0;
-                    DATAFLASH.supported = (flags & 2) != 0 || DATAFLASH.ready;
-                    DATAFLASH.sectors = data.getUint32(1, 1);
-                    DATAFLASH.totalSize = data.getUint32(5, 1);
-                    DATAFLASH.usedSize = data.getUint32(9, 1);
-                } else {
-                    // Firmware version too old to support MSP_DATAFLASH_SUMMARY
-                    DATAFLASH.ready = false;
-                    DATAFLASH.supported = false;
-                    DATAFLASH.sectors = 0;
-                    DATAFLASH.totalSize = 0;
-                    DATAFLASH.usedSize = 0;
-                }
-                update_dataflash_global();
                 break;
             case MSP_codes.MSP_DATAFLASH_READ:
                 // No-op, let callback handle it

@@ -205,12 +205,7 @@ function onConnect() {
     $('#tabs ul.mode-disconnected').hide();
     $('#tabs ul.mode-connected').show(); 
      
-    MSP.send_message(MSP_codes.MSP_STATUS, false, false);      
-    
-    MSP.send_message(MSP_codes.MSP_DATAFLASH_SUMMARY, false, false);
-    
-    var sensor_state = $('#sensor-status');
-    sensor_state.show(); 
+    MSP.send_message(MSP_codes.MSP_STATUS, false, false);
     
     var port_picker = $('#portsinput');
     port_picker.hide(); 

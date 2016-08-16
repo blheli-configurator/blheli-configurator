@@ -13,29 +13,9 @@ var GUI_control = function () {
     this.interval_array = [];
     this.timeout_array = [];
     this.defaultAllowedTabsWhenDisconnected = [
-        'landing',
-        'firmware_flasher',
-        'help'
+        'landing'
     ];
     this.defaultAllowedTabsWhenConnected = [
-        'failsafe',
-        'transponder',
-        'adjustments',
-        'auxiliary',
-        'cli',
-        'configuration',
-        'gps',
-        'led_strip',
-        'logging',
-        'onboard_logging',
-        'modes',
-        'motors',
-        'pid_tuning',
-        'ports',
-        'receiver',
-        'sensors',
-        'servos',
-        'setup',
         'esc'
     ];
     this.allowedTabs = this.defaultAllowedTabsWhenDisconnected;
@@ -276,13 +256,6 @@ GUI_control.prototype.content_ready = function (callback) {
          });
          $(elem).removeClass('togglemedium');
     });
-
-    if (CONFIGURATOR.connectionValid) {
-        // Build link to in-use CF version documentation
-        var documentationButton = $('div#content #button-documentation');
-        documentationButton.html("Documentation for " + CONFIG.flightControllerVersion);
-        documentationButton.attr("href","https://github.com/cleanflight/cleanflight/tree/v{0}/docs".format(CONFIG.flightControllerVersion));
-    }
 
     // loading tooltip
     jQuery(document).ready(function($) {

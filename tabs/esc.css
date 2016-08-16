@@ -183,3 +183,10 @@
 .tab-esc .escInfo {
     float: right;
 }
+
+.tab-esc .flash_btn .progress {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: none;
+}

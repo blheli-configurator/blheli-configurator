@@ -6,8 +6,7 @@ TABS.esc = {
 };
 
 TABS.esc.print = function (str) {
-    $('.tab-esc .window .wrapper').append(str);
-    $('.tab-esc .window').scrollTop($('.tab-esc .window .wrapper').height());
+    GUI.log(str);
 };
 
 TABS.esc.initialize = function (callback) {
@@ -42,7 +41,7 @@ TABS.esc.initialize = function (callback) {
             $('select,input,a', escBox).data('esc', i);
 
             self.esc_settings.push({});
-            self.esc_metainfo.push({});
+            self.esc_metainfo.push({ available: false });
         }
 
         var commonConfigContext = $('.common-config');
@@ -100,7 +99,8 @@ TABS.esc.initialize = function (callback) {
 
             // @todo extract to special handlers
             if (name == 'MOTOR_DIRECTION') {
-                var ppm_center_element = element.siblings().find('#PPM_CENTER_THROTTLE').parent().parent();
+                var ppm_center_element = element.parent().parent().siblings().find('#PPM_CENTER_THROTTLE').parent().parent()
+                console.log(ppm_center_element);
                 if (val == 3) {
                     ppm_center_element.show();
                 } else {
@@ -171,6 +171,12 @@ TABS.esc.initialize = function (callback) {
             return;
         }
 
+        if (!self.esc_metainfo[escIdx].available) {
+            self.print('ESC ' + (escIdx + 1) + ' was not connected, skipping. Please `Read Settings` first\n');
+            write_settings_impl(escIdx + 1);
+            return;
+        }
+
         _4way.send({
             command: _4way_commands.cmd_DeviceInitFlash,
             params: [ escIdx ],
@@ -181,7 +187,12 @@ TABS.esc.initialize = function (callback) {
 
         // Tell 4way-if to initialize target ESC for flashing
         function on_init_flash(message) {
-            if (message.ack != _4way_ack.ACK_OK) {
+            if (message.ack == _4way_ack.ACK_D_GENERAL_ERROR) {
+                // ESC may be unpowered or absent, continue
+                self.print('ESC ' + (escIdx + 1) + ' is not connected\n');
+                write_settings_impl(escIdx + 1);
+                return;
+            } else if (message.ack != _4way_ack.ACK_OK) {
                 write_settings_failed(message);
                 return;
             }
@@ -207,7 +218,6 @@ TABS.esc.initialize = function (callback) {
 
             // check for unexpected size mismatch
             if (esc_settings.byteLength != readback_settings.byteLength) {
-                console.log(esc_settings, readback_settings);
                 self.print('Flashing ESC ' + (escIdx + 1) + ' failed, byteLength of buffers does not match\n');
                 write_settings_failed(message);
                 return;
@@ -232,7 +242,7 @@ TABS.esc.initialize = function (callback) {
                 }
             } else {
                 self.print('ESC ' + (escIdx + 1) + ', no changes\n');
-                write_settings_impl(escIdx + 1);                
+                write_settings_impl(escIdx + 1);
             }
         }
 
@@ -303,7 +313,12 @@ TABS.esc.initialize = function (callback) {
 
         // Tell 4way-if to initialize target ESC for flashing
         function on_init_flash(message) {
-            if (message.ack != _4way_ack.ACK_OK) {
+            if (message.ack == _4way_ack.ACK_D_GENERAL_ERROR) {
+                // ESC may be unpowered or absent, continue
+                self.esc_metainfo.available = false;
+                read_settings_impl(escIdx + 1);
+                return;
+            } else if (message.ack != _4way_ack.ACK_OK) {
                 read_settings_failed(message);
                 return;
             }
@@ -358,6 +373,7 @@ TABS.esc.initialize = function (callback) {
             }
 
             self.esc_settings[escIdx] = buf;
+            self.esc_metainfo[escIdx].available = true;
 
             // Continue with remaining ESCs
             read_settings_impl(escIdx + 1);
@@ -366,11 +382,16 @@ TABS.esc.initialize = function (callback) {
 
     function read_settings_complete() {
         // @todo check agreement between ESC settings
+        var first_esc_available = self.esc_metainfo.findIndex(function(item) {
+            return item.available;
+        });
 
-        fill_settings_ui();
+        fill_settings_ui(first_esc_available);
 
         $('a.read').removeClass('disabled');
-        $('a.write').removeClass('disabled');
+        if (first_esc_available != -1) {
+            $('a.write').removeClass('disabled');
+        }
     }
 
     function read_settings_failed(message) {
@@ -380,85 +401,95 @@ TABS.esc.initialize = function (callback) {
         $('a.flash').addClass('disabled');
     }
 
-    function fill_settings_ui() {
-        // input[type=checkbox]
-        [
-            'PROGRAMMING_BY_TX', 'TEMPERATURE_PROTECTION', 'LOW_RPM_POWER_PROTECTION',
-            'BRAKE_ON_STOP', 'PWM_INPUT'
-        ].forEach(function(name) {
-            var element= $('#' + name),
-                val = Number(element.is(':checked')),
-                setting = BLHELI_LAYOUT[name],
-                newVal = self.esc_settings[0][setting.offset];
+    function fill_settings_ui(first_esc_available) {
+        if (first_esc_available !== -1) {
+            var master_esc_settings = self.esc_settings[first_esc_available];
 
-            if (setting.since > self.esc_settings[0][BLHELI_LAYOUT.LAYOUT_REVISION.offset]) {
-                element.parent().hide();
-                return;
-            } else {
-                element.parent().show();
-            }
+            // input[type=checkbox]
+            [
+                'PROGRAMMING_BY_TX', 'TEMPERATURE_PROTECTION', 'LOW_RPM_POWER_PROTECTION',
+                'BRAKE_ON_STOP', 'PWM_INPUT'
+            ].forEach(function(name) {
+                var element= $('#' + name),
+                    val = Number(element.is(':checked')),
+                    setting = BLHELI_LAYOUT[name],
+                    newVal = master_esc_settings[setting.offset];
 
-            if (val != newVal) element.trigger('click');
-        });
+                if (setting.since > master_esc_settings[BLHELI_LAYOUT.LAYOUT_REVISION.offset]) {
+                    element.parent().hide();
+                    return;
+                } else {
+                    element.parent().show();
+                }
 
-        // <select>, input[type=number]
-        [
-            'BEEP_STRENGTH', 'BEACON_STRENGTH', 'GOVERNOR_MODE',
-            'P_GAIN', 'I_GAIN', 'MOTOR_GAIN', 'STARTUP_POWER',
-            'PWM_DITHER', 'DEMAG_COMPENSATION', 'PWM_FREQUENCY',
-            'COMMUTATION_TIMING', 'INPUT_PWM_POLARITY', 'BEACON_DELAY'
-        ].forEach(function(name) {
-            var element = $('#' + name),
-                val = element.val(),
-                setting = BLHELI_LAYOUT[name],
-                newVal = self.esc_settings[0][setting.offset];
+                if (val != newVal) element.trigger('click');
+            });
 
-            if (setting.since > self.esc_settings[0][BLHELI_LAYOUT.LAYOUT_REVISION.offset]) {
-                element.hide();
-                return;
-            } else {
-                element.show();
-            }
-
-            element.prop('disabled', false);
-            if (val != newVal) element.val(newVal);
-        });
-
-        // set individual values
-        for (var i = 0; i < self.esc_settings.length; ++i) {
-            var container = $('.esc-' + i),
-                esc_settings = self.esc_settings[i];
-
-            [ 'MOTOR_DIRECTION', 'PPM_MIN_THROTTLE', 'PPM_MAX_THROTTLE', 'PPM_CENTER_THROTTLE' ]
-            .forEach(function(name) {
-                var element = $('#' + name, container),
+            // <select>, input[type=number]
+            [
+                'BEEP_STRENGTH', 'BEACON_STRENGTH', 'GOVERNOR_MODE',
+                'P_GAIN', 'I_GAIN', 'MOTOR_GAIN', 'STARTUP_POWER',
+                'PWM_DITHER', 'DEMAG_COMPENSATION', 'PWM_FREQUENCY',
+                'COMMUTATION_TIMING', 'INPUT_PWM_POLARITY', 'BEACON_DELAY'
+            ].forEach(function(name) {
+                var element = $('#' + name),
                     val = element.val(),
-                    settingInfo = BLHELI_LAYOUT[name],
-                    newVal = esc_settings[settingInfo.offset] * element.data('multiplier') + element.data('offset');
+                    setting = BLHELI_LAYOUT[name],
+                    newVal = master_esc_settings[setting.offset];
+
+                if (setting.since > master_esc_settings[BLHELI_LAYOUT.LAYOUT_REVISION.offset]) {
+                    element.hide();
+                    return;
+                } else {
+                    element.show();
+                }
 
                 element.prop('disabled', false);
                 if (val != newVal) element.val(newVal);
             });
+        }
 
-            var besc_buf = esc_settings.subarray(BLHELI_LAYOUT.BESC.offset, BLHELI_LAYOUT.BESC.offset + BLHELI_LAYOUT.BESC.size),
-                besc = buf2ascii(besc_buf).replace(/#/g, '').trim(),
-                title = besc + ', ' + esc_settings[0] + '.' + esc_settings[1];
+        // set individual values
+        for (var i = 0; i < self.esc_settings.length; ++i) {
+            var container = $('.esc-' + i),
+                esc_settings = self.esc_settings[i],
+                esc_metainfo = self.esc_metainfo[i];
 
-            container.find('.escInfo').text(title);
+            if (esc_metainfo.available) {
+                [ 'MOTOR_DIRECTION', 'PPM_MIN_THROTTLE', 'PPM_MAX_THROTTLE', 'PPM_CENTER_THROTTLE' ]
+                .forEach(function(name) {
+                    var element = $('#' + name, container),
+                        val = element.val(),
+                        settingInfo = BLHELI_LAYOUT[name],
+                        newVal = esc_settings[settingInfo.offset] * element.data('multiplier') + element.data('offset');
 
-            var bidirectional = esc_settings[BLHELI_LAYOUT.MOTOR_DIRECTION.offset] == 3,
-                ppm_center_element = container.find('#PPM_CENTER_THROTTLE').parent().parent();
-            if (bidirectional) {
-                ppm_center_element.show();
+                    element.prop('disabled', false);
+                    if (val != newVal) element.val(newVal);
+                });
+
+                var besc_buf = esc_settings.subarray(BLHELI_LAYOUT.BESC.offset, BLHELI_LAYOUT.BESC.offset + BLHELI_LAYOUT.BESC.size),
+                    besc = buf2ascii(besc_buf).replace(/#/g, '').trim(),
+                    title = besc + ', ' + esc_settings[0] + '.' + esc_settings[1];
+
+                container.find('.escInfo').text(title);
+
+                var bidirectional = esc_settings[BLHELI_LAYOUT.MOTOR_DIRECTION.offset] == 3,
+                    ppm_center_element = container.find('#PPM_CENTER_THROTTLE').parent().parent();
+                if (bidirectional) {
+                    ppm_center_element.show();
+                } else {
+                    ppm_center_element.hide();
+                }
             } else {
-                ppm_center_element.hide();
+                container.find('.escInfo').text('NOT CONNECTED');
             }
 
             var flash_btn = $('a.flash', container);
-            if (self.esc_metainfo[i].interface_mode == _4way_modes.SiLBLB)
+            if (esc_metainfo.available && esc_metainfo.interface_mode == _4way_modes.SiLBLB) {
                 flash_btn.removeClass('disabled');
-            else
+            } else {
                 flash_btn.addClass('disabled');
+            }
         }
 
         // @todo refactor
@@ -473,12 +504,22 @@ TABS.esc.initialize = function (callback) {
     }
 
     function flash_firmware() {
-        var element = $(this),
-            escIdx = element.data('esc'),
+        var button_e = $(this),
+            progress_e = button_e.siblings('progress.progress'),
+            escIdx = button_e.data('esc'),
             esc_settings = self.esc_settings[escIdx],
             esc_metainfo = self.esc_metainfo[escIdx];
 
         var intel_hex, parsed_hex, memory_image;
+
+        // rough estimate, each location gets erased, written and verified at least once
+        var bytes_to_process = BLHELI_SILABS_ADDRESS_SPACE_SIZE * 3,
+            bytes_processed = 0;
+
+        function update_progress(bytes) {
+            bytes_processed += bytes;
+            progress_e.val(Math.min(Math.ceil(100 * bytes_processed / bytes_to_process), 100));
+        }
 
         function parse_hex(str, callback) {
             // parsing hex in different thread
@@ -506,7 +547,8 @@ TABS.esc.initialize = function (callback) {
                 }
 
                 // Disallow clicking again
-                element.addClass('disabled');
+                $('a.flash').addClass('disabled');
+                progress_e.val(0).show();
 
                 chrome.fileSystem.getDisplayPath(fileEntry, function (path) {
                     console.log('Loading file from: ' + path);
@@ -532,9 +574,9 @@ TABS.esc.initialize = function (callback) {
 
                                     if (parsed_hex) {
                                         self.print('Loaded Local Firmware: (' + parsed_hex.bytes_total + ' bytes)\n');
-                                        arrange_into_pages();
+                                        fill_memory_image();
                                     } else {
-                                        self.print(chrome.i18n.getMessage('firmwareFlasherHexCorrupted'));
+                                        self.print(chrome.i18n.getMessage('firmwareFlasherHexCorrupted') + '\n');
                                         on_failed();
                                     }
                                 });
@@ -549,7 +591,8 @@ TABS.esc.initialize = function (callback) {
             });
         }
 
-        function arrange_into_pages() {
+        // Fills a memory image of ESC MCU's address space with target firmware
+        function fill_memory_image() {
             memory_image = new Uint8Array(BLHELI_SILABS_ADDRESS_SPACE_SIZE);
             memory_image.fill(0xFF);
 
@@ -575,40 +618,65 @@ TABS.esc.initialize = function (callback) {
             });
 
             // start the actual flashing process
+            // @todo implement Atmel flashing
             flash_silabs_impl();
         }
 
         // Whole ESC flashing algorithm
         function flash_silabs_impl() {
-            _4way.dry_run = true;
-            // _4way.error_callback = on_failed;
+            // set global callback for all messages with non-OK ACK codes
+            _4way.error_callback = on_failed;
 
             _4way.initFlash(escIdx, function(message) {
+                // check that the target ESC is still SiLabs
                 check_interface(message, function(message) {
-                    // read current settings for subsequent write-back, erase
-                    on_read_settings(message, function(message) {
-                        // erase EEPROM
-                        erase_page(0x0D, function() {
-                            // write **FLASH*FAILED** for ESC NAME 
-                            write_eeprom_safeguard(function(message) {
-                                // write `LJMP bootloader` to avoid bricking
-                                write_bootloader_failsafe(message, function() {
-                                    // erase up to EEPROM, skipping first two first pages with bootloader failsafe
-                                    erase_pages(0x02, 0x0D, function() {
-                                        // write & verify just erased locations
-                                        write_pages(0x02, 0x0D, function() {
-                                            // write & verify first page
-                                            write_page(0x00, function() {
-                                                // erase second page
-                                                erase_page(0x01, function() {
-                                                    // write & verify second page
-                                                    write_page(0x01, function() {
-                                                        // erase EEPROM
-                                                        erase_page(0x0D, function() {
-                                                            // write & verify EEPROM
-                                                            write_page(0x0D, function() {
-                                                                // @todo read current settings, write old setup
-                                                                on_finished();                                        
+                    read_settings(function(message) {
+                        // read current settings for subsequent write-back, erase
+                        check_esc_and_mcu(message, function(message) {
+                            // erase EEPROM page
+                            erase_page(0x0D, function() {
+                                // write **FLASH*FAILED** as ESC NAME 
+                                write_eeprom_safeguard(function() {
+                                    // write `LJMP bootloader` to avoid bricking
+                                    write_bootloader_failsafe(function() {
+                                        // erase up to EEPROM, skipping first two first pages with bootloader failsafe
+                                        erase_pages(0x02, 0x0D, function() {
+                                            // write & verify just erased locations
+                                            write_pages(0x02, 0x0D, function() {
+                                                // write & verify first page
+                                                write_page(0x00, function() {
+                                                    // erase second page
+                                                    erase_page(0x01, function() {
+                                                        // write & verify second page
+                                                        write_page(0x01, function() {
+                                                            // erase EEPROM
+                                                            erase_page(0x0D, function() {
+                                                                // write & verify EEPROM
+                                                                write_page(0x0D, function() {
+                                                                    read_settings(function(message) {
+                                                                        var new_settings = message.params,
+                                                                            offset = BLHELI_LAYOUT.MODE.offset;
+
+                                                                        on_finished();
+
+                                                                        // ensure mode match
+                                                                        if (compare(new_settings.subarray(offset, offset + 2), esc_settings.subarray(offset, offset + 2))) {
+                                                                            self.print('Writing settings back\n');
+                                                                            // copy changed settings
+                                                                            var begin = BLHELI_LAYOUT.P_GAIN.offset,
+                                                                                end = BLHELI_LAYOUT.BRAKE_ON_STOP.offset + BLHELI_LAYOUT.BRAKE_ON_STOP.size;
+
+                                                                            new_settings.set(esc_settings.subarray(begin, end), begin);
+
+                                                                            // set settings as current
+                                                                            self.esc_settings[escIdx] = new_settings;
+
+                                                                            write_settings();
+                                                                        } else {
+                                                                            self.print('Will not write settings back due to different MODE\n');                                                                            
+                                                                        }
+                                                                    })
+                                                                })
                                                             })
                                                         })
                                                     })
@@ -633,6 +701,10 @@ TABS.esc.initialize = function (callback) {
             }
 
             // @todo check device id correspondence
+            callback();
+        }
+
+        function read_settings(callback) {
             _4way.send({
                 command: _4way_commands.cmd_DeviceRead,
                 address: BLHELI_SILABS_EEPROM_OFFSET,
@@ -641,11 +713,12 @@ TABS.esc.initialize = function (callback) {
             })
         }
 
-        function on_read_settings(message, callback) {
+        function check_esc_and_mcu(message, callback) {
             esc_settings = message.params;
 
-            // check BESC
             // @todo ask user if he wishes to continue
+
+            // check BESC
             var target_esc = esc_settings.subarray(BLHELI_LAYOUT.BESC.offset, BLHELI_LAYOUT.BESC.offset + BLHELI_LAYOUT.BESC.size),
                 fw_esc = memory_image.subarray(BLHELI_SILABS_EEPROM_OFFSET).subarray(BLHELI_LAYOUT.BESC.offset, BLHELI_LAYOUT.BESC.offset + BLHELI_LAYOUT.BESC.size);
 
@@ -704,6 +777,7 @@ TABS.esc.initialize = function (callback) {
         function write_bootloader_failsafe(callback) {
             _4way.send({
                 command: _4way_commands.cmd_DeviceRead,
+                address: 0,
                 params: [ 3 ],
                 callback: function(message) {
                     // verify LJMP reset
@@ -715,64 +789,59 @@ TABS.esc.initialize = function (callback) {
                     }
 
                     // erase second page
-                    _4way.send({
-                        command: _4way_commands.cmd_DevicePageErase,
-                        params: [ 1 ],
-                        callback: function(message) {
-                            // write LJMP bootloader
-                            var ljmp_bootloader = new Uint8Array([ 0x02, 0x1C, 0x00 ]);
+                    _4way.pageErase(1, function() {
+                        // write LJMP bootloader
+                        var ljmp_bootloader = new Uint8Array([ 0x02, 0x1C, 0x00 ]);
+                        _4way.write(0x200, ljmp_bootloader, function() {
                             _4way.send({
-                                command: _4way_commands.cmd_DeviceWrite,
+                                command: _4way_commands.cmd_DeviceRead,
                                 address: 0x200,
-                                params: ljmp_bootloader,
+                                params: [ ljmp_bootloader.byteLength ],
                                 callback: function(message) {
                                     // verify
                                     if (!compare(ljmp_bootloader, message.params)) {
+                                        console.log(ljmp_bootloader, message.params);
                                         self.print('Failed to verify `LJMP bootloader` write\n');
                                         on_failed(message);
                                         return;
                                     }
 
                                     // erase first page
-                                    _4way.send({
-                                        command: _4way_commands.cmd_DevicePageErase,
-                                        params: [ 0 ],
-                                        callback: function(message) {
-                                            // ensure page erased to 0xFF
-                                            _4way.send({
-                                                command: _4way_commands.cmd_DeviceRead,
-                                                address: 0,
-                                                params: [ 0 ],
-                                                callback: function(message) {
-                                                    var erased = message.params.every(x => x == 0xFF);
-                                                    if (!erased) {
-                                                        self.print('Failed to verify erasure of the first page\n');
-                                                        on_failed();
-                                                        return;
-                                                    }
-
-                                                    _4way.send({
-                                                        command: _4way_commands.cmd_DeviceRead,
-                                                        address: 0x100,
-                                                        params: [ 0 ],
-                                                        callback: function(message) {
-                                                            var erased = message.params.every(x => x == 0xFF);
-                                                            if (!erased) {
-                                                                self.print('Failed to verify erasure of the first page\n');
-                                                                on_failed();
-                                                                return;
-                                                            }
-
-                                                            callback();
-                                                        }
-                                                    })
+                                    _4way.pageErase(0, function() {
+                                        // ensure page erased to 0xFF
+                                        _4way.send({
+                                            command: _4way_commands.cmd_DeviceRead,
+                                            address: 0,
+                                            params: [ 0 ],
+                                            callback: function(message) {
+                                                var erased = message.params.every(x => x == 0xFF);
+                                                if (!erased) {
+                                                    self.print('Failed to verify erasure of the first page\n');
+                                                    on_failed();
+                                                    return;
                                                 }
-                                            })
-                                        }
+
+                                                _4way.send({
+                                                    command: _4way_commands.cmd_DeviceRead,
+                                                    address: 0x100,
+                                                    params: [ 0 ],
+                                                    callback: function(message) {
+                                                        var erased = message.params.every(x => x == 0xFF);
+                                                        if (!erased) {
+                                                            self.print('Failed to verify erasure of the first page\n');
+                                                            on_failed();
+                                                            return;
+                                                        }
+
+                                                        callback();
+                                                    }
+                                                })
+                                            }
+                                        })
                                     })
                                 }
                             })
-                        }
+                        })
                     })
                 }
             })
@@ -787,6 +856,7 @@ TABS.esc.initialize = function (callback) {
                 }
 
                 _4way.pageErase(page, function(message) {
+                    update_progress(BLHELI_SILABS_PAGE_SIZE);
                     erase_impl(page + 1);
                 })
             }
@@ -811,6 +881,7 @@ TABS.esc.initialize = function (callback) {
                 }
 
                 _4way.write(address, memory_image.subarray(address, address + step), function(message) {
+                    update_progress(step);
                     write_impl(address + step);
                 })
             }
@@ -845,6 +916,7 @@ TABS.esc.initialize = function (callback) {
                             return;
                         }
 
+                        update_progress(step);
                         verify_impl(address + step);
                     }
                 })
@@ -869,16 +941,15 @@ TABS.esc.initialize = function (callback) {
 
         function on_failed(message) {
             self.print('Firmware flashing failed' + (message ? ': ' + JSON.stringify(message) : ' ') + '\n');
-            element.removeClass('disabled');
-
-            _4way.dry_run = false;
+            $('a.flash').removeClass('disabled');
+            progress_e.hide();
         }
 
         function on_finished() {
-            self.printf('Flashing firmware to ESC ' + (escIdx + 1) + ' finished\n');
-            element.removeClass('disabled');
+            self.print('Flashing firmware to ESC ' + (escIdx + 1) + ' finished\n');
+            $('a.flash').removeClass('disabled');
+            progress_e.hide();
 
-            _4way.dry_run = false;
             // read settings back
             read_settings();
         }
@@ -912,15 +983,12 @@ TABS.esc.cleanup = function (callback) {
 
     this.esc_settings = [];
     this.esc_metainfo = [];
+    // now we can return control to MSP or CLI handlers
+    CONFIGURATOR.escActive = false;
 
     // tell 4-way interface to return control to MSP server
     _4way.send({
-        command: _4way_commands.cmd_InterfaceExit,
-        callback: function (message) {
-            console.log('Exiting ESC tab & disabling 4way-if handler');
-            // now we can return control to MSP or CLI handlers
-            CONFIGURATOR.escActive = false;
-        }
+        command: _4way_commands.cmd_InterfaceExit
     });
 
     if (callback) {

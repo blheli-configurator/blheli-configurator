@@ -67,8 +67,6 @@ var _4way = {
     callbacks:      [],
     backlog_view:   null,
     error_callback: null,
-    dry_run:        false,
-
 
     crc16_xmodem_update: function(crc, byte) {
         crc = crc ^ (byte << 8);
@@ -183,13 +181,6 @@ var _4way = {
         var self = this;
         var message = this.createMessage(command, params, address);
 
-        if (this.dry_run && (command == _4way_commands.cmd_DevicePageErase ||
-            command == _4way_commands.cmd_DeviceWrite)) {
-            message.ack = _4way_ack.ACK_OK;
-            callback(message);
-            return;
-        }
-
         serial.send(message, function(sendInfo) {
             if (sendInfo.bytesSent == message.byteLength) {
                 if (callback) {
@@ -218,7 +209,11 @@ var _4way = {
     },
 
     write: function(address, data, callback) {
-        this.sendMessage(_4way_command.cmd_DeviceWrite, data, address, callback);
+        this.sendMessage(_4way_commands.cmd_DeviceWrite, data, address, callback);
+    },
+
+    reset: function(target, callback) {
+        this.sendMessage(_4way_commands.cmd_DeviceReset, [ target ], 0, callback);
     },
 
     read: function(readInfo) {
