@@ -100,8 +100,7 @@ TABS.esc.initialize = function (callback) {
             // @todo extract to special handlers
             if (name == 'MOTOR_DIRECTION') {
                 var ppm_center_element = element.parent().parent().siblings().find('#PPM_CENTER_THROTTLE').parent().parent()
-                console.log(ppm_center_element);
-                if (val == 3) {
+                if (val == 3 || val == 4) {
                     ppm_center_element.show();
                 } else {
                     ppm_center_element.hide();
@@ -357,19 +356,11 @@ TABS.esc.initialize = function (callback) {
                 return;
             }
 
-            if (layout_revision >= BLHELI_S_MIN_LAYOUT_REVISION) {
-                self.print('ESC ' + (escIdx + 1) + ' is running BLHeli_S ' + main_revision + '.' + sub_revision + ' which is currently not supported\n');
-                read_settings_failed(message);
-                return;
-            }
-
             // Check for MULTI mode
             var mode = buf.subarray(BLHELI_LAYOUT.MODE.offset, BLHELI_LAYOUT.MODE.offset + BLHELI_LAYOUT.MODE.size)
                 .reduce(function(sum, byte) { return (sum << 8) | byte; });
             if (mode != BLHELI_MODES.MULTI) {
                 self.print('ESC ' + (escIdx + 1) + ' has MODE different from MULTI: ' + mode.toString(0x10) + '\n');
-                read_settings_failed(message);
-                return;
             }
 
             self.esc_settings[escIdx] = buf;
@@ -403,7 +394,8 @@ TABS.esc.initialize = function (callback) {
 
     function fill_settings_ui(first_esc_available) {
         if (first_esc_available !== -1) {
-            var master_esc_settings = self.esc_settings[first_esc_available];
+            var master_esc_settings = self.esc_settings[first_esc_available],
+                layout_revision = master_esc_settings[BLHELI_LAYOUT.LAYOUT_REVISION.offset];
 
             // input[type=checkbox]
             [
@@ -415,14 +407,14 @@ TABS.esc.initialize = function (callback) {
                     setting = BLHELI_LAYOUT[name],
                     newVal = master_esc_settings[setting.offset];
 
-                if (setting.since > master_esc_settings[BLHELI_LAYOUT.LAYOUT_REVISION.offset]) {
-                    element.parent().hide();
-                    return;
-                } else {
+                if (setting.since <= layout_revision && (!setting.until || layout_revision < setting.until)) {
                     element.parent().show();
+                    if (val != newVal) {
+                        element.trigger('click');
+                    }
+                } else {
+                    element.parent().hide();
                 }
-
-                if (val != newVal) element.trigger('click');
             });
 
             // <select>, input[type=number]
@@ -437,25 +429,27 @@ TABS.esc.initialize = function (callback) {
                     setting = BLHELI_LAYOUT[name],
                     newVal = master_esc_settings[setting.offset];
 
-                if (setting.since > master_esc_settings[BLHELI_LAYOUT.LAYOUT_REVISION.offset]) {
-                    element.hide();
-                    return;
+                if (setting.since <= layout_revision && (!setting.until || layout_revision < setting.until)) {
+                    element.parent().show();
+                    element.prop('disabled', false);
+                    if (val != newVal) {
+                        element.val(newVal);
+                    }
                 } else {
-                    element.show();
+                    element.parent().hide();
                 }
-
-                element.prop('disabled', false);
-                if (val != newVal) element.val(newVal);
             });
 
             // @todo refactor
-            var closedLoopOff = master_esc_settings[BLHELI_LAYOUT.GOVERNOR_MODE.offset] == 4;
-            if (closedLoopOff) {
-                $('#P_GAIN').parent().parent().hide();
-                $('#I_GAIN').parent().parent().hide();
-            } else {
-                $('#P_GAIN').parent().parent().show();
-                $('#I_GAIN').parent().parent().show();
+            if (layout_revision < BLHELI_S_MIN_LAYOUT_REVISION) {
+                var closedLoopOff = master_esc_settings[BLHELI_LAYOUT.GOVERNOR_MODE.offset] == 4;
+                if (closedLoopOff) {
+                    $('#P_GAIN').parent().parent().hide();
+                    $('#I_GAIN').parent().parent().hide();
+                } else {
+                    $('#P_GAIN').parent().parent().show();
+                    $('#I_GAIN').parent().parent().show();
+                }
             }
         }
 
@@ -476,6 +470,9 @@ TABS.esc.initialize = function (callback) {
                     element.prop('disabled', false);
                     if (val != newVal) element.val(newVal);
                 });
+
+                // ugly hack to enable bidir reversed
+                $('#MOTOR_DIRECTION', container).find(':nth-child(4)').prop('hidden', layout_revision < BLHELI_S_MIN_LAYOUT_REVISION);
 
                 var besc_buf = esc_settings.subarray(BLHELI_LAYOUT.BESC.offset, BLHELI_LAYOUT.BESC.offset + BLHELI_LAYOUT.BESC.size),
                     besc = buf2ascii(besc_buf).replace(/#/g, '').trim(),
@@ -576,7 +573,7 @@ TABS.esc.initialize = function (callback) {
                                         self.print('Loaded Local Firmware: (' + parsed_hex.bytes_total + ' bytes)\n');
                                         fill_memory_image();
                                     } else {
-                                        self.print(chrome.i18n.getMessage('firmwareFlasherHexCorrupted') + '\n');
+                                        self.print('Hex file corrupted\n');
                                         on_failed();
                                     }
                                 });
