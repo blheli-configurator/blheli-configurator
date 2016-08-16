@@ -447,6 +447,16 @@ TABS.esc.initialize = function (callback) {
                 element.prop('disabled', false);
                 if (val != newVal) element.val(newVal);
             });
+
+            // @todo refactor
+            var closedLoopOff = master_esc_settings[BLHELI_LAYOUT.GOVERNOR_MODE.offset] == 4;
+            if (closedLoopOff) {
+                $('#P_GAIN').parent().parent().hide();
+                $('#I_GAIN').parent().parent().hide();
+            } else {
+                $('#P_GAIN').parent().parent().show();
+                $('#I_GAIN').parent().parent().show();
+            }
         }
 
         // set individual values
@@ -490,16 +500,6 @@ TABS.esc.initialize = function (callback) {
             } else {
                 flash_btn.addClass('disabled');
             }
-        }
-
-        // @todo refactor
-        var closedLoopOff = self.esc_settings[0][BLHELI_LAYOUT.GOVERNOR_MODE.offset] == 4;
-        if (closedLoopOff) {
-            $('#P_GAIN').parent().parent().hide();
-            $('#I_GAIN').parent().parent().hide();
-        } else {
-            $('#P_GAIN').parent().parent().show();
-            $('#I_GAIN').parent().parent().show();
         }
     }
 

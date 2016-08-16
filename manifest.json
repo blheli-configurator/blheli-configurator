@@ -28,6 +28,7 @@
 		"https://*.githubusercontent.com/",
 		"serial",
 		"usb",
-		"storage"
+		"storage",
+		"notifications"
 	]
 }

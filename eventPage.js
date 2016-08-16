@@ -3,88 +3,6 @@
 */
 'use strict';
 
-function onWindowClosed() {
-    // automatically close the port when application closes
-    // save connectionId in separate variable before createdWindow.contentWindow is destroyed
-    var connectionId = createdWindow.contentWindow.serial.connectionId,
-        valid_connection = createdWindow.contentWindow.CONFIGURATOR.connectionValid,
-        mincommand = createdWindow.contentWindow.MISC.mincommand;
-
-    // @todo handle ESCs tab exit there
-    if (connectionId && valid_connection) {
-        // code below is handmade MSP message (without pretty JS wrapper), it behaves exactly like MSP.send_message
-        // sending exit command just in case the cli tab was open.
-        // reset motors to default (mincommand)
-        // @todo can't we decide there whether we should send CLI or 4way-if commands via CONFIGURATOR?
-        var bufferOut = new ArrayBuffer(5),
-        bufView = new Uint8Array(bufferOut);
-
-        bufView[0] = 0x65; // e
-        bufView[1] = 0x78; // x
-        bufView[2] = 0x69; // i
-        bufView[3] = 0x74; // t
-        bufView[4] = 0x0D; // enter
-
-        chrome.serial.send(connectionId, bufferOut, function () { console.log('Send exit') });
-
-        function sendResetMotors() {
-            bufferOut = new ArrayBuffer(22);
-            bufView = new Uint8Array(bufferOut);
-            var checksum = 0;
-
-            bufView[0] = 36; // $
-            bufView[1] = 77; // M
-            bufView[2] = 60; // <
-            bufView[3] = 16; // data length
-            bufView[4] = 214; // MSP_SET_MOTOR
-
-            checksum = bufView[3] ^ bufView[4];
-
-            for (var i = 0; i < 16; i += 2) {
-                bufView[i + 5] = mincommand & 0x00FF;
-                bufView[i + 6] = mincommand >> 8;
-
-                checksum ^= bufView[i + 5];
-                checksum ^= bufView[i + 6];
-            }
-
-            bufView[5 + 16] = checksum;
-
-            chrome.serial.send(connectionId, bufferOut, function (sendInfo) {
-                chrome.serial.disconnect(connectionId, function (result) {
-                    console.log('SERIAL: Connection closed - ' + result);
-                });
-            });
-        }
-
-        function send4WayIfExit() {
-            // desperately try exiting the 4way-if mode
-            bufferOut = new ArrayBuffer(8);
-            bufView = new Uint8Array(bufferOut);
-
-            bufView[0] = 0x2F;
-            bufView[1] = 0x34;
-            bufView[2] = 0;
-            bufView[3] = 0;
-            bufView[4] = 1;
-            bufView[5] = 0;
-            bufView[6] = 0x46;
-            bufView[7] = 0xD2;
-
-            chrome.serial.send(connectionId, bufferOut, function () { console.log('Send 4way-if exit') });
-        }
-
-        setTimeout(function() {
-            send4WayIfExit();
-            setTimeout(sendResetMotors, 100);
-        }, 100);
-    } else if (connectionId) {
-        chrome.serial.disconnect(connectionId, function (result) {
-            console.log('SERIAL: Connection closed - ' + result);
-        });
-    }
-}
-
 function startApplication() {
     var applicationStartTime = new Date().getTime();
 
@@ -100,7 +18,87 @@ function startApplication() {
             createdWindow.contentWindow.catch_startup_time(applicationStartTime);
         });
 
-        createdWindow.onClosed.addListener(onWindowClosed);
+        createdWindow.onClosed.addListener(function() {
+            // automatically close the port when application closes
+            // save connectionId in separate variable before createdWindow.contentWindow is destroyed
+            var connectionId = createdWindow.contentWindow.serial.connectionId,
+                valid_connection = createdWindow.contentWindow.CONFIGURATOR.connectionValid,
+                mincommand = createdWindow.contentWindow.MISC.mincommand;
+
+            // @todo handle ESCs tab exit there
+            if (connectionId && valid_connection) {
+                // code below is handmade MSP message (without pretty JS wrapper), it behaves exactly like MSP.send_message
+                // sending exit command just in case the cli tab was open.
+                // reset motors to default (mincommand)
+                // @todo can't we decide there whether we should send CLI or 4way-if commands via CONFIGURATOR?
+                var bufferOut = new ArrayBuffer(5),
+                bufView = new Uint8Array(bufferOut);
+
+                bufView[0] = 0x65; // e
+                bufView[1] = 0x78; // x
+                bufView[2] = 0x69; // i
+                bufView[3] = 0x74; // t
+                bufView[4] = 0x0D; // enter
+
+                chrome.serial.send(connectionId, bufferOut, function () { console.log('Send exit') });
+
+                function sendResetMotors() {
+                    bufferOut = new ArrayBuffer(22);
+                    bufView = new Uint8Array(bufferOut);
+                    var checksum = 0;
+
+                    bufView[0] = 36; // $
+                    bufView[1] = 77; // M
+                    bufView[2] = 60; // <
+                    bufView[3] = 16; // data length
+                    bufView[4] = 214; // MSP_SET_MOTOR
+
+                    checksum = bufView[3] ^ bufView[4];
+
+                    for (var i = 0; i < 16; i += 2) {
+                        bufView[i + 5] = mincommand & 0x00FF;
+                        bufView[i + 6] = mincommand >> 8;
+
+                        checksum ^= bufView[i + 5];
+                        checksum ^= bufView[i + 6];
+                    }
+
+                    bufView[5 + 16] = checksum;
+
+                    chrome.serial.send(connectionId, bufferOut, function (sendInfo) {
+                        chrome.serial.disconnect(connectionId, function (result) {
+                            console.log('SERIAL: Connection closed - ' + result);
+                        });
+                    });
+                }
+
+                function send4WayIfExit() {
+                    // desperately try exiting the 4way-if mode
+                    bufferOut = new ArrayBuffer(8);
+                    bufView = new Uint8Array(bufferOut);
+
+                    bufView[0] = 0x2F;
+                    bufView[1] = 0x34;
+                    bufView[2] = 0;
+                    bufView[3] = 0;
+                    bufView[4] = 1;
+                    bufView[5] = 0;
+                    bufView[6] = 0x46;
+                    bufView[7] = 0xD2;
+
+                    chrome.serial.send(connectionId, bufferOut, function () { console.log('Send 4way-if exit') });
+                }
+
+                setTimeout(function() {
+                    send4WayIfExit();
+                    setTimeout(sendResetMotors, 100);
+                }, 100);
+            } else if (connectionId) {
+                chrome.serial.disconnect(connectionId, function (result) {
+                    console.log('SERIAL: Connection closed - ' + result);
+                });
+            }
+        });
     });
 }
 
