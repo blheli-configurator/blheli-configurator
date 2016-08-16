@@ -122,7 +122,6 @@ input[type="number"]::-webkit-inner-spin-button {
     float: left;
     height: 70px;
     z-index: 0;
-    background-image: url(images/light-wide-2.svg);
     background-repeat: no-repeat;
     width: 340px;
     background-position: left center;
