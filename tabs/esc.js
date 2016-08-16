@@ -630,7 +630,7 @@ TABS.esc.initialize = function (callback) {
             _4way.initFlash(escIdx, function(message) {
                 // check that the target ESC is still SiLabs
                 check_interface(message, function(message) {
-                    read_settings(function(message) {
+                    read_eeprom(function(message) {
                         // read current settings for subsequent write-back, erase
                         check_esc_and_mcu(message, function(message) {
                             // erase EEPROM page
@@ -653,7 +653,7 @@ TABS.esc.initialize = function (callback) {
                                                             erase_page(0x0D, function() {
                                                                 // write & verify EEPROM
                                                                 write_page(0x0D, function() {
-                                                                    read_settings(function(message) {
+                                                                    read_eeprom(function(message) {
                                                                         var new_settings = message.params,
                                                                             offset = BLHELI_LAYOUT.MODE.offset;
 
@@ -673,7 +673,10 @@ TABS.esc.initialize = function (callback) {
 
                                                                             write_settings();
                                                                         } else {
-                                                                            self.print('Will not write settings back due to different MODE\n');                                                                            
+                                                                            self.print('Will not write settings back due to different MODE\n');
+
+                                                                            // read settings back
+                                                                            read_settings();
                                                                         }
                                                                     })
                                                                 })
@@ -704,7 +707,7 @@ TABS.esc.initialize = function (callback) {
             callback();
         }
 
-        function read_settings(callback) {
+        function read_eeprom(callback) {
             _4way.send({
                 command: _4way_commands.cmd_DeviceRead,
                 address: BLHELI_SILABS_EEPROM_OFFSET,
@@ -940,18 +943,17 @@ TABS.esc.initialize = function (callback) {
         }
 
         function on_failed(message) {
+            _4way.error_callback = null;
             self.print('Firmware flashing failed' + (message ? ': ' + JSON.stringify(message) : ' ') + '\n');
             $('a.flash').removeClass('disabled');
             progress_e.hide();
         }
 
         function on_finished() {
+            _4way.error_callback = null;
             self.print('Flashing firmware to ESC ' + (escIdx + 1) + ' finished\n');
             $('a.flash').removeClass('disabled');
             progress_e.hide();
-
-            // read settings back
-            read_settings();
         }
 
         select_file();
