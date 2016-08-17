@@ -229,7 +229,7 @@ function read_serial(info) {
     if (!CONFIGURATOR.escActive) {
         MSP.read(info);
     } else {
-        _4way.read(info);
+        _4way.onread(info);
     }
 }
 

@@ -196,27 +196,60 @@ var _4way = {
         });
     },
 
+    sendMessagePromised: function(command, params, address) {
+        if (params == undefined) params = [ 0 ];
+        if (address == undefined) address = 0;
+
+        var self = this,
+            message = this.createMessage(command, params, address),
+            deferred = Q.defer()
+
+        serial.send(message, function(sendInfo) {
+            if (sendInfo.bytesSent == message.byteLength) {
+                self.callback.push({
+                    command: command,
+                    address: address,
+                    callback: function(msg) {
+                        if (msg.ack === _4way_ack.ACK_OK) {
+                            deferred.resolve(msg)
+                        } else {
+                            deferred.reject(new Error(msg))
+                        }
+                    }
+                })
+            } else {
+                deferred.reject(new Error('serial.send()', sendInfo))
+            }
+        });
+
+        return deferred.promise;
+    },
+
     send: function(obj) {
-        this.sendMessage(obj.command, obj.params, obj.address, obj.callback);
+        this.sendMessage(obj.command, obj.params, obj.address, obj.callback)
     },
 
-    initFlash: function(target, callback) {
-        this.sendMessage(_4way_commands.cmd_DeviceInitFlash, [ target ], 0, callback);
+    initFlash: function(target) {
+        return this.sendMessagePromised(_4way_commands.cmd_DeviceInitFlash, [ target ], 0)
     },
 
-    pageErase: function(page, callback) {
-        this.sendMessage(_4way_commands.cmd_DevicePageErase, [ page ], 0, callback);
+    pageErase: function(page) {
+        return this.sendMessagePromised(_4way_commands.cmd_DevicePageErase, [ page ], 0)
     },
 
-    write: function(address, data, callback) {
-        this.sendMessage(_4way_commands.cmd_DeviceWrite, data, address, callback);
+    read: function(address, bytes) {
+        return this.sendMessagePromised(_4way_commands.cmd_DeviceRead, [ bytes == 256 ? 0 : bytes ], address)
     },
 
-    reset: function(target, callback) {
-        this.sendMessage(_4way_commands.cmd_DeviceReset, [ target ], 0, callback);
+    write: function(address, data) {
+        return this.sendMessagePromised(_4way_commands.cmd_DeviceWrite, data, address)
     },
 
-    read: function(readInfo) {
+    reset: function(target) {
+        return this.sendMessagePromised(_4way_commands.cmd_DeviceReset, [ target ], 0)
+    },
+
+    onread: function(readInfo) {
         var self = this;
         var messages = self.parseMessages(readInfo.data);
 
