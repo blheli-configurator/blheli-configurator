@@ -678,6 +678,8 @@ TABS.esc.initialize = function (callback) {
                 }
             })
             .catch(on_failed)
+
+            // @todo done
         }
 
         function check_interface(message) {

@@ -218,7 +218,7 @@ var _4way = {
                     }
                 })
             } else {
-                deferred.reject(new Error('serial.send()', sendInfo))
+                deferred.reject(new Error('serial.send(): ' + sendInfo))
             }
         });
 
@@ -238,7 +238,7 @@ var _4way = {
     },
 
     read: function(address, bytes) {
-        return this.sendMessagePromised(_4way_commands.cmd_DeviceRead, [ bytes == 256 ? 0 : bytes ], address)
+        return this.sendMessagePromised(_4way_commands.cmd_DeviceRead, [ bytes === 256 ? 0 : bytes ], address)
     },
 
     write: function(address, data) {
