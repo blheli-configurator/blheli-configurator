@@ -475,8 +475,10 @@ TABS.esc.initialize = function (callback) {
                 $('#MOTOR_DIRECTION', container).find(':nth-child(4)').prop('hidden', layout_revision < BLHELI_S_MIN_LAYOUT_REVISION);
 
                 var besc_buf = esc_settings.subarray(BLHELI_LAYOUT.BESC.offset, BLHELI_LAYOUT.BESC.offset + BLHELI_LAYOUT.BESC.size),
+                    name_buf = esc_settings.subarray(BLHELI_LAYOUT.NAME.offset, BLHELI_LAYOUT.NAME.offset + BLHELI_LAYOUT.NAME.size),
                     besc = buf2ascii(besc_buf).replace(/#/g, '').trim(),
-                    title = besc + ', ' + esc_settings[0] + '.' + esc_settings[1];
+                    name = buf2ascii(name_buf).trim(),
+                    title = besc + ', ' + esc_settings[0] + '.' + esc_settings[1] + (name.length > 0 ? ', ' + name : '');
 
                 container.find('.escInfo').text(title);
 
@@ -685,7 +687,6 @@ TABS.esc.initialize = function (callback) {
         function check_interface(message) {
             esc_metainfo.interface_mode = message.params[3];
             if (esc_metainfo.interface_mode != _4way_modes.SiLBLB) {
-                self.print('Interface mode for ESC ' + (escIdx + 1) + ' has changed\n');
                 throw new Error('Interface mode for ESC ' + (escIdx + 1) + ' has changed')
             }
 
@@ -744,19 +745,21 @@ TABS.esc.initialize = function (callback) {
         }
 
         function write_bootloader_failsafe() {
+            var ljmp_reset = new Uint8Array([ 0x02, 0x19, 0xFD ]),
+                ljmp_bootloader = new Uint8Array([ 0x02, 0x1C, 0x00 ])
+
             var promise = _4way.read(0, 3)
             // verify LJMP reset
             .then(function(message) {
-                var ljmp_reset = new Uint8Array([ 0x02, 0x19, 0xFD ])
+                console.log(message)
                 if (!compare(ljmp_reset, message.params)) {
-                    throw new Error('Target ESC has different instruction at start of address space')
+                    self.print('ESC ' + (escIdx + 1) + ' has a different instruction at start of address space, previous flashing has probably failed')
                 }
             })
             // erase second page
             .then(erase_page.bind(undefined, 1))
             // write LJMP bootloader
             .then(function() {
-                var ljmp_bootloader = new Uint8Array([ 0x02, 0x1C, 0x00 ])
                 return _4way.write(0x200, ljmp_bootloader)
             })
             // read LJMP bootloader
@@ -772,16 +775,14 @@ TABS.esc.initialize = function (callback) {
             // erase first page
             .then(erase_page.bind(undefined, 0))
             // ensure page erased to 0xFF
-            .then(function() {
-                return _4way.read(0, 256)
-            })
+            .then(_4way.read.bind(_4way, 0, 0x100))
             .then(function(message) {
                 var erased = message.params.every(x => x == 0xFF)
                 if (!erased) {
                     throw new Error('Failed to verify erasure of the first page')
                 }
 
-                return _4way.read(0x100, 256)
+                return _4way.read(0x100, 0x100)
             })
             .then(function(message) {
                 var erased = message.params.every(x => x == 0xFF)
@@ -843,8 +844,8 @@ TABS.esc.initialize = function (callback) {
             for (var address = begin_address; address < end_address; address += step) {
                 promise = promise.then(_4way.read.bind(_4way, address, 256))
                 .then(function(message) {
-                    if (!compare(message.params, memory_image.subarray(address, address + step))) {
-                        throw new Error('Failed to verify write at address 0x' + address.toString(0x10))
+                    if (!compare(message.params, memory_image.subarray(message.address, message.address + message.params.byteLength))) {
+                        throw new Error('Failed to verify write at address 0x' + message.address.toString(0x10))
                     }
 
                     update_progress(step)
@@ -869,14 +870,16 @@ TABS.esc.initialize = function (callback) {
         }
 
         function on_failed(error) {
-            self.print('Firmware flashing failed' + (error ? ': ' + error.toString() : ' ') + '\n');
+            self.print('Firmware flashing failed' + (error ? ': ' + error.stack : ' ') + '\n');
             $('a.flash').removeClass('disabled');
+            _4way.dry_run = false;
             progress_e.hide();
         }
 
         function on_finished() {
             self.print('Flashing firmware to ESC ' + (escIdx + 1) + ' finished\n');
             $('a.flash').removeClass('disabled');
+            _4way.dry_run = false;
             progress_e.hide();
         }
 

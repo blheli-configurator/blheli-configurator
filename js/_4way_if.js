@@ -85,8 +85,7 @@ var _4way = {
         if (params.length == 0) {
             params.push(0);
         } else if (params.length > 256) {
-            console.log('4way interface supports maximum of 256 params');
-            return null;
+            throw new Error('4way interface supports maximum of 256 params, ' + params.length + ' passed')
         }
 
         var bufferOut = new ArrayBuffer(7 + params.length),
@@ -204,9 +203,10 @@ var _4way = {
             message = this.createMessage(command, params, address),
             deferred = Q.defer()
 
+        console.log('sending', _4way_command_to_string(command), address.toString(0x10), params)
         serial.send(message, function(sendInfo) {
             if (sendInfo.bytesSent == message.byteLength) {
-                self.callback.push({
+                self.callbacks.push({
                     command: command,
                     address: address,
                     callback: function(msg) {
@@ -222,7 +222,7 @@ var _4way = {
             }
         });
 
-        return deferred.promise;
+        return deferred.promise
     },
 
     send: function(obj) {
@@ -254,6 +254,7 @@ var _4way = {
         var messages = self.parseMessages(readInfo.data);
 
         messages.forEach(function (message) {
+            console.log('received', _4way_command_to_string(message.command), _4way_ack_to_string(message.ack), message.address.toString(0x10), message.params)
             for (var i = self.callbacks.length - 1; i >= 0; --i) {
                 if (i < self.callbacks.length) {
                     if (self.callbacks[i].command == message.command &&
@@ -265,9 +266,7 @@ var _4way = {
                         self.callbacks.splice(i, 1);
         
                         // fire callback
-                        if (message.ack != _4way_ack.ACK_OK && self.error_callback) {
-                            self.error_callback(message);
-                        } else if (callback) {
+                        if (callback) {
                             callback(message);
                         }
                     }
