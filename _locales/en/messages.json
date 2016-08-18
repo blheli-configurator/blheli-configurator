@@ -26,7 +26,7 @@
         "message": "Device - <span style=\"color: red\">Rebooting</span>"
     },
     "deviceReady": {
-        "message": "Device - <span style=\"color: #57a929\">Ready</span>"
+        "message": "Device - <span style=\"color: #5739e9\">Ready</span>"
     },
 
     "tabFirmwareFlasher": {
@@ -40,26 +40,26 @@
     },
 
     "serialPortOpened": {
-        "message": "Serial port <span style=\"color: #57a929\">successfully</span> opened with ID: $1"
+        "message": "Serial port <span style=\"color: #5739e9\">successfully</span> opened with ID: $1"
     },
     "serialPortOpenFail": {
         "message": "<span style=\"color: red\">Failed</span> to open serial port"
     },
     "serialPortClosedOk": {
-        "message": "Serial port <span style=\"color: #57a929\">successfully</span> closed"
+        "message": "Serial port <span style=\"color: #5739e9\">successfully</span> closed"
     },
     "serialPortClosedFail": {
         "message": "<span style=\"color: red\">Failed</span> to close serial port"
     },
 
     "usbDeviceOpened": {
-        "message": "USB device <span style=\"color: #57a929\">successfully</span> opened with ID: $1"
+        "message": "USB device <span style=\"color: #5739e9\">successfully</span> opened with ID: $1"
     },
     "usbDeviceOpenFail": {
         "message": "<span style=\"color: red\">Failed</span> to open USB device!"
     },
     "usbDeviceClosed": {
-        "message": "USB device <span style=\"color: #57a929\">successfully</span> closed"
+        "message": "USB device <span style=\"color: #5739e9\">successfully</span> closed"
     },
     "usbDeviceCloseFail": {
         "message": "<span style=\"color: red\">Failed</span> to close USB device"
@@ -89,10 +89,10 @@
         "message": "Firmware Version: <strong>$1</strong>"
     },
     "apiVersionReceived": {
-        "message": "MultiWii API version <span style=\"color: #57a929\">received</span> - <strong>$1</strong>"
+        "message": "MultiWii API version <span style=\"color: #5739e9\">received</span> - <strong>$1</strong>"
     },
     "uniqueDeviceIdReceived": {
-        "message": "Unique device ID <span style=\"color: #57a929\">received</span> - <strong>0x$1</strong>"
+        "message": "Unique device ID <span style=\"color: #5739e9\">received</span> - <strong>0x$1</strong>"
     },
     "boardInfoReceived": {
         "message": "Board: <strong>$1</strong>, version: <strong>$2</strong>"
@@ -118,7 +118,7 @@
     },
 
     "eeprom_saved_ok": {
-        "message": "EEPROM <span style=\"color: #57a929\">saved</span>"
+        "message": "EEPROM <span style=\"color: #5739e9\">saved</span>"
     },
 
     "defaultWelcomeIntro": {

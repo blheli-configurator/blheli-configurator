@@ -225,7 +225,7 @@ GUI_control.prototype.content_ready = function (callback) {
     $('.togglesmall').each(function(index, elem) {
         var switchery = new Switchery(elem, {
           size: 'small',
-          color: '#59aa29',
+          color: '#5929aa',
           secondaryColor: '#c4c4c4'
         });
         $(elem).on("change", function (evt) {
@@ -236,7 +236,7 @@ GUI_control.prototype.content_ready = function (callback) {
 
     $('.toggle').each(function(index, elem) {
         var switchery = new Switchery(elem, {
-            color: '#59aa29',
+            color: '#5929aa',
             secondaryColor: '#c4c4c4'
         });
         $(elem).on("change", function (evt) {
@@ -248,7 +248,7 @@ GUI_control.prototype.content_ready = function (callback) {
     $('.togglemedium').each(function(index, elem) {
         var switchery = new Switchery(elem, {
             className: 'switcherymid',
-            color: '#59aa29',
+            color: '#5929aa',
             secondaryColor: '#c4c4c4'
          });
          $(elem).on("change", function (evt) {

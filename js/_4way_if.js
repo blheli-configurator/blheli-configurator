@@ -66,7 +66,6 @@ function _4way_ack_to_string(ack) {
 var _4way = {
     callbacks:      [],
     backlog_view:   null,
-    error_callback: null,
 
     crc16_xmodem_update: function(crc, byte) {
         crc = crc ^ (byte << 8);
