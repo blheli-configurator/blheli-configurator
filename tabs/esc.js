@@ -474,11 +474,11 @@ TABS.esc.initialize = function (callback) {
                 // ugly hack to enable bidir reversed
                 $('#MOTOR_DIRECTION', container).find(':nth-child(4)').prop('hidden', layout_revision < BLHELI_S_MIN_LAYOUT_REVISION);
 
-                var besc_buf = esc_settings.subarray(BLHELI_LAYOUT.BESC.offset, BLHELI_LAYOUT.BESC.offset + BLHELI_LAYOUT.BESC.size),
+                var layout_buf = esc_settings.subarray(BLHELI_LAYOUT.LAYOUT.offset, BLHELI_LAYOUT.LAYOUT.offset + BLHELI_LAYOUT.LAYOUT.size),
                     name_buf = esc_settings.subarray(BLHELI_LAYOUT.NAME.offset, BLHELI_LAYOUT.NAME.offset + BLHELI_LAYOUT.NAME.size),
-                    besc = buf2ascii(besc_buf).replace(/#/g, '').trim(),
+                    layout = buf2ascii(layout_buf).replace(/#/g, '').trim(),
                     name = buf2ascii(name_buf).trim(),
-                    title = besc + ', ' + esc_settings[0] + '.' + esc_settings[1] + (name.length > 0 ? ', ' + name : '');
+                    title = layout + ', ' + esc_settings[0] + '.' + esc_settings[1] + (name.length > 0 ? ', ' + name : '');
 
                 container.find('.escInfo').text(title);
 
@@ -702,9 +702,9 @@ TABS.esc.initialize = function (callback) {
 
             // @todo ask user if he wishes to continue
 
-            // check BESC
-            var target_esc = esc_settings.subarray(BLHELI_LAYOUT.BESC.offset, BLHELI_LAYOUT.BESC.offset + BLHELI_LAYOUT.BESC.size),
-                fw_esc = memory_image.subarray(BLHELI_SILABS_EEPROM_OFFSET).subarray(BLHELI_LAYOUT.BESC.offset, BLHELI_LAYOUT.BESC.offset + BLHELI_LAYOUT.BESC.size);
+            // check LAYOUT
+            var target_esc = esc_settings.subarray(BLHELI_LAYOUT.LAYOUT.offset, BLHELI_LAYOUT.LAYOUT.offset + BLHELI_LAYOUT.LAYOUT.size),
+                fw_esc = memory_image.subarray(BLHELI_SILABS_EEPROM_OFFSET).subarray(BLHELI_LAYOUT.LAYOUT.offset, BLHELI_LAYOUT.LAYOUT.offset + BLHELI_LAYOUT.LAYOUT.size);
 
             if (!compare(target_esc, fw_esc)) {
                 var target_esc_str = buf2ascii(target_esc).trim();
