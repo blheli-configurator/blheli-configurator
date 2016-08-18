@@ -476,28 +476,43 @@ TABS.esc.initialize = function (callback) {
 
                 var layout_buf = esc_settings.subarray(BLHELI_LAYOUT.LAYOUT.offset, BLHELI_LAYOUT.LAYOUT.offset + BLHELI_LAYOUT.LAYOUT.size),
                     name_buf = esc_settings.subarray(BLHELI_LAYOUT.NAME.offset, BLHELI_LAYOUT.NAME.offset + BLHELI_LAYOUT.NAME.size),
-                    layout = buf2ascii(layout_buf).replace(/#/g, '').trim(),
+                    layout = buf2ascii(layout_buf).trim(),
                     name = buf2ascii(name_buf).trim(),
-                    title = layout + ', ' + esc_settings[0] + '.' + esc_settings[1] + (name.length > 0 ? ', ' + name : '');
+                    make = layout.length > 0 ? layout : 'EMPTY'
+
+                if (esc_metainfo.interface_mode === _4way_modes.SiLBLB) {
+                    if (BLHELI_SILABS_ESCS.hasOwnProperty(layout)) {
+                        make = BLHELI_SILABS_ESCS[layout].name
+                        $('a.flash', container).removeClass('disabled')
+                    } else if (BLHELI_S_SILABS_ESCS.hasOwnProperty(layout)) {
+                        make = BLHELI_S_SILABS_ESCS[layout].name
+                        $('a.flash', container).removeClass('disabled')
+                    } else {
+                        $('a.flash', container).addClass('disabled')
+                    }
+                } else {
+                    if (BLHELI_ATMEL_ESCS.hasOwnProperty(layout)) {
+                        make = BLHELI_ATMEL_ESCS[layout].name
+                    }
+                    $('a.flash', container).addClass('disabled')
+                }
+
+                var title = make + ', ' + esc_settings[0] + '.' + esc_settings[1] + (name.length > 0 ? ', ' + name : '');
 
                 container.find('.escInfo').text(title);
 
-                var bidirectional = esc_settings[BLHELI_LAYOUT.MOTOR_DIRECTION.offset] == 3,
-                    ppm_center_element = container.find('#PPM_CENTER_THROTTLE').parent().parent();
+                var direction = esc_settings[BLHELI_LAYOUT.MOTOR_DIRECTION.offset],
+                    bidirectional = direction === 3 || direction === 4,
+                    ppm_center_element = container.find('#PPM_CENTER_THROTTLE').parent().parent()
+
                 if (bidirectional) {
                     ppm_center_element.show();
                 } else {
                     ppm_center_element.hide();
                 }
             } else {
-                container.find('.escInfo').text('NOT CONNECTED');
-            }
-
-            var flash_btn = $('a.flash', container);
-            if (esc_metainfo.available && esc_metainfo.interface_mode == _4way_modes.SiLBLB) {
-                flash_btn.removeClass('disabled');
-            } else {
-                flash_btn.addClass('disabled');
+                container.find('.escInfo').text('NOT CONNECTED')
+                $('a.flash', container).addClass('disabled')
             }
         }
     }
