@@ -346,10 +346,14 @@ TABS.esc.initialize = function (callback) {
             // BLHeli firmware sets these three bytes to 0 while flashing, so we can check if flashing has gone wrong
             if (main_revision == 0 && sub_revision == 0 && layout_revision == 0) {
                 self.print('ESC ' + (escIdx + 1) + ' is not flashed properly, all of (MAIN_REVISION, SUB_REVISION, LAYOUT_REVISION) are 0\n');
+                read_settings_failed(message);
+                return;
             }
 
             if (layout_revision < BLHELI_MIN_SUPPORTED_LAYOUT_REVISION) {
                 self.print('ESC ' + (escIdx + 1) + ' has LAYOUT_REVISION ' + layout_revision + ', oldest supported is ' + BLHELI_MIN_SUPPORTED_LAYOUT_REVISION + '\n');
+                read_settings_failed(message);
+                return;
             }
 
             // Check for MULTI mode

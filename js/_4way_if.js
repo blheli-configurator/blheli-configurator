@@ -198,32 +198,26 @@ var _4way = {
         if (params == undefined) params = [ 0 ];
         if (address == undefined) address = 0;
 
-        var message = this.createMessage(command, params, address),
+        var self = this,
+            message = this.createMessage(command, params, address),
             deferred = Q.defer()
 
         console.log('sending', _4way_command_to_string(command), address.toString(0x10), params)
-        this.callbacks.push({
-            command: command,
-            address: address,
-            callback: function(msg) {
-                if (msg.ack === _4way_ack.ACK_OK) {
-                    deferred.resolve(msg)
-                } else {
-                    deferred.reject(new Error(msg))
-                }
-            }
-        })
-
-        var self = this
-
         serial.send(message, function(sendInfo) {
             if (sendInfo.bytesSent == message.byteLength) {
-                // success
+                self.callbacks.push({
+                    command: command,
+                    address: address,
+                    callback: function(msg) {
+                        if (msg.ack === _4way_ack.ACK_OK) {
+                            deferred.resolve(msg)
+                        } else {
+                            deferred.reject(new Error(msg))
+                        }
+                    }
+                })
             } else {
                 deferred.reject(new Error('serial.send(): ' + sendInfo))
-                // @todo in this case we probably want to delete all callbacks,
-                // but maybe deleting only the one just added is more correct
-                self.callbacks = []
             }
         });
 
