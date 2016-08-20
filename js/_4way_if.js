@@ -63,8 +63,11 @@ function _4way_ack_to_string(ack) {
     return "invalid ack: " + ack;
 }
 
+// It is not advisable to queue-up commands as the serial interface may overflow.
+// Multiple commands with the same `command` tag may be resolved incorrectly.
 var _4way = {
     callbacks:      [],
+    // Storage for partially-received messages
     backlog_view:   null,
 
     crc16_xmodem_update: function(crc, byte) {
@@ -176,15 +179,15 @@ var _4way = {
         if (params == undefined) params = [ 0 ];
         if (address == undefined) address = 0;
 
-        var self = this;
-        var message = this.createMessage(command, params, address);
+        var self = this,
+            message = self.createMessage(command, params, address);
 
+        console.log('sending', _4way_command_to_string(command), address.toString(0x10), params)
         serial.send(message, function(sendInfo) {
             if (sendInfo.bytesSent == message.byteLength) {
                 if (callback) {
                     self.callbacks.push({
                         command: command,
-                        address: address,
                         callback: callback
                     });
                 }
@@ -199,7 +202,7 @@ var _4way = {
         if (address == undefined) address = 0;
 
         var self = this,
-            message = this.createMessage(command, params, address),
+            message = self.createMessage(command, params, address),
             deferred = Q.defer()
 
         console.log('sending', _4way_command_to_string(command), address.toString(0x10), params)
@@ -207,7 +210,6 @@ var _4way = {
             if (sendInfo.bytesSent == message.byteLength) {
                 self.callbacks.push({
                     command: command,
-                    address: address,
                     callback: function(msg) {
                         if (msg.ack === _4way_ack.ACK_OK) {
                             deferred.resolve(msg)
@@ -256,8 +258,7 @@ var _4way = {
             console.log('received', _4way_command_to_string(message.command), _4way_ack_to_string(message.ack), message.address.toString(0x10), message.params)
             for (var i = self.callbacks.length - 1; i >= 0; --i) {
                 if (i < self.callbacks.length) {
-                    if (self.callbacks[i].command == message.command &&
-                        self.callbacks[i].address == message.address) {
+                    if (self.callbacks[i].command == message.command) {
                         // save callback reference
                         var callback = self.callbacks[i].callback;
         
