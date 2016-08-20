@@ -2,7 +2,8 @@
 
 TABS.esc = {
     esc_settings: [],
-    esc_metainfo: []
+    esc_metainfo: [],
+    ignore_inappropriate_mcu_layout: false
 };
 
 TABS.esc.print = function (str) {
@@ -126,6 +127,13 @@ TABS.esc.initialize = function (callback) {
         $('a.write').click(write_settings);
         $('a.read').click(read_settings);
         $('a.flash').click(flash_firmware);
+
+        $('#ignore_inappropriate_mcu_layout').change(function() {
+            var element = $(this),
+                val = Number(element.is(':checked'))
+
+            self.ignore_inappropriate_mcu_layout = val
+        })
 
         GUI.content_ready(callback);
     }
@@ -718,15 +726,21 @@ TABS.esc.initialize = function (callback) {
             // @todo ask user if he wishes to continue
 
             // check LAYOUT
-            var target_esc = esc_settings.subarray(BLHELI_LAYOUT.LAYOUT.offset, BLHELI_LAYOUT.LAYOUT.offset + BLHELI_LAYOUT.LAYOUT.size),
-                fw_esc = memory_image.subarray(BLHELI_SILABS_EEPROM_OFFSET).subarray(BLHELI_LAYOUT.LAYOUT.offset, BLHELI_LAYOUT.LAYOUT.offset + BLHELI_LAYOUT.LAYOUT.size);
+            var target_layout = esc_settings.subarray(BLHELI_LAYOUT.LAYOUT.offset, BLHELI_LAYOUT.LAYOUT.offset + BLHELI_LAYOUT.LAYOUT.size),
+                fw_layout = memory_image.subarray(BLHELI_SILABS_EEPROM_OFFSET).subarray(BLHELI_LAYOUT.LAYOUT.offset, BLHELI_LAYOUT.LAYOUT.offset + BLHELI_LAYOUT.LAYOUT.size);
 
-            if (!compare(target_esc, fw_esc)) {
-                var target_esc_str = buf2ascii(target_esc).trim();
-                if (target_esc_str.length == 0)
-                    target_esc_str = 'EMPTY';
+            if (!compare(target_layout, fw_layout)) {
+                var target_layout_str = buf2ascii(target_layout).trim();
+                if (target_layout_str.length == 0) {
+                    target_layout_str = 'EMPTY'
+                }
 
-                self.print('Target ESC ' + target_esc_str + ' is different from HEX ' + buf2ascii(fw_esc).trim() + '\n');
+                var msg = 'Target LAYOUT ' + target_layout_str + ' is different from HEX ' + buf2ascii(fw_layout).trim()
+                if (self.ignore_inappropriate_mcu_layout) {
+                    self.print(msg)
+                } else {
+                    throw new Error(msg)
+                }
             }
 
             // check MCU, if it does not match there's either wrong HEX or corrupted ESC. Disallow for now
@@ -734,10 +748,16 @@ TABS.esc.initialize = function (callback) {
                 fw_mcu = memory_image.subarray(BLHELI_SILABS_EEPROM_OFFSET).subarray(BLHELI_LAYOUT.MCU.offset, BLHELI_LAYOUT.MCU.offset + BLHELI_LAYOUT.MCU.size);
             if (!compare(target_mcu, fw_mcu)) {
                 var target_mcu_str = buf2ascii(target_mcu).trim();
-                if (target_mcu_str.length == 0)
-                    target_mcu_str = 'EMPTY';
+                if (target_mcu_str.length == 0) {
+                    target_mcu_str = 'EMPTY'
+                }
 
-                throw new Error('Target MCU ' + target_mcu_str + ' is different from HEX ' + buf2ascii(fw_mcu).trim() + ', aborting')
+                var msg = 'Target MCU ' + target_mcu_str + ' is different from HEX ' + buf2ascii(fw_mcu).trim()
+                if (self.ignore_inappropriate_mcu_layout) {
+                    self.print(msg)
+                } else {
+                    throw new Error(msg)
+                }
             }
 
             // @todo check NAME for **FLASH*FAILED**
