@@ -4,7 +4,7 @@
 	"version": "0.0.5",
 	"author": "DieHertz",
 	"name": "BLHeli - Configurator",
-	"short_name": "blheli-conf",
+	"short_name": "blheli-configurator",
 	"description": "Cross-platform configuration tool for BLHeli-based electronic speed controllers",
 
 	"icons": {
