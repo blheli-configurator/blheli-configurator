@@ -59,7 +59,7 @@ var BLHELI_LAYOUT = {
     BRAKE_ON_STOP:              {   offset: 0x27, size: 1,  since: 0x15 },
     LED_CONTROL:                {   offset: 0x28, size: 1,  since: BLHELI_S_MIN_LAYOUT_REVISION },
 
-    BESC:                       {   offset: 0x40, size: 16, since: 0 },
+    LAYOUT:                     {   offset: 0x40, size: 16, since: 0 },
     MCU:                        {   offset: 0x50, size: 16, since: 0 },
     NAME:                       {   offset: 0x60, size: 16, since: 0 }
 };

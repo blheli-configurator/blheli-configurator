@@ -1,10 +1,10 @@
 {
 	"manifest_version": 2,
 	"minimum_chrome_version": "38",
-	"version": "0.0.4",
+	"version": "0.0.6",
 	"author": "DieHertz",
 	"name": "BLHeli - Configurator",
-	"short_name": "blheli-conf",
+	"short_name": "blheli-configurator",
 	"description": "Cross-platform configuration tool for BLHeli-based electronic speed controllers",
 
 	"icons": {

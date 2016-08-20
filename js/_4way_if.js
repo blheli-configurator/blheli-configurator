@@ -63,10 +63,12 @@ function _4way_ack_to_string(ack) {
     return "invalid ack: " + ack;
 }
 
+// It is not advisable to queue-up commands as the serial interface may overflow.
+// Multiple commands with the same `command` tag may be resolved incorrectly.
 var _4way = {
     callbacks:      [],
+    // Storage for partially-received messages
     backlog_view:   null,
-    error_callback: null,
 
     crc16_xmodem_update: function(crc, byte) {
         crc = crc ^ (byte << 8);
@@ -85,8 +87,7 @@ var _4way = {
         if (params.length == 0) {
             params.push(0);
         } else if (params.length > 256) {
-            console.log('4way interface supports maximum of 256 params');
-            return null;
+            throw new Error('4way interface supports maximum of 256 params, ' + params.length + ' passed')
         }
 
         var bufferOut = new ArrayBuffer(7 + params.length),
@@ -178,15 +179,15 @@ var _4way = {
         if (params == undefined) params = [ 0 ];
         if (address == undefined) address = 0;
 
-        var self = this;
-        var message = this.createMessage(command, params, address);
+        var self = this,
+            message = self.createMessage(command, params, address);
 
+        console.log('sending', _4way_command_to_string(command), address.toString(0x10), params)
         serial.send(message, function(sendInfo) {
             if (sendInfo.bytesSent == message.byteLength) {
                 if (callback) {
                     self.callbacks.push({
                         command: command,
-                        address: address,
                         callback: callback
                     });
                 }
@@ -196,35 +197,68 @@ var _4way = {
         });
     },
 
+    sendMessagePromised: function(command, params, address) {
+        if (params == undefined) params = [ 0 ];
+        if (address == undefined) address = 0;
+
+        var self = this,
+            message = self.createMessage(command, params, address),
+            deferred = Q.defer()
+
+        console.log('sending', _4way_command_to_string(command), address.toString(0x10), params)
+        serial.send(message, function(sendInfo) {
+            if (sendInfo.bytesSent == message.byteLength) {
+                self.callbacks.push({
+                    command: command,
+                    callback: function(msg) {
+                        if (msg.ack === _4way_ack.ACK_OK) {
+                            deferred.resolve(msg)
+                        } else {
+                            deferred.reject(new Error(msg))
+                        }
+                    }
+                })
+            } else {
+                deferred.reject(new Error('serial.send(): ' + sendInfo))
+            }
+        });
+
+        return deferred.promise
+    },
+
     send: function(obj) {
-        this.sendMessage(obj.command, obj.params, obj.address, obj.callback);
+        this.sendMessage(obj.command, obj.params, obj.address, obj.callback)
     },
 
-    initFlash: function(target, callback) {
-        this.sendMessage(_4way_commands.cmd_DeviceInitFlash, [ target ], 0, callback);
+    initFlash: function(target) {
+        return this.sendMessagePromised(_4way_commands.cmd_DeviceInitFlash, [ target ], 0)
     },
 
-    pageErase: function(page, callback) {
-        this.sendMessage(_4way_commands.cmd_DevicePageErase, [ page ], 0, callback);
+    pageErase: function(page) {
+        return this.sendMessagePromised(_4way_commands.cmd_DevicePageErase, [ page ], 0)
     },
 
-    write: function(address, data, callback) {
-        this.sendMessage(_4way_commands.cmd_DeviceWrite, data, address, callback);
+    read: function(address, bytes) {
+        return this.sendMessagePromised(_4way_commands.cmd_DeviceRead, [ bytes === 256 ? 0 : bytes ], address)
     },
 
-    reset: function(target, callback) {
-        this.sendMessage(_4way_commands.cmd_DeviceReset, [ target ], 0, callback);
+    write: function(address, data) {
+        return this.sendMessagePromised(_4way_commands.cmd_DeviceWrite, data, address)
     },
 
-    read: function(readInfo) {
+    reset: function(target) {
+        return this.sendMessagePromised(_4way_commands.cmd_DeviceReset, [ target ], 0)
+    },
+
+    onread: function(readInfo) {
         var self = this;
         var messages = self.parseMessages(readInfo.data);
 
         messages.forEach(function (message) {
+            console.log('received', _4way_command_to_string(message.command), _4way_ack_to_string(message.ack), message.address.toString(0x10), message.params)
             for (var i = self.callbacks.length - 1; i >= 0; --i) {
                 if (i < self.callbacks.length) {
-                    if (self.callbacks[i].command == message.command &&
-                        self.callbacks[i].address == message.address) {
+                    if (self.callbacks[i].command == message.command) {
                         // save callback reference
                         var callback = self.callbacks[i].callback;
         
@@ -232,9 +266,7 @@ var _4way = {
                         self.callbacks.splice(i, 1);
         
                         // fire callback
-                        if (message.ack != _4way_ack.ACK_OK && self.error_callback) {
-                            self.error_callback(message);
-                        } else if (callback) {
+                        if (callback) {
                             callback(message);
                         }
                     }

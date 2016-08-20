@@ -2,7 +2,8 @@
 
 TABS.esc = {
     esc_settings: [],
-    esc_metainfo: []
+    esc_metainfo: [],
+    ignore_inappropriate_mcu_layout: false
 };
 
 TABS.esc.print = function (str) {
@@ -126,6 +127,13 @@ TABS.esc.initialize = function (callback) {
         $('a.write').click(write_settings);
         $('a.read').click(read_settings);
         $('a.flash').click(flash_firmware);
+
+        $('#ignore_inappropriate_mcu_layout').change(function() {
+            var element = $(this),
+                val = Number(element.is(':checked'))
+
+            self.ignore_inappropriate_mcu_layout = val
+        })
 
         GUI.content_ready(callback);
     }
@@ -474,28 +482,45 @@ TABS.esc.initialize = function (callback) {
                 // ugly hack to enable bidir reversed
                 $('#MOTOR_DIRECTION', container).find(':nth-child(4)').prop('hidden', layout_revision < BLHELI_S_MIN_LAYOUT_REVISION);
 
-                var besc_buf = esc_settings.subarray(BLHELI_LAYOUT.BESC.offset, BLHELI_LAYOUT.BESC.offset + BLHELI_LAYOUT.BESC.size),
-                    besc = buf2ascii(besc_buf).replace(/#/g, '').trim(),
-                    title = besc + ', ' + esc_settings[0] + '.' + esc_settings[1];
+                var layout_buf = esc_settings.subarray(BLHELI_LAYOUT.LAYOUT.offset, BLHELI_LAYOUT.LAYOUT.offset + BLHELI_LAYOUT.LAYOUT.size),
+                    name_buf = esc_settings.subarray(BLHELI_LAYOUT.NAME.offset, BLHELI_LAYOUT.NAME.offset + BLHELI_LAYOUT.NAME.size),
+                    layout = buf2ascii(layout_buf).trim(),
+                    name = buf2ascii(name_buf).trim(),
+                    make = layout.length > 0 ? layout : 'EMPTY'
+
+                if (esc_metainfo.interface_mode === _4way_modes.SiLBLB) {
+                    if (BLHELI_SILABS_ESCS.hasOwnProperty(layout)) {
+                        make = BLHELI_SILABS_ESCS[layout].name
+                        $('a.flash', container).removeClass('disabled')
+                    } else if (BLHELI_S_SILABS_ESCS.hasOwnProperty(layout)) {
+                        make = BLHELI_S_SILABS_ESCS[layout].name
+                        $('a.flash', container).removeClass('disabled')
+                    } else {
+                        $('a.flash', container).addClass('disabled')
+                    }
+                } else {
+                    if (BLHELI_ATMEL_ESCS.hasOwnProperty(layout)) {
+                        make = BLHELI_ATMEL_ESCS[layout].name
+                    }
+                    $('a.flash', container).addClass('disabled')
+                }
+
+                var title = make + ', ' + esc_settings[0] + '.' + esc_settings[1] + (name.length > 0 ? ', ' + name : '');
 
                 container.find('.escInfo').text(title);
 
-                var bidirectional = esc_settings[BLHELI_LAYOUT.MOTOR_DIRECTION.offset] == 3,
-                    ppm_center_element = container.find('#PPM_CENTER_THROTTLE').parent().parent();
+                var direction = esc_settings[BLHELI_LAYOUT.MOTOR_DIRECTION.offset],
+                    bidirectional = direction === 3 || direction === 4,
+                    ppm_center_element = container.find('#PPM_CENTER_THROTTLE').parent().parent()
+
                 if (bidirectional) {
                     ppm_center_element.show();
                 } else {
                     ppm_center_element.hide();
                 }
             } else {
-                container.find('.escInfo').text('NOT CONNECTED');
-            }
-
-            var flash_btn = $('a.flash', container);
-            if (esc_metainfo.available && esc_metainfo.interface_mode == _4way_modes.SiLBLB) {
-                flash_btn.removeClass('disabled');
-            } else {
-                flash_btn.addClass('disabled');
+                container.find('.escInfo').text('NOT CONNECTED')
+                $('a.flash', container).addClass('disabled')
             }
         }
     }
@@ -621,113 +646,101 @@ TABS.esc.initialize = function (callback) {
 
         // Whole ESC flashing algorithm
         function flash_silabs_impl() {
-            // set global callback for all messages with non-OK ACK codes
-            _4way.error_callback = on_failed;
+            _4way.initFlash(escIdx)
+            // check that the target ESC is still SiLabs
+            .then(check_interface)
+            // read current settings
+            .then(read_eeprom)
+            // for subsequent write-back, erase
+            .then(check_esc_and_mcu)
+            // erase EEPROM page
+            .then(erase_page.bind(undefined, 0x0D))
+            // write **FLASH*FAILED** as ESC NAME
+            .then(write_eeprom_safeguard)
+            // write `LJMP bootloader` to avoid bricking            
+            .then(write_bootloader_failsafe)
+            // erase up to EEPROM, skipping first two first pages with bootloader failsafe
+            .then(erase_pages.bind(undefined, 0x02, 0x0D))
+            // write & verify just erased locations
+            .then(write_pages.bind(undefined, 0x02, 0x0D))
+            // write & verify first page
+            .then(write_page.bind(undefined, 0x00))
+            // erase second page
+            .then(erase_page.bind(undefined, 0x01))
+            // write & verify second page
+            .then(write_page.bind(undefined, 0x01))
+            // erase EEPROM
+            .then(erase_page.bind(undefined, 0x0D))
+            // write & verify EEPROM
+            .then(write_page.bind(undefined, 0x0D))
+            // migrate settings from previous version if asked to
+            .then(read_eeprom)
+            .then(function(message) {
+                var new_settings = message.params,
+                    offset = BLHELI_LAYOUT.MODE.offset;
 
-            _4way.initFlash(escIdx, function(message) {
-                // check that the target ESC is still SiLabs
-                check_interface(message, function(message) {
-                    read_eeprom(function(message) {
-                        // read current settings for subsequent write-back, erase
-                        check_esc_and_mcu(message, function(message) {
-                            // erase EEPROM page
-                            erase_page(0x0D, function() {
-                                // write **FLASH*FAILED** as ESC NAME 
-                                write_eeprom_safeguard(function() {
-                                    // write `LJMP bootloader` to avoid bricking
-                                    write_bootloader_failsafe(function() {
-                                        // erase up to EEPROM, skipping first two first pages with bootloader failsafe
-                                        erase_pages(0x02, 0x0D, function() {
-                                            // write & verify just erased locations
-                                            write_pages(0x02, 0x0D, function() {
-                                                // write & verify first page
-                                                write_page(0x00, function() {
-                                                    // erase second page
-                                                    erase_page(0x01, function() {
-                                                        // write & verify second page
-                                                        write_page(0x01, function() {
-                                                            // erase EEPROM
-                                                            erase_page(0x0D, function() {
-                                                                // write & verify EEPROM
-                                                                write_page(0x0D, function() {
-                                                                    read_eeprom(function(message) {
-                                                                        var new_settings = message.params,
-                                                                            offset = BLHELI_LAYOUT.MODE.offset;
+                // @todo move elsewhere
+                on_finished()
 
-                                                                        on_finished();
+                // ensure mode match
+                if (compare(new_settings.subarray(offset, offset + 2), esc_settings.subarray(offset, offset + 2))) {
+                    self.print('Writing settings back\n');
+                    // copy changed settings
+                    var begin = BLHELI_LAYOUT.P_GAIN.offset,
+                        end = BLHELI_LAYOUT.BRAKE_ON_STOP.offset + BLHELI_LAYOUT.BRAKE_ON_STOP.size;
 
-                                                                        // ensure mode match
-                                                                        if (compare(new_settings.subarray(offset, offset + 2), esc_settings.subarray(offset, offset + 2))) {
-                                                                            self.print('Writing settings back\n');
-                                                                            // copy changed settings
-                                                                            var begin = BLHELI_LAYOUT.P_GAIN.offset,
-                                                                                end = BLHELI_LAYOUT.BRAKE_ON_STOP.offset + BLHELI_LAYOUT.BRAKE_ON_STOP.size;
+                    new_settings.set(esc_settings.subarray(begin, end), begin);
 
-                                                                            new_settings.set(esc_settings.subarray(begin, end), begin);
+                    // set settings as current
+                    self.esc_settings[escIdx] = new_settings;
 
-                                                                            // set settings as current
-                                                                            self.esc_settings[escIdx] = new_settings;
+                    return write_settings()
+                } else {
+                    self.print('Will not write settings back due to different MODE\n');
 
-                                                                            write_settings();
-                                                                        } else {
-                                                                            self.print('Will not write settings back due to different MODE\n');
-
-                                                                            // read settings back
-                                                                            read_settings();
-                                                                        }
-                                                                    })
-                                                                })
-                                                            })
-                                                        })
-                                                    })
-                                                })
-                                            })
-                                        })
-                                    })
-                                })
-                            })
-                        })
-                    })
-                })
+                    // read settings back
+                    return read_settings()
+                }
             })
+            .catch(on_failed)
+
+            // @todo done
         }
 
-        function check_interface(message, callback) {
+        function check_interface(message) {
             esc_metainfo.interface_mode = message.params[3];
             if (esc_metainfo.interface_mode != _4way_modes.SiLBLB) {
-                self.print('Interface mode for ESC ' + (escIdx + 1) + ' has changed\n');
-                on_failed();
-                return;
+                throw new Error('Interface mode for ESC ' + (escIdx + 1) + ' has changed')
             }
 
             // @todo check device id correspondence
-            callback();
         }
 
-        function read_eeprom(callback) {
-            _4way.send({
-                command: _4way_commands.cmd_DeviceRead,
-                address: BLHELI_SILABS_EEPROM_OFFSET,
-                params: [ BLHELI_LAYOUT_SIZE ],
-                callback: callback
-            })
+        function read_eeprom() {
+            return _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE)
         }
 
-        function check_esc_and_mcu(message, callback) {
+        function check_esc_and_mcu(message) {
             esc_settings = message.params;
 
             // @todo ask user if he wishes to continue
 
-            // check BESC
-            var target_esc = esc_settings.subarray(BLHELI_LAYOUT.BESC.offset, BLHELI_LAYOUT.BESC.offset + BLHELI_LAYOUT.BESC.size),
-                fw_esc = memory_image.subarray(BLHELI_SILABS_EEPROM_OFFSET).subarray(BLHELI_LAYOUT.BESC.offset, BLHELI_LAYOUT.BESC.offset + BLHELI_LAYOUT.BESC.size);
+            // check LAYOUT
+            var target_layout = esc_settings.subarray(BLHELI_LAYOUT.LAYOUT.offset, BLHELI_LAYOUT.LAYOUT.offset + BLHELI_LAYOUT.LAYOUT.size),
+                fw_layout = memory_image.subarray(BLHELI_SILABS_EEPROM_OFFSET).subarray(BLHELI_LAYOUT.LAYOUT.offset, BLHELI_LAYOUT.LAYOUT.offset + BLHELI_LAYOUT.LAYOUT.size);
 
-            if (!compare(target_esc, fw_esc)) {
-                var target_esc_str = buf2ascii(target_esc).trim();
-                if (target_esc_str.length == 0)
-                    target_esc_str = 'EMPTY';
+            if (!compare(target_layout, fw_layout)) {
+                var target_layout_str = buf2ascii(target_layout).trim();
+                if (target_layout_str.length == 0) {
+                    target_layout_str = 'EMPTY'
+                }
 
-                self.print('Target ESC ' + target_esc_str + ' is different from HEX ' + buf2ascii(fw_esc).trim() + '\n');
+                var msg = 'Target LAYOUT ' + target_layout_str + ' is different from HEX ' + buf2ascii(fw_layout).trim()
+                if (self.ignore_inappropriate_mcu_layout) {
+                    self.print(msg)
+                } else {
+                    throw new Error(msg)
+                }
             }
 
             // check MCU, if it does not match there's either wrong HEX or corrupted ESC. Disallow for now
@@ -735,194 +748,146 @@ TABS.esc.initialize = function (callback) {
                 fw_mcu = memory_image.subarray(BLHELI_SILABS_EEPROM_OFFSET).subarray(BLHELI_LAYOUT.MCU.offset, BLHELI_LAYOUT.MCU.offset + BLHELI_LAYOUT.MCU.size);
             if (!compare(target_mcu, fw_mcu)) {
                 var target_mcu_str = buf2ascii(target_mcu).trim();
-                if (target_mcu_str.length == 0)
-                    target_mcu_str = 'EMPTY';
+                if (target_mcu_str.length == 0) {
+                    target_mcu_str = 'EMPTY'
+                }
 
-                self.print('Target MCU ' + target_mcu_str + ' is different from HEX ' + buf2ascii(fw_mcu).trim() + ', aborting\n');
-                on_failed();
-                return;
+                var msg = 'Target MCU ' + target_mcu_str + ' is different from HEX ' + buf2ascii(fw_mcu).trim()
+                if (self.ignore_inappropriate_mcu_layout) {
+                    self.print(msg)
+                } else {
+                    throw new Error(msg)
+                }
             }
 
             // @todo check NAME for **FLASH*FAILED**
-            callback();
         }
 
-        function write_eeprom_safeguard(callback) {
+        function write_eeprom_safeguard() {
             esc_settings.set(ascii2buf('**FLASH*FAILED**'), BLHELI_LAYOUT.NAME.offset);
 
-            _4way.send({
-                command: _4way_commands.cmd_DeviceWrite,
-                address: BLHELI_SILABS_EEPROM_OFFSET,
-                params: esc_settings,
-                callback: function(message) {
-                    // verify write
-                    _4way.send({
-                        command: _4way_commands.cmd_DeviceRead,
-                        address: message.address,
-                        params: [ BLHELI_LAYOUT_SIZE ],
-                        callback: function(message) {
-                            if (!compare(esc_settings, message.params)) {
-                                self.print('Failed to verify write **FLASH*FAILED**\n')
-                                on_failed();
-                                return;
-                            }
-
-                            callback();
-                        }
-                    })
+            var promise = _4way.write(BLHELI_SILABS_EEPROM_OFFSET, esc_settings)
+            .then(function(message) {
+                return _4way.read(message.address, BLHELI_LAYOUT_SIZE)
+            })
+            .then(function(message) {
+                if (!compare(esc_settings, message.params)) {
+                    throw new Error('Failed to verify write **FLASH*FAILED**')
                 }
             })
+
+            return promise
         }
 
-        function write_bootloader_failsafe(callback) {
-            _4way.send({
-                command: _4way_commands.cmd_DeviceRead,
-                address: 0,
-                params: [ 3 ],
-                callback: function(message) {
-                    // verify LJMP reset
-                    var ljmp_reset = new Uint8Array([ 0x02, 0x19, 0xFD ]);
-                    if (!compare(ljmp_reset, message.params)) {
-                        self.print('Target ESC has different instruction at start of address space\n');
-                        on_failed(message);
-                        return;
-                    }
+        function write_bootloader_failsafe() {
+            var ljmp_reset = new Uint8Array([ 0x02, 0x19, 0xFD ]),
+                ljmp_bootloader = new Uint8Array([ 0x02, 0x1C, 0x00 ])
 
-                    // erase second page
-                    _4way.pageErase(1, function() {
-                        // write LJMP bootloader
-                        var ljmp_bootloader = new Uint8Array([ 0x02, 0x1C, 0x00 ]);
-                        _4way.write(0x200, ljmp_bootloader, function() {
-                            _4way.send({
-                                command: _4way_commands.cmd_DeviceRead,
-                                address: 0x200,
-                                params: [ ljmp_bootloader.byteLength ],
-                                callback: function(message) {
-                                    // verify
-                                    if (!compare(ljmp_bootloader, message.params)) {
-                                        console.log(ljmp_bootloader, message.params);
-                                        self.print('Failed to verify `LJMP bootloader` write\n');
-                                        on_failed(message);
-                                        return;
-                                    }
-
-                                    // erase first page
-                                    _4way.pageErase(0, function() {
-                                        // ensure page erased to 0xFF
-                                        _4way.send({
-                                            command: _4way_commands.cmd_DeviceRead,
-                                            address: 0,
-                                            params: [ 0 ],
-                                            callback: function(message) {
-                                                var erased = message.params.every(x => x == 0xFF);
-                                                if (!erased) {
-                                                    self.print('Failed to verify erasure of the first page\n');
-                                                    on_failed();
-                                                    return;
-                                                }
-
-                                                _4way.send({
-                                                    command: _4way_commands.cmd_DeviceRead,
-                                                    address: 0x100,
-                                                    params: [ 0 ],
-                                                    callback: function(message) {
-                                                        var erased = message.params.every(x => x == 0xFF);
-                                                        if (!erased) {
-                                                            self.print('Failed to verify erasure of the first page\n');
-                                                            on_failed();
-                                                            return;
-                                                        }
-
-                                                        callback();
-                                                    }
-                                                })
-                                            }
-                                        })
-                                    })
-                                }
-                            })
-                        })
-                    })
+            var promise = _4way.read(0, 3)
+            // verify LJMP reset
+            .then(function(message) {
+                console.log(message)
+                if (!compare(ljmp_reset, message.params)) {
+                    self.print('ESC ' + (escIdx + 1) + ' has a different instruction at start of address space, previous flashing has probably failed')
                 }
             })
-        }
-
-        function erase_pages(from_page, max_page, callback) {
-            function erase_impl(page) {
-                if (page >= max_page) {
-                    // reached recursion end
-                    callback();
-                    return;
+            // erase second page
+            .then(erase_page.bind(undefined, 1))
+            // write LJMP bootloader
+            .then(function() {
+                return _4way.write(0x200, ljmp_bootloader)
+            })
+            // read LJMP bootloader
+            .then(function() {
+                return _4way.read(0x200, ljmp_bootloader.byteLength)
+            })
+            // verify LJMP bootloader
+            .then(function(message) {
+                if (!compare(ljmp_bootloader, message.params)) {
+                    throw new Error('Failed to verify `LJMP bootloader` write')
+                }
+            })
+            // erase first page
+            .then(erase_page.bind(undefined, 0))
+            // ensure page erased to 0xFF
+            .then(_4way.read.bind(_4way, 0, 0x100))
+            .then(function(message) {
+                var erased = message.params.every(x => x == 0xFF)
+                if (!erased) {
+                    throw new Error('Failed to verify erasure of the first page')
                 }
 
-                _4way.pageErase(page, function(message) {
-                    update_progress(BLHELI_SILABS_PAGE_SIZE);
-                    erase_impl(page + 1);
+                return _4way.read(0x100, 0x100)
+            })
+            .then(function(message) {
+                var erased = message.params.every(x => x == 0xFF)
+                if (!erased) {
+                    throw new Error('Failed to verify erasure of the first page')
+                }
+            })
+
+            return promise
+        }
+
+        function erase_pages(from_page, max_page) {
+            var promise = Q()
+
+            for (var page = from_page; page < max_page; ++page) {
+                promise = promise.then(_4way.pageErase.bind(_4way, page))
+                .then(function() {
+                    update_progress(BLHELI_SILABS_PAGE_SIZE)
                 })
             }
 
-            erase_impl(from_page);
+            return promise;
         }
 
-        function erase_page(page, callback) {
-            erase_pages(page, page + 1, callback);
+        function erase_page(page) {
+            return erase_pages(page, page + 1);
         }
 
-        function write_pages(begin, end, callback) {
+        function write_pages(begin, end) {
             var begin_address   = begin * BLHELI_SILABS_PAGE_SIZE,
                 end_address     = end * BLHELI_SILABS_PAGE_SIZE,
-                step            = 0x100;
+                step            = 0x100,
+                promise         = Q()
 
-            function write_impl(address) {
-                if (address >= end_address) {
-                    // reached recursion end
-                    verify_pages(begin, end, callback);
-                    return;
-                }
-
-                _4way.write(address, memory_image.subarray(address, address + step), function(message) {
-                    update_progress(step);
-                    write_impl(address + step);
+            for (var address = begin_address; address < end_address; address += step) {
+                promise = promise.then(_4way.write.bind(_4way, address, memory_image.subarray(address, address + step)))
+                .then(function() {
+                    update_progress(step)
                 })
             }
 
-            write_impl(begin_address);
+            promise = promise.then(function() {
+                return verify_pages(begin, end)
+            })
+            
+            return promise
         }
 
-        function write_page(page, callback) {
-            write_pages(page, page + 1, callback);
+        function write_page(page) {
+            return write_pages(page, page + 1)
         }
 
-        function verify_pages(begin, end, callback) {
+        function verify_pages(begin, end) {
             var begin_address   = begin * BLHELI_SILABS_PAGE_SIZE,
                 end_address     = end * BLHELI_SILABS_PAGE_SIZE,
-                step            = 0x100;
+                step            = 0x100,
+                promise         = Q()
 
-            function verify_impl(address) {
-                if (address >= end_address) {
-                    // reached recursion end
-                    callback();
-                    return;
-                }
-
-                _4way.send({
-                    command: _4way_commands.cmd_DeviceRead,
-                    address: address,
-                    params: [ 0 ],
-                    callback: function(message) {
-                        if (!compare(message.params, memory_image.subarray(address, address + step))) {
-                            self.print('Failed to verify write at address 0x' + address.toString(0x10) + '\n');
-                            on_failed();
-                            return;
-                        }
-
-                        update_progress(step);
-                        verify_impl(address + step);
+            for (var address = begin_address; address < end_address; address += step) {
+                promise = promise.then(_4way.read.bind(_4way, address, 256))
+                .then(function(message) {
+                    if (!compare(message.params, memory_image.subarray(message.address, message.address + message.params.byteLength))) {
+                        throw new Error('Failed to verify write at address 0x' + message.address.toString(0x10))
                     }
+
+                    update_progress(step)
                 })
             }
 
-            verify_impl(begin_address);
+            return promise
         }
 
         function compare(lhs_array, rhs_array) {
@@ -939,17 +904,17 @@ TABS.esc.initialize = function (callback) {
             return true;
         }
 
-        function on_failed(message) {
-            _4way.error_callback = null;
-            self.print('Firmware flashing failed' + (message ? ': ' + JSON.stringify(message) : ' ') + '\n');
+        function on_failed(error) {
+            self.print('Firmware flashing failed' + (error ? ': ' + error.stack : ' ') + '\n');
             $('a.flash').removeClass('disabled');
+            _4way.dry_run = false;
             progress_e.hide();
         }
 
         function on_finished() {
-            _4way.error_callback = null;
             self.print('Flashing firmware to ESC ' + (escIdx + 1) + ' finished\n');
             $('a.flash').removeClass('disabled');
+            _4way.dry_run = false;
             progress_e.hide();
         }
 
