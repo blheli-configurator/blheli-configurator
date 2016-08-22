@@ -140,29 +140,25 @@ TABS.esc.initialize = function (callback) {
 
     // @todo combine
     // Read setting(s), uses ReadEEprom for Atmel and Read for SiLabs
-    function read_eeprom_impl(interface_mode, address, bytesToRead, callback) {
+    function read_eeprom_impl(interface_mode, address, bytesToRead) {
         // SiLabs has no separate EEPROM, but Atmel has and therefore requires a different read command
-        var isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interface_mode),
-            obj = {
-            command: isSiLabs ? _4way_commands.cmd_DeviceRead : _4way_commands.cmd_DeviceReadEEprom,
-            address: isSiLabs ? BLHELI_SILABS_EEPROM_OFFSET + address : address,
-            params: [ bytesToRead ],
-            callback: callback
-        };
+        var isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interface_mode)
 
-        _4way.send(obj);
+        if (isSiLabs) {
+            return _4way.read(BLHELI_SILABS_EEPROM_OFFSET + address, bytesToRead)
+        } else {
+            return _4way.readEEprom(address, bytesToRead)
+        }
     }
 
-    function write_eeprom_impl(interface_mode, address, bytes, callback) {
-        var isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interface_mode),
-            obj = {
-            command: isSiLabs ? _4way_commands.cmd_DeviceWrite : _4way_commands.cmd_DeviceWriteEEprom,
-            address: isSiLabs ? BLHELI_SILABS_EEPROM_OFFSET + address : address,
-            params: bytes,
-            callback: callback
-        };
+    function write_eeprom_impl(interface_mode, address, bytes) {
+        var isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interface_mode)
 
-        _4way.send(obj);
+        if (isSiLabs) {
+            return _4way.write(BLHELI_SILABS_EEPROM_OFFSET + address, bytes)
+        } else {
+            return _4way.writeEEprom(address, bytes)
+        }
     }
 
     function write_settings() {
@@ -300,107 +296,81 @@ TABS.esc.initialize = function (callback) {
     }
 
     function read_settings() {
-        $('a.read').addClass('disabled');
-        $('a.write').addClass('disabled');
+        $('a.read, a.write, a.flash').addClass('disabled')
 
-        read_settings_impl(0);
+        read_settings_impl()
+        .then(() => {
+            // @todo check agreement between ESC settings
+            var first_esc_available = self.esc_metainfo.findIndex(function(item) {
+                return item.available
+            })
+
+            fill_settings_ui(first_esc_available)
+
+            $('a.read').removeClass('disabled')
+            if (first_esc_available != -1) {
+                $('a.write').removeClass('disabled')
+            }
+        })
+        .done()
     }
 
-    function read_settings_impl(escIdx) {
-        if (escIdx >= self.esc_settings.length) {
-            read_settings_complete();
-            return;
+    function read_settings_impl() {
+        var promise = Q()
+
+        for (var esc = 0; i < self.esc_settings.length; ++i) {
+            promise = promise
+            // Ask 4way interface to initialize target ESC for flashing
+            .then(_4way.initFlash.bind(_4way, esc))
+            // Check interface mode and read settings
+            .then(message => {
+                var interface_mode = message.params[3]
+
+                // remember interface mode for ESC
+                self.esc_metainfo[esc].interface_mode = interface_mode
+
+                // read everything in one big chunk
+                return read_eeprom_impl(interface_mode, 0, BLHELI_LAYOUT_SIZE)
+            })
+            // Ensure MULTI mode and correct BLHeli version
+            .then(message => {
+                // Check whether revision is supported
+                var esc_settings = message.params,
+                    main_revision = esc_settings[0],
+                    sub_revision = esc_settings[1],
+                    layout_revision = esc_settings[2]
+
+                // @todo Reflect following checks in the UI, allowing to flash but not alter settings of ESCs which have wrong/unsupported BLHeli version
+
+                // BLHeli firmware sets these three bytes to 0 while flashing, so we can check if flashing has gone wrong
+                if (main_revision == 0 && sub_revision == 0 && layout_revision == 0) {
+                    self.print('ESC ' + (esc + 1) + ' is not flashed properly, all of (MAIN_REVISION, SUB_REVISION, LAYOUT_REVISION) are 0')
+                }
+
+                if (layout_revision < BLHELI_MIN_SUPPORTED_LAYOUT_REVISION) {
+                    self.print('ESC ' + (esc + 1) + ' has LAYOUT_REVISION ' + layout_revision + ', oldest supported is ' + BLHELI_MIN_SUPPORTED_LAYOUT_REVISION)
+                }
+
+                // Check for MULTI mode
+                // @todo replace with a DataView
+                var mode = esc_settings.subarray(BLHELI_LAYOUT.MODE.offset, BLHELI_LAYOUT.MODE.offset + BLHELI_LAYOUT.MODE.size)
+                    .reduce(function(sum, byte) { return (sum << 8) | byte; })
+                if (mode != BLHELI_MODES.MULTI) {
+                    self.print('ESC ' + (esc + 1) + ' has MODE different from MULTI: ' + mode.toString(0x10))
+                }
+
+                self.esc_settings[esc] = esc_settings;
+                self.esc_metainfo[esc].available = true;
+            })
+            .catch(error => {
+                self.esc_metainfo[esc].available = false
+            })
         }
 
-        _4way.send({
-            command: _4way_commands.cmd_DeviceInitFlash,
-            params: [ escIdx ],
-            callback: on_init_flash
-        });
-
-        // Tell 4way-if to initialize target ESC for flashing
-        function on_init_flash(message) {
-            if (message.ack == _4way_ack.ACK_D_GENERAL_ERROR) {
-                // ESC may be unpowered or absent, continue
-                self.esc_metainfo.available = false;
-                read_settings_impl(escIdx + 1);
-                return;
-            } else if (message.ack != _4way_ack.ACK_OK) {
-                read_settings_failed(message);
-                return;
-            }
-
-            // remember interface mode for ESC
-            var interface_mode = message.params[3];
-            self.esc_metainfo[escIdx].interface_mode = interface_mode;
-
-            // read everything in one big chunk
-            read_eeprom_impl(interface_mode, 0, BLHELI_LAYOUT_SIZE, check_revision);
-        }
-
-        // Ensure revisions match
-        function check_revision(message) {
-            if (message.ack != _4way_ack.ACK_OK) {
-                read_settings_failed(message);
-                return;
-            }
-
-            // Check whether revision is supported
-            var buf = message.params,
-                main_revision = buf[0],
-                sub_revision = buf[1],
-                layout_revision = buf[2];
-
-            // BLHeli firmware sets these three bytes to 0 while flashing, so we can check if flashing has gone wrong
-            if (main_revision == 0 && sub_revision == 0 && layout_revision == 0) {
-                self.print('ESC ' + (escIdx + 1) + ' is not flashed properly, all of (MAIN_REVISION, SUB_REVISION, LAYOUT_REVISION) are 0\n');
-                read_settings_failed(message);
-                return;
-            }
-
-            if (layout_revision < BLHELI_MIN_SUPPORTED_LAYOUT_REVISION) {
-                self.print('ESC ' + (escIdx + 1) + ' has LAYOUT_REVISION ' + layout_revision + ', oldest supported is ' + BLHELI_MIN_SUPPORTED_LAYOUT_REVISION + '\n');
-                read_settings_failed(message);
-                return;
-            }
-
-            // Check for MULTI mode
-            var mode = buf.subarray(BLHELI_LAYOUT.MODE.offset, BLHELI_LAYOUT.MODE.offset + BLHELI_LAYOUT.MODE.size)
-                .reduce(function(sum, byte) { return (sum << 8) | byte; });
-            if (mode != BLHELI_MODES.MULTI) {
-                self.print('ESC ' + (escIdx + 1) + ' has MODE different from MULTI: ' + mode.toString(0x10) + '\n');
-            }
-
-            self.esc_settings[escIdx] = buf;
-            self.esc_metainfo[escIdx].available = true;
-
-            // Continue with remaining ESCs
-            read_settings_impl(escIdx + 1);
-        }
+        return promise
     }
 
-    function read_settings_complete() {
-        // @todo check agreement between ESC settings
-        var first_esc_available = self.esc_metainfo.findIndex(function(item) {
-            return item.available;
-        });
-
-        fill_settings_ui(first_esc_available);
-
-        $('a.read').removeClass('disabled');
-        if (first_esc_available != -1) {
-            $('a.write').removeClass('disabled');
-        }
-    }
-
-    function read_settings_failed(message) {
-        self.print('read_settings_failed: ' + _4way_ack_to_string(message.ack) + '\n' + JSON.stringify(message) + '\n');
-
-        $('a.read').removeClass('disabled');
-        $('a.flash').addClass('disabled');
-    }
-
-    function fill_settings_ui(first_esc_available) {
+    function update_settings_ui(first_esc_available) {
         if (first_esc_available !== -1) {
             var master_esc_settings = self.esc_settings[first_esc_available],
                 layout_revision = master_esc_settings[BLHELI_LAYOUT.LAYOUT_REVISION.offset];

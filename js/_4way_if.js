@@ -242,8 +242,16 @@ var _4way = {
         return this.sendMessagePromised(_4way_commands.cmd_DeviceRead, [ bytes === 256 ? 0 : bytes ], address)
     },
 
+    readEEprom: function(address, bytes) {
+        return this.sendMessagePromised(_4way_commands.cmd_DeviceReadEEprom, [ bytes === 256 ? 0 : bytes ], address)  
+    },
+
     write: function(address, data) {
         return this.sendMessagePromised(_4way_commands.cmd_DeviceWrite, data, address)
+    },
+
+    writeEEprom: function(address, data) {
+        return this.sendMessagePromised(_4way_commands.cmd_DeviceWriteEEprom, data, address)
     },
 
     reset: function(target) {

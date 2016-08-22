@@ -136,6 +136,10 @@ var BLHELI_ATMEL_ESCS = {
     '#ZTWSpLite18Av2#': { name: 'ZTW Spider Lite 18Av2',      damped_enabled: 1 }
 }
 
+var BLHELI_S_SILABS_LAYOUTS = [ 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J' ]
+var BLHELI_S_SILABS_CHIPS =   [ 'L', 'H' ]
+var BLHELI_S_SILABS_DELAYS =  [ '00', '05', '15', '20', '25', '30', '40', '50', '70', '90' ]
+
 var BLHELI_S_SILABS_ESCS = {
     '#A_L_00#': { name: 'A_L_00' },
     '#A_L_05#': { name: 'A_L_05' },
