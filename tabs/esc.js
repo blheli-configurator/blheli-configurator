@@ -744,7 +744,6 @@ TABS.esc.initialize = function (callback) {
             var promise = _4way.read(0, 3)
             // verify LJMP reset
             .then(function(message) {
-                console.log(message)
                 if (!compare(ljmp_reset, message.params)) {
                     self.print('ESC ' + (escIdx + 1) + ' has a different instruction at start of address space, previous flashing has probably failed')
                 }

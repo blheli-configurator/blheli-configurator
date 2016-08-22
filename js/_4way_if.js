@@ -175,28 +175,6 @@ var _4way = {
         return messages;
     },
 
-    sendMessage: function(command, params, address, callback) {
-        if (params == undefined) params = [ 0 ];
-        if (address == undefined) address = 0;
-
-        var self = this,
-            message = self.createMessage(command, params, address);
-
-        console.log('sending', _4way_command_to_string(command), address.toString(0x10), params)
-        serial.send(message, function(sendInfo) {
-            if (sendInfo.bytesSent == message.byteLength) {
-                if (callback) {
-                    self.callbacks.push({
-                        command: command,
-                        callback: callback
-                    });
-                }
-            } else {
-                console.log('send failed: ', sendInfo);
-            }
-        });
-    },
-
     sendMessagePromised: function(command, params, address) {
         if (params == undefined) params = [ 0 ];
         if (address == undefined) address = 0;
