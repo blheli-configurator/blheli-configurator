@@ -161,138 +161,104 @@ TABS.esc.initialize = function (callback) {
         }
     }
 
+    function compare(lhs_array, rhs_array) {
+        if (lhs_array.byteLength != rhs_array.byteLength) {
+            return false;
+        }
+
+        for (var i = 0; i < lhs_array.byteLength; ++i) {
+            if (lhs_array[i] !== rhs_array[i]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     function write_settings() {
-        $('a.write').addClass('disabled');
-        $('a.read').addClass('disabled');
+        $('a.write, a.read, a.flash').addClass('disabled')
 
-        write_settings_impl(0);
+        write_settings_impl()
+        .then(() => {
+            self.print('write_settings_complete')
+
+            // settings readback
+            read_settings()
+        })
+        .done()
     }
 
-    function write_settings_impl(escIdx) {
-        if (escIdx >= self.esc_settings.length) {
-            write_settings_complete();
-            return;
-        }
+    function write_settings_impl() {
+        var promise = Q()
 
-        if (!self.esc_metainfo[escIdx].available) {
-            self.print('ESC ' + (escIdx + 1) + ' was not connected, skipping. Please `Read Settings` first\n');
-            write_settings_impl(escIdx + 1);
-            return;
-        }
-
-        _4way.send({
-            command: _4way_commands.cmd_DeviceInitFlash,
-            params: [ escIdx ],
-            callback: on_init_flash
-        });
-
-        var interface_mode;
-
-        // Tell 4way-if to initialize target ESC for flashing
-        function on_init_flash(message) {
-            if (message.ack == _4way_ack.ACK_D_GENERAL_ERROR) {
-                // ESC may be unpowered or absent, continue
-                self.print('ESC ' + (escIdx + 1) + ' is not connected\n');
-                write_settings_impl(escIdx + 1);
-                return;
-            } else if (message.ack != _4way_ack.ACK_OK) {
-                write_settings_failed(message);
-                return;
+        for (let esc = 0; i < self.esc_settings.length; ++i) {
+            if (!self.esc_metainfo[esc].available) {
+               self.print('ESC ' + (esc + 1) + ' was not connected, skipping.')
+               continue;
             }
 
-            // remember interface mode for ESC
-            interface_mode = message.params[3];
-            self.esc_metainfo[escIdx].interface_mode = interface_mode;
+            promise = promise
+            // Ask 4way interface to initialize target ESC for flashing
+            .then(_4way.initFlash.bind(_4way, esc))
+            // Remember interface mode and read settings
+            .then(message => {
+                var interface_mode = message.params[3]
 
-            self.print('ESC ' + (escIdx + 1) + ' signature: ' + message.params[1].toString(0x10) + message.params[0].toString(0x10) + '\n');
+                // remember interface mode for ESC
+                self.esc_metainfo[esc].interface_mode = interface_mode
 
-            // read everything in one big chunk to check if any settings have changed
-            read_eeprom_impl(interface_mode, 0, BLHELI_LAYOUT_SIZE, check_for_changes);
-        }
+                // read everything in one big chunk to check if any settings have changed
+                return read_eeprom_impl(interface_mode, 0, BLHELI_LAYOUT_SIZE)
+            })
+            // Check for changes and perform write
+            .then(message => {
+                var esc_settings = self.esc_settings[esc],
+                    readback_settings = message.params
 
-        function check_for_changes(message) {
-            if (message.ack != _4way_ack.ACK_OK) {
-                write_settings_failed(message);
-                return;
-            }
-
-            var esc_settings = self.esc_settings[escIdx],
-                readback_settings = message.params;
-
-            // check for unexpected size mismatch
-            if (esc_settings.byteLength != readback_settings.byteLength) {
-                self.print('Flashing ESC ' + (escIdx + 1) + ' failed, byteLength of buffers does not match\n');
-                write_settings_failed(message);
-                return;
-            }
-
-            // check for actual changes, maybe we should not write to this ESC at all
-            var has_changes = false;
-            for (var i = 0; i < esc_settings.byteLength; ++i) {
-                if (esc_settings[i] != readback_settings[i]) {
-                    has_changes = true;
-                    break;
+                // check for unexpected size mismatch
+                if (esc_settings.byteLength != readback_settings.byteLength) {
+                    throw new Error('byteLength of buffers do not match')
                 }
-            }
 
-            // @todo BLHeliSuite writes only hanged values to Atmel EEPROM, probably there's a reason for it
-            if (has_changes) {
-                var isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interface_mode);
+                // check for actual changes, maybe we should not write to this ESC at all
+                // @todo BLHeliSuite writes only hanged values to Atmel EEPROM, probably there's a reason for it
+                if (compare(esc_settings, readback_settings)) {
+                    self.print('ESC ' + (escIdx + 1) + ': no changes')
+                    return
+                }
+
+
+                var interface_mode = self.esc_metainfo[esc].interface_mode,
+                    isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interface_mode),
+                    promise = Q()
+
+                // should erase page to 0xFF on SiLabs before writing
                 if (isSiLabs) {
-                    erase_page();
-                } else {
-                    write_eeprom_impl(interface_mode, 0, esc_settings, on_written);
+                    promise = promise.then(_4way.pageErase.bind(_4way, BLHELI_SILABS_EEPROM_OFFSET / BLHELI_SILABS_PAGE_SIZE))
                 }
-            } else {
-                self.print('ESC ' + (escIdx + 1) + ', no changes\n');
-                write_settings_impl(escIdx + 1);
-            }
+
+                promise = promise
+                // actual write
+                .then(() => {
+                    return write_eeprom_impl(interface_mode, 0, esc_settings)
+                })
+                // readback
+                .then(() => {
+                    return read_eeprom_impl(interface_mode, 0, BLHELI_LAYOUT_SIZE)
+                })
+                // verify
+                .then(message => {
+                    if (!compare(esc_settings, message.params)) {
+                        throw new Error('Failed to verify settings')
+                    }
+                })
+            })
+            .catch(error => {
+                self.print('ESC ' + (esc + 1) + ', failed to write settings: ' + error)
+            })
         }
 
-        function erase_page() {
-            // All the supported SiLabs MCU ESCs have the same page size
-            var pageNo = BLHELI_SILABS_EEPROM_OFFSET / BLHELI_SILABS_PAGE_SIZE;
-            _4way.send({
-                command: _4way_commands.cmd_DevicePageErase,
-                params: [ pageNo ],
-                callback: write
-            });
-        }
-
-        function write(message) {
-            if (message.ack != _4way_ack.ACK_OK) {
-                write_settings_failed(message);
-                return;
-            }
-
-            write_eeprom_impl(interface_mode, 0, self.esc_settings[escIdx], on_written);
-        }
-
-        function on_written(message) {
-            if (message.ack != _4way_ack.ACK_OK) {
-                write_settings_failed(message);
-                return;
-            }
-
-            write_settings_impl(escIdx + 1);
-        }
-    }
-
-    function write_settings_complete() {
-        self.print('write_settings_complete\n');
-
-        $('a.write').removeClass('disabled');
-        $('a.read').removeClass('disabled');
-
-        // settings readback
-        read_settings();
-    }
-
-    function write_settings_failed(message) {
-        self.print('write_settings_failed: ' + _4way_ack_to_string(message.ack) + '\n' + JSON.stringify(message) + '\n');
-
-        $('a.write').removeClass('disabled');
-        $('a.read').removeClass('disabled');
+        return promise
     }
 
     function read_settings() {
@@ -318,7 +284,7 @@ TABS.esc.initialize = function (callback) {
     function read_settings_impl() {
         var promise = Q()
 
-        for (var esc = 0; i < self.esc_settings.length; ++i) {
+        for (let esc = 0; i < self.esc_settings.length; ++i) {
             promise = promise
             // Ask 4way interface to initialize target ESC for flashing
             .then(_4way.initFlash.bind(_4way, esc))
@@ -364,6 +330,7 @@ TABS.esc.initialize = function (callback) {
             })
             .catch(error => {
                 self.esc_metainfo[esc].available = false
+                self.print('ESC ' + (esc + 1) + ' read settings failed: ' + error)
             })
         }
 
@@ -858,20 +825,6 @@ TABS.esc.initialize = function (callback) {
             }
 
             return promise
-        }
-
-        function compare(lhs_array, rhs_array) {
-            if (lhs_array.byteLength != rhs_array.byteLength) {
-                return false;
-            }
-
-            for (var i = 0; i < lhs_array.byteLength; ++i) {
-                if (lhs_array[i] !== rhs_array[i]) {
-                    return false;
-                }
-            }
-
-            return true;
         }
 
         function on_failed(error) {
