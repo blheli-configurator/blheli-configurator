@@ -123,6 +123,11 @@ TABS.esc.initialize = function (callback) {
             self.esc_settings[escIdx][BLHELI_LAYOUT[name].offset] = val;
         });
 
+        // reading ESC setup from FC too fast fails spuriously, add a small delay
+        GUI.timeout_add('allow_read', () => {
+            $('a.read').removeClass('disabled')
+        }, 2000)
+
         // add button handlers
         $('a.write').click(write_settings);
         $('a.read').click(read_settings);
@@ -175,12 +180,26 @@ TABS.esc.initialize = function (callback) {
         return true;
     }
 
+    function ascii2buf(str) {
+        var view = new Uint8Array(str.length)
+
+        for (var i = 0; i < str.length; ++i) {
+            view[i] = str.charCodeAt(i)
+        }
+
+        return view;
+    }
+
+    function buf2ascii(buf) {
+        return String.fromCharCode.apply(null, buf)
+    }
+
     function write_settings() {
         $('a.write, a.read, a.flash').addClass('disabled')
 
         write_settings_impl()
         .then(() => {
-            self.print('write_settings_complete')
+            self.print('Settings written')
 
             // settings readback
             read_settings()
@@ -191,7 +210,7 @@ TABS.esc.initialize = function (callback) {
     function write_settings_impl() {
         var promise = Q()
 
-        for (let esc = 0; i < self.esc_settings.length; ++i) {
+        for (let esc = 0; esc < self.esc_settings.length; ++esc) {
             if (!self.esc_metainfo[esc].available) {
                self.print('ESC ' + (esc + 1) + ' was not connected, skipping.')
                continue;
@@ -223,10 +242,9 @@ TABS.esc.initialize = function (callback) {
                 // check for actual changes, maybe we should not write to this ESC at all
                 // @todo BLHeliSuite writes only hanged values to Atmel EEPROM, probably there's a reason for it
                 if (compare(esc_settings, readback_settings)) {
-                    self.print('ESC ' + (escIdx + 1) + ': no changes')
+                    self.print('ESC ' + (esc + 1) + ': no changes')
                     return
                 }
-
 
                 var interface_mode = self.esc_metainfo[esc].interface_mode,
                     isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interface_mode),
@@ -252,9 +270,11 @@ TABS.esc.initialize = function (callback) {
                         throw new Error('Failed to verify settings')
                     }
                 })
+
+                return promise
             })
             .catch(error => {
-                self.print('ESC ' + (esc + 1) + ', failed to write settings: ' + error)
+                self.print('ESC ' + (esc + 1) + ', failed to write settings: ' + error.message)
             })
         }
 
@@ -271,7 +291,7 @@ TABS.esc.initialize = function (callback) {
                 return item.available
             })
 
-            fill_settings_ui(first_esc_available)
+            update_settings_ui(first_esc_available)
 
             $('a.read').removeClass('disabled')
             if (first_esc_available != -1) {
@@ -284,7 +304,7 @@ TABS.esc.initialize = function (callback) {
     function read_settings_impl() {
         var promise = Q()
 
-        for (let esc = 0; i < self.esc_settings.length; ++i) {
+        for (let esc = 0; esc < self.esc_settings.length; ++esc) {
             promise = promise
             // Ask 4way interface to initialize target ESC for flashing
             .then(_4way.initFlash.bind(_4way, esc))
@@ -330,7 +350,7 @@ TABS.esc.initialize = function (callback) {
             })
             .catch(error => {
                 self.esc_metainfo[esc].available = false
-                self.print('ESC ' + (esc + 1) + ' read settings failed: ' + error)
+                self.print('ESC ' + (esc + 1) + ' read settings failed: ' + error.message)
             })
         }
 
@@ -467,7 +487,8 @@ TABS.esc.initialize = function (callback) {
             progress_e = button_e.siblings('progress.progress'),
             escIdx = button_e.data('esc'),
             esc_settings = self.esc_settings[escIdx],
-            esc_metainfo = self.esc_metainfo[escIdx];
+            esc_metainfo = self.esc_metainfo[escIdx],
+            start_timestamp = Date.now()
 
         var intel_hex, parsed_hex, memory_image;
 
@@ -828,34 +849,22 @@ TABS.esc.initialize = function (callback) {
         }
 
         function on_failed(error) {
-            self.print('Firmware flashing failed' + (error ? ': ' + error.stack : ' ') + '\n');
+            var elapsed_sec = (Date.now() - start_timestamp) * 1.0e-3
+
+            self.print('Firmware flashing failed ' + (error ? ': ' + error.stack : ' ') + ' after ' + elapsed_sec + ' seconds');
             $('a.flash').removeClass('disabled');
-            _4way.dry_run = false;
             progress_e.hide();
         }
 
         function on_finished() {
-            self.print('Flashing firmware to ESC ' + (escIdx + 1) + ' finished\n');
+            var elapsed_sec = (Date.now() - start_timestamp) * 1.0e-3
+
+            self.print('Flashing firmware to ESC ' + (escIdx + 1) + ' finished in ' + elapsed_sec + ' seconds');
             $('a.flash').removeClass('disabled');
-            _4way.dry_run = false;
             progress_e.hide();
         }
 
         select_file();
-    }
-
-    function ascii2buf(str) {
-        var view = new Uint8Array(str.length);
-
-        for (var i = 0; i < str.length; ++i) {
-            view[i] = str.charCodeAt(i);
-        }
-
-        return view;
-    }
-
-    function buf2ascii(buf) {
-        return String.fromCharCode.apply(null, buf);
     }
 
     // ask the FC to switch into 4way interface mode

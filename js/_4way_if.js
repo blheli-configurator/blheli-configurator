@@ -214,12 +214,12 @@ var _4way = {
                         if (msg.ack === _4way_ack.ACK_OK) {
                             deferred.resolve(msg)
                         } else {
-                            deferred.reject(new Error(msg))
+                            deferred.reject(new Error(JSON.stringify(msg)))
                         }
                     }
                 })
             } else {
-                deferred.reject(new Error('serial.send(): ' + sendInfo))
+                deferred.reject(new Error('serial.send(): ' + JSON.stringify(sendInfo)))
             }
         });
 
