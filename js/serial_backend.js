@@ -69,6 +69,12 @@ $(document).ready(function () {
                     GUI.allowedTabs = GUI.defaultAllowedTabsWhenDisconnected.slice();
                     MSP.disconnect_cleanup();
                     PortUsage.reset();
+                    if (CONFIGURATOR.escActive) {
+                        GUI.timeout_add('4w-if-cleanup', () => {
+                            CONFIGURATOR.escActive = false
+                            _4way.disconnect_cleanup()    
+                        }, 0)
+                    }
 
                     // unlock port select & baud
                     $('div#port-picker #port, div#port-picker #baud, div#port-picker #interface').prop('disabled', false);

@@ -156,16 +156,6 @@ TABS.esc.initialize = function (callback) {
         }
     }
 
-    function write_eeprom_impl(interface_mode, address, bytes) {
-        var isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interface_mode)
-
-        if (isSiLabs) {
-            return _4way.write(BLHELI_SILABS_EEPROM_OFFSET + address, bytes)
-        } else {
-            return _4way.writeEEprom(address, bytes)
-        }
-    }
-
     function compare(lhs_array, rhs_array) {
         if (lhs_array.byteLength != rhs_array.byteLength) {
             return false;
@@ -252,14 +242,32 @@ TABS.esc.initialize = function (callback) {
 
                 // should erase page to 0xFF on SiLabs before writing
                 if (isSiLabs) {
-                    promise = promise.then(_4way.pageErase.bind(_4way, BLHELI_SILABS_EEPROM_OFFSET / BLHELI_SILABS_PAGE_SIZE))
+                    promise = promise
+                    .then(_4way.pageErase.bind(_4way, BLHELI_SILABS_EEPROM_OFFSET / BLHELI_SILABS_PAGE_SIZE))
+                    // actual write
+                    .then(_4way.write.bind(_4way, BLHELI_SILABS_EEPROM_OFFSET, esc_settings))
+                } else {
+                    // write only changed bytes for Atmel
+                    for (var pos = 0; pos < esc_settings.byteLength; ++pos) {
+                        var offset = pos
+
+                        // find the longest span of modified bytes
+                        while (esc_settings[pos] != readback_settings[pos]) {
+                            ++pos
+                        }
+
+                        // byte unchanged, continue
+                        if (offset == pos) {
+                            continue
+                        }
+
+                        // write span
+                        promise = promise
+                        .then(_4way.writeEEprom.bind(_4way, offset, esc_settings.subarray(offset, pos)))
+                    }
                 }
 
                 promise = promise
-                // actual write
-                .then(() => {
-                    return write_eeprom_impl(interface_mode, 0, esc_settings)
-                })
                 // readback
                 .then(() => {
                     return read_eeprom_impl(interface_mode, 0, BLHELI_LAYOUT_SIZE)
@@ -345,8 +353,8 @@ TABS.esc.initialize = function (callback) {
                     self.print('ESC ' + (esc + 1) + ' has MODE different from MULTI: ' + mode.toString(0x10))
                 }
 
-                self.esc_settings[esc] = esc_settings;
-                self.esc_metainfo[esc].available = true;
+                self.esc_settings[esc] = esc_settings
+                self.esc_metainfo[esc].available = true
             })
             .catch(error => {
                 self.esc_metainfo[esc].available = false
@@ -876,15 +884,14 @@ TABS.esc.cleanup = function (callback) {
         return;
     }
 
-    this.esc_settings = [];
-    this.esc_metainfo = [];
-    // now we can return control to MSP or CLI handlers
-    CONFIGURATOR.escActive = false;
+    this.esc_settings = []
+    this.esc_metainfo = []
 
     // tell 4-way interface to return control to MSP server
-    _4way.send({
-        command: _4way_commands.cmd_InterfaceExit
-    });
+    _4way.exit()
+    // now we can return control to MSP or CLI handlers
+    .then(() => CONFIGURATOR.escActive = false)
+    .done()
 
     if (callback) {
         GUI.timeout_add('waiting_4way_if_exit', callback, 100);

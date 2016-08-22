@@ -236,6 +236,10 @@ var _4way = {
         return this.sendMessagePromised(_4way_commands.cmd_DeviceReset, [ target ], 0)
     },
 
+    exit: function() {
+        return this.sendMessagePromised(_4way_commands.cmd_InterfaceExit)
+    },
+
     onread: function(readInfo) {
         var self = this;
         var messages = self.parseMessages(readInfo.data);
@@ -259,5 +263,11 @@ var _4way = {
                 }
             }
         });
+    },
+
+    disconnect_cleanup: function() {
+        console.log('disc cleanup')
+        this.callbacks = [],
+        this.backlog_view = null
     }
 };
