@@ -362,3 +362,20 @@ var BLHELI_S_SILABS_ESCS = {
     '#J_H_70#': { name: 'J_H_70' },
     '#J_H_90#': { name: 'J_H_90' }
 }
+
+var SILABS_MCUS = [
+    { name: 'C8051F31x', signature: 0xF310, page_size: 0x200, flash_size: 0x2000 },
+    { name: 'C8051F33x', signature: 0xF330, page_size: 0x200, flash_size: 0x2000 },
+    { name: 'C8051F39x/37x', signature: 0xF390, page_size: 0x200, flash_size: 0x2000 },
+    { name: 'C8051F41x', signature: 0xF410, page_size: 0x200, flash_size: 0x2000 },
+    { name: 'C8051F85x', signature: 0xF850, page_size: 0x200, flash_size: 0x2000 },
+    { name: 'EFM8BB10x', signature: 0xE8B1, page_size: 0x200, flash_size: 0x2000 },
+    { name: 'EFM8BB21x', signature: 0xE8B2, page_size: 0x200, flash_size: 0x2000 }
+]
+
+var ATMEL_MCUS = [
+    { name: 'ATmega8(A)', signature: 0x9307, page_size: 0x20, flash_size: 0x2000, eeprom_size: 0x200 },
+    { name: 'ATmega88(A)', signature: 0x930A, page_size: 0x20, flash_size: 0x2000, eeprom_size: 0x200 },
+    { name: 'ATmega88P(A)', signature: 0x930F, page_size: 0x20, flash_size: 0x2000, eeprom_size: 0x200 },
+    { name: 'ATmega168P(A)', signature: 0x940B, page_size: 0x40, flash_size: 0x4000, eeprom_size: 0x200 }
+]
