@@ -498,7 +498,7 @@ TABS.esc.initialize = function (callback) {
             esc_metainfo = self.esc_metainfo[escIdx],
             start_timestamp = Date.now()
 
-        var intel_hex, parsed_hex, memory_image;
+        var intel_hex, parsed_hex, flash_image, eeprom_image;
 
         // rough estimate, each location gets erased, written and verified at least once
         var bytes_to_process = BLHELI_SILABS_ADDRESS_SPACE_SIZE * 3,
@@ -562,7 +562,7 @@ TABS.esc.initialize = function (callback) {
 
                                     if (parsed_hex) {
                                         self.print('Loaded Local Firmware: (' + parsed_hex.bytes_total + ' bytes)\n');
-                                        fill_memory_image();
+                                        fill_flash_image();
                                     } else {
                                         self.print('Hex file corrupted\n');
                                         on_failed();
@@ -580,13 +580,14 @@ TABS.esc.initialize = function (callback) {
         }
 
         // Fills a memory image of ESC MCU's address space with target firmware
-        function fill_memory_image() {
-            memory_image = new Uint8Array(BLHELI_SILABS_ADDRESS_SPACE_SIZE);
-            memory_image.fill(0xFF);
+        function fill_flash_image() {
+            flash_image = new Uint8Array(BLHELI_SILABS_ADDRESS_SPACE_SIZE);
+            flash_image.fill(0xFF);
 
             parsed_hex.data.forEach(function(block) {
                 // Check preconditions
-                if (block.address >= memory_image.byteLength) {
+                if (block.address >= flash_image.byteLength) {
+                    // @todo on Atmel firmware is larger and this check should not be performed
                     if (block.address == BLHELI_SILABS_BOOTLOADER_ADDRESS) {
                         self.print('Block at 0x' + block.address.toString(0x10) + ' of 0x' + block.bytes.toString(0x10) + ' bytes contains bootloader, skipping\n');
                     } else {
@@ -596,51 +597,26 @@ TABS.esc.initialize = function (callback) {
                     return;
                 }
 
-                if (block.address + block.bytes >= memory_image.byteLength) {
+                if (block.address + block.bytes >= flash_image.byteLength) {
                     self.print('Block at 0x' + block.address.toString(0x10) + ' spans past the end of target address space\n');
                 }
 
                 // block.data may be too large, select maximum allowed size
-                var clamped_length = Math.min(block.bytes, memory_image.byteLength - block.address);
-                memory_image.set(block.data.slice(0, clamped_length), block.address);
+                var clamped_length = Math.min(block.bytes, flash_image.byteLength - block.address);
+                flash_image.set(block.data.slice(0, clamped_length), block.address);
             });
 
             // start the actual flashing process
-            // @todo implement Atmel flashing
-            flash_silabs_impl();
+            flash_impl().catch(on_failed).done()
         }
 
         // Whole ESC flashing algorithm
-        function flash_silabs_impl() {
-            _4way.initFlash(escIdx)
+        function flash_impl() {
+            return _4way.initFlash(escIdx)
             // check that the target ESC is still SiLabs
-            .then(check_interface)
-            // read current settings
-            .then(read_eeprom)
-            // for subsequent write-back, erase
-            .then(check_esc_and_mcu)
-            // erase EEPROM page
-            .then(erase_page.bind(undefined, 0x0D))
-            // write **FLASH*FAILED** as ESC NAME
-            .then(write_eeprom_safeguard)
-            // write `LJMP bootloader` to avoid bricking            
-            .then(write_bootloader_failsafe)
-            // erase up to EEPROM, skipping first two first pages with bootloader failsafe
-            .then(erase_pages.bind(undefined, 0x02, 0x0D))
-            // write & verify just erased locations
-            .then(write_pages.bind(undefined, 0x02, 0x0D))
-            // write & verify first page
-            .then(write_page.bind(undefined, 0x00))
-            // erase second page
-            .then(erase_page.bind(undefined, 0x01))
-            // write & verify second page
-            .then(write_page.bind(undefined, 0x01))
-            // erase EEPROM
-            .then(erase_page.bind(undefined, 0x0D))
-            // write & verify EEPROM
-            .then(write_page.bind(undefined, 0x0D))
+            .then(select_interface)
             // migrate settings from previous version if asked to
-            .then(read_eeprom)
+            .then(_4way.read.bind(_4way, BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE))
             .then(function(message) {
                 var new_settings = message.params,
                     offset = BLHELI_LAYOUT.MODE.offset;
@@ -668,22 +644,186 @@ TABS.esc.initialize = function (callback) {
                     return read_settings()
                 }
             })
-            .catch(on_failed)
-
-            // @todo done
         }
 
-        function check_interface(message) {
-            esc_metainfo.interface_mode = message.params[3];
-            if (esc_metainfo.interface_mode != _4way_modes.SiLBLB) {
-                throw new Error('Interface mode for ESC ' + (escIdx + 1) + ' has changed')
+        function select_interface(message) {
+            var interface_mode = message.params[3]
+            esc_metainfo.interface_mode = interface_mode
+
+            switch (interface_mode) {
+                case _4way_modes.SiLBLB: return flash_silabs_blb(message)
+                case _4way_modes.AtmBLB: return flash_atmel_blb(message)
+                default: throw new Error('Flashing with interface mode ' + interface_mode + ' is not yet implemented')
             }
-
-            // @todo check device id correspondence
         }
 
-        function read_eeprom() {
+        function flash_silabs_blb(message) {
+            // @todo check device id
+
+            // read current settings
             return _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE)
+            // check MCU and LAYOUT
+            .then(check_esc_and_mcu)
+            // erase EEPROM page
+            .then(erase_page.bind(undefined, 0x0D))
+            // write **FLASH*FAILED** as ESC NAME
+            .then(write_eeprom_safeguard)
+            // write `LJMP bootloader` to avoid bricking            
+            .then(write_bootloader_failsafe)
+            // erase up to EEPROM, skipping first two first pages with bootloader failsafe
+            .then(erase_pages.bind(undefined, 0x02, 0x0D))
+            // write & verify just erased locations
+            .then(write_pages.bind(undefined, 0x02, 0x0D))
+            // write & verify first page
+            .then(write_page.bind(undefined, 0x00))
+            // erase second page
+            .then(erase_page.bind(undefined, 0x01))
+            // write & verify second page
+            .then(write_page.bind(undefined, 0x01))
+            // erase EEPROM
+            .then(erase_page.bind(undefined, 0x0D))
+            // write & verify EEPROM
+            .then(write_page.bind(undefined, 0x0D))
+        }
+
+        // @todo
+        // 1. add check for ATmega8 vs. ATmega16, they have different flash and eeprom sizes
+        // 2. remove SiLabs bootloader omitting code or modify it to support Atmel
+        // 3. SK and BLHeli bootloaders start at different addresses, unused flash memory should be erase to 0xFF up to bootloader
+        function flash_atmel_blb(message) {
+            // @todo check device id
+
+            return _4way.readEEprom(0, BLHELI_LAYOUT_SIZE)
+            // check MCU and LAYOUT
+            .then(check_esc_and_mcu)
+            // write **FLASH*FAILED** as NAME
+            .then(() => {
+                var bytes = ascii2buf('**FLASH*FAILED**')
+
+                return _4way.writeEEprom(BLHELI_LAYOUT.NAME.offset, bytes)
+                .then(_4way.readEEprom.bind(_4way, BLHELI_LAYOUT.NAME.offset, BLHELI_LAYOUT.NAME.size))
+                .then(message => {
+                    if (!compare(bytes, message.params)) {
+                        throw new Error('Failed to verify write **FLASH*FAILED**')
+                    }
+                })
+            })
+            // write RCALL bootloader_start
+            .then(() => {
+                var address = 0x40,
+                    rcall = [ 0xDF, 0xCD ],
+                    bytes = new Uint8Array(64).fill(0xFF)
+
+                bytes.set(rcall)
+
+                return _4way.write(address, bytes)
+                .then(_4way.read.bind(_4way, address, rcall.length))
+                .then(message => {
+                    if (!compare(rcall, message.params)) {
+                        throw new Error('Failed to verify `RCALL bootloader` write')
+                    }
+                })
+            })
+            // erase first 64 bytes up to RCALL written in the previous step
+            .then(() => {
+                var bytes = new Uint8Array(64).fill(0xFF)
+
+                return _4way.write(0, bytes)
+                .then(_4way.read.bind(_4way, 0, bytes.byteLength))
+                .then(message => {
+                    if (!compare(bytes, message.params)) {
+                        throw new Error('Failed to verify erasure of first 64 bytes')
+                    }  
+                })
+            })
+            // write from 0x80 up to bootloader start
+            .then(() => {
+                var begin_address = 0x80,
+                    end_address = 0x1E00
+                    step = 0x100,
+                    promise = Q()
+
+                // write
+                for (var address = begin_address; address < end_address; address += step) {
+                    var end = min(address + step, end_address)
+
+                    promise = promise
+                    .then(_4way.write.bind(_4way, address, flash_image.subarray(address, end)))
+                    .then(message => {
+                        update_progress(message.params.byteLength)
+                    })
+                }
+
+                // verify
+                for (var address = begin_address; address < end_address; address += step) {
+                    var bytesToRead = min(address + step, end_address) - address
+
+                    promise = promise
+                    .then(_4way.write.read(_4way, address, bytesToRead))
+                    .then(message => {
+                        if (!compare(message.params, flash_image.subarray(message.address, message.address + message.params.byteLength))) {
+                            throw new Error('Failed to verify write at address 0x' + message.address.toString(0x10))
+                        }
+
+                        update_progress(message.params.byteLength)
+                    })
+                }
+
+                return promise
+            })
+            // write 128 remaining bytes
+            .then(_4way.write.bind(_4way, 0, flash_image.subarray(0, 0x80)))
+            .then(message => {
+                update_progress(message.params.byteLength)
+            })
+            .then(_4way.read.bind(_4way, 0, 0x80))
+            .then(message => {
+                if (!compare(message.params, flash_image.subarray(message.address, message.address + message.params.byteLength))) {
+                    throw new Error('Failed to verify write at address 0x' + message.address.toString(0x10))
+                }
+
+                update_progress(message.params.byteLength)
+            })
+            // write EEprom changes
+            .then(() => {
+                var EEPROM_SIZE = 512,
+                    eeprom = new Uint8Array(EEPROM_SIZE)
+
+                // read whole EEprom
+                var promise = _4way.readEEprom(0, 256)
+                .then(message => {
+                    eeprom.set(message.params, message.address)
+                })
+                .then(_4way.readEEprom.bind(_4way, 256, 256))
+                .then(message => {
+                    eeprom.set(message.params, message.address)
+                })
+                // write differing bytes
+                .then(() => {
+                    var promise = Q()
+
+                    // write only changed bytes for Atmel
+                    for (var pos = 0; pos < eeprom.byteLength; ++pos) {
+                        var offset = pos
+
+                        // find the longest span of modified bytes
+                        while (eeprom[pos] != eeprom_image[pos] && (pos - offset) <= 256) {
+                            ++pos
+                        }
+
+                        // byte unchanged, continue
+                        if (offset == pos) {
+                            continue
+                        }
+
+                        // write span
+                        promise = promise
+                        .then(_4way.writeEEprom.bind(_4way, offset, eeprom_image.subarray(offset, pos)))
+                    }
+
+                    return promise
+                })
+            })
         }
 
         function check_esc_and_mcu(message) {
@@ -693,7 +833,7 @@ TABS.esc.initialize = function (callback) {
 
             // check LAYOUT
             var target_layout = esc_settings.subarray(BLHELI_LAYOUT.LAYOUT.offset, BLHELI_LAYOUT.LAYOUT.offset + BLHELI_LAYOUT.LAYOUT.size),
-                fw_layout = memory_image.subarray(BLHELI_SILABS_EEPROM_OFFSET).subarray(BLHELI_LAYOUT.LAYOUT.offset, BLHELI_LAYOUT.LAYOUT.offset + BLHELI_LAYOUT.LAYOUT.size);
+                fw_layout = flash_image.subarray(BLHELI_SILABS_EEPROM_OFFSET).subarray(BLHELI_LAYOUT.LAYOUT.offset, BLHELI_LAYOUT.LAYOUT.offset + BLHELI_LAYOUT.LAYOUT.size);
 
             if (!compare(target_layout, fw_layout)) {
                 var target_layout_str = buf2ascii(target_layout).trim();
@@ -711,7 +851,7 @@ TABS.esc.initialize = function (callback) {
 
             // check MCU, if it does not match there's either wrong HEX or corrupted ESC. Disallow for now
             var target_mcu = esc_settings.subarray(BLHELI_LAYOUT.MCU.offset, BLHELI_LAYOUT.MCU.offset + BLHELI_LAYOUT.MCU.size),
-                fw_mcu = memory_image.subarray(BLHELI_SILABS_EEPROM_OFFSET).subarray(BLHELI_LAYOUT.MCU.offset, BLHELI_LAYOUT.MCU.offset + BLHELI_LAYOUT.MCU.size);
+                fw_mcu = flash_image.subarray(BLHELI_SILABS_EEPROM_OFFSET).subarray(BLHELI_LAYOUT.MCU.offset, BLHELI_LAYOUT.MCU.offset + BLHELI_LAYOUT.MCU.size);
             if (!compare(target_mcu, fw_mcu)) {
                 var target_mcu_str = buf2ascii(target_mcu).trim();
                 if (target_mcu_str.length == 0) {
@@ -730,7 +870,7 @@ TABS.esc.initialize = function (callback) {
         }
 
         function write_eeprom_safeguard() {
-            esc_settings.set(ascii2buf('**FLASH*FAILED**'), BLHELI_LAYOUT.NAME.offset);
+            esc_settings.set(ascii2buf('**FLASH*FAILED**'), BLHELI_LAYOUT.NAME.offset)
 
             var promise = _4way.write(BLHELI_SILABS_EEPROM_OFFSET, esc_settings)
             .then(function(message) {
@@ -818,7 +958,7 @@ TABS.esc.initialize = function (callback) {
                 promise         = Q()
 
             for (var address = begin_address; address < end_address; address += step) {
-                promise = promise.then(_4way.write.bind(_4way, address, memory_image.subarray(address, address + step)))
+                promise = promise.then(_4way.write.bind(_4way, address, flash_image.subarray(address, address + step)))
                 .then(function() {
                     update_progress(step)
                 })
@@ -842,13 +982,13 @@ TABS.esc.initialize = function (callback) {
                 promise         = Q()
 
             for (var address = begin_address; address < end_address; address += step) {
-                promise = promise.then(_4way.read.bind(_4way, address, 256))
+                promise = promise.then(_4way.read.bind(_4way, address, step))
                 .then(function(message) {
-                    if (!compare(message.params, memory_image.subarray(message.address, message.address + message.params.byteLength))) {
+                    if (!compare(message.params, flash_image.subarray(message.address, message.address + message.params.byteLength))) {
                         throw new Error('Failed to verify write at address 0x' + message.address.toString(0x10))
                     }
 
-                    update_progress(step)
+                    update_progress(message.params.byteLength)
                 })
             }
 
