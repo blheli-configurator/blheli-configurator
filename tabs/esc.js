@@ -126,7 +126,7 @@ TABS.esc.initialize = function (callback) {
         // reading ESC setup from FC too fast fails spuriously, add a small delay
         GUI.timeout_add('allow_read', () => {
             $('a.read').removeClass('disabled')
-        }, 2000)
+        }, 1500)
 
         // add button handlers
         $('a.write').click(write_settings);
@@ -496,98 +496,169 @@ TABS.esc.initialize = function (callback) {
             escIdx = button_e.data('esc'),
             esc_settings = self.esc_settings[escIdx],
             esc_metainfo = self.esc_metainfo[escIdx],
-            start_timestamp = Date.now()
+            start_timestamp = Date.now(),
+            is_atmel = [ _4way_modes.AtmBLB, _4way_modes.AtmSK ].includes(esc_metainfo.interface_mode)
 
-        var intel_hex, parsed_hex, flash_image, eeprom_image;
+        var flash_image, eeprom_image
 
         // rough estimate, each location gets erased, written and verified at least once
-        var bytes_to_process = BLHELI_SILABS_ADDRESS_SPACE_SIZE * 3,
-            bytes_processed = 0;
+        var max_flash_size = is_atmel ? BLHELI_ATMEL_BLB_ADDRESS_8 : BLHELI_SILABS_ADDRESS_SPACE_SIZE,
+            bytes_to_process = max_flash_size * 3,
+            bytes_processed = 0
+
+        // Disallow clicking again
+        $('a.flash, a.connect').addClass('disabled')
+
+        // Ask user to select HEX
+        select_file('hex')
+        .then(parse_hex)
+        .then(data => {
+            if (data) {
+                self.print('Loaded local firmware: ' + data.bytes_total + ' bytes')
+                flash_image = fill_image(data, max_flash_size)
+            } else {
+                throw new Error('HEX file corrupt')
+            }
+        })
+        // Ask EEP on Atmel
+        .then(() => {
+            if (is_atmel) {
+                return select_file('eep')
+                .then(parse_hex)
+                .then(data => {
+                    if (data) {
+                        self.print('Loaded local EEprom: ' + data.bytes_total + 'bytes')
+                        eeprom_image = fill_image(data, BLHELI_ATMEL_EEPROM_SIZE)
+                    } else {
+                        throw new Error('EEP file corrupt')
+                    }
+                })
+            }
+        })
+        // validate files
+        .then(() => {
+            if (is_atmel) {
+                var mcu = buf2ascii(eeprom_image.subarray(BLHELI_LAYOUT.MCU.offset, BLHELI_LAYOUT.MCU.offset + BLHELI_LAYOUT.MCU.size))
+
+                if (!mcu.includes('#BLHELI#')) {
+                    throw new Error('EEP does not look like a valid Atmel BLHeli EEprom file')
+                }
+            } else {
+                var buf = flash_image.subarray(BLHELI_SILABS_EEPROM_OFFSET).subarray(BLHELI_LAYOUT.MCU.offset, BLHELI_LAYOUT.MCU.offset + BLHELI_LAYOUT.MCU.size),
+                    mcu = buf2ascii(buf)
+
+                if (!mcu.includes('#BLHELI#')) {
+                    throw new Error('HEX does not look like a valid SiLabs BLHeli flash file')
+                }
+            }
+
+            // @todo some sanity checks on size of flash
+        })
+        // show progress bar
+        .then(() => progress_e.val(0).show())
+        // start the actual flashing process
+        .then(_4way.initFlash.bind(_4way, escIdx))
+        // select flashing algorithm given interface mode
+        .then(select_interface)
+        // migrate settings from previous version if asked to
+        .then(_4way.read.bind(_4way, BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE))
+        .then(function(message) {
+            var new_settings = message.params,
+                offset = BLHELI_LAYOUT.MODE.offset;
+
+            // @todo move elsewhere
+            on_finished()
+
+            // ensure mode match
+            if (compare(new_settings.subarray(offset, offset + 2), esc_settings.subarray(offset, offset + 2))) {
+                self.print('Writing settings back\n');
+                // copy changed settings
+                var begin = BLHELI_LAYOUT.P_GAIN.offset,
+                    end = BLHELI_LAYOUT.BRAKE_ON_STOP.offset + BLHELI_LAYOUT.BRAKE_ON_STOP.size;
+
+                new_settings.set(esc_settings.subarray(begin, end), begin);
+
+                // set settings as current
+                self.esc_settings[escIdx] = new_settings;
+
+                return write_settings()
+            } else {
+                self.print('Will not write settings back due to different MODE\n');
+
+                // read settings back
+                return read_settings()
+            }
+        })
+        .catch(on_failed)
+        .done()
 
         function update_progress(bytes) {
             bytes_processed += bytes;
             progress_e.val(Math.min(Math.ceil(100 * bytes_processed / bytes_to_process), 100));
         }
 
-        function parse_hex(str, callback) {
+        function parse_hex(data) {
             // parsing hex in different thread
-            var worker = new Worker('./js/workers/hex_parser.js');
+            var worker = new Worker('./js/workers/hex_parser.js'),
+                deferred = Q.defer()
 
-            // "callback"
-            worker.onmessage = function (event) {
-                callback(event.data);
-            };
+            worker.onmessage = event => deferred.resolve(event.data)
+            // send data over for processing
+            worker.postMessage(data)
 
-            // send data/string over for processing
-            worker.postMessage(str);
+            return deferred.promise
         }
 
-        function select_file() {
+        function select_file(ext) {
+            var deferred = Q.defer()
+
             // Open file dialog
             chrome.fileSystem.chooseEntry({
                 type: 'openFile',
-                accepts: [ { extensions: ['hex'] } ]
-            }, function (fileEntry) {
+                accepts: [ { extensions: [ ext ] } ]
+            }, fileEntry => {
                 if (chrome.runtime.lastError) {
-                    console.error(chrome.runtime.lastError.message);
-
-                    return;
+                    deferred.reject(new Error(chrome.runtime.lastError.message))
+                    return
                 }
 
-                // Disallow clicking again
-                $('a.flash').addClass('disabled');
-                progress_e.val(0).show();
+                chrome.fileSystem.getDisplayPath(fileEntry, path => {
+                    self.print('Loading file from ' + path)
 
-                chrome.fileSystem.getDisplayPath(fileEntry, function (path) {
-                    console.log('Loading file from: ' + path);
+                    fileEntry.file(file => {
+                        var reader = new FileReader
 
-                    fileEntry.file(function (file) {
-                        var reader = new FileReader();
-
-                        reader.onprogress = function (e) {
+                        reader.onprogress = e => {
                             if (e.total > 32 * 1024) { // 32 KiB
-                                console.log('File limit (32 KiB) exceeded, aborting');
-                                reader.abort();
+                                deferred.reject('File size limit of 32 KiB exceeded')
                             }
-                        };
+                        }
 
-                        reader.onloadend = function(e) {
-                            if (e.total != 0 && e.total == e.loaded) {
-                                console.log('File loaded');
+                        reader.onloadend = e => {
+                            if (e.total !== 0 && e.total === e.loaded) {
+                                self.print('Loaded file ' + path)
 
-                                intel_hex = e.target.result;
-
-                                parse_hex(intel_hex, function (data) {
-                                    parsed_hex = data;
-
-                                    if (parsed_hex) {
-                                        self.print('Loaded Local Firmware: (' + parsed_hex.bytes_total + ' bytes)\n');
-                                        fill_flash_image();
-                                    } else {
-                                        self.print('Hex file corrupted\n');
-                                        on_failed();
-                                    }
-                                });
+                                deferred.resolve(e.target.result)
                             } else {
-                                on_failed();
+                                deferred.reject(new Error('Failed to load ' + path))
                             }
-                        };
+                        }
 
-                        reader.readAsText(file);
-                    });
-                });
-            });
+                        reader.readAsText(file)
+                    })
+                })
+            })
+
+            return deferred.promise
         }
 
         // Fills a memory image of ESC MCU's address space with target firmware
-        function fill_flash_image() {
-            flash_image = new Uint8Array(BLHELI_SILABS_ADDRESS_SPACE_SIZE);
-            flash_image.fill(0xFF);
+        function fill_image(data, size) {
+            var image = new Uint8Array(size).fill(0xFF)
 
-            parsed_hex.data.forEach(function(block) {
+            data.data.forEach(function(block) {
                 // Check preconditions
-                if (block.address >= flash_image.byteLength) {
-                    // @todo on Atmel firmware is larger and this check should not be performed
+                if (block.address >= image.byteLength) {
                     if (block.address == BLHELI_SILABS_BOOTLOADER_ADDRESS) {
                         self.print('Block at 0x' + block.address.toString(0x10) + ' of 0x' + block.bytes.toString(0x10) + ' bytes contains bootloader, skipping\n');
                     } else {
@@ -597,53 +668,16 @@ TABS.esc.initialize = function (callback) {
                     return;
                 }
 
-                if (block.address + block.bytes >= flash_image.byteLength) {
+                if (block.address + block.bytes >= image.byteLength) {
                     self.print('Block at 0x' + block.address.toString(0x10) + ' spans past the end of target address space\n');
                 }
 
                 // block.data may be too large, select maximum allowed size
-                var clamped_length = Math.min(block.bytes, flash_image.byteLength - block.address);
-                flash_image.set(block.data.slice(0, clamped_length), block.address);
-            });
-
-            // start the actual flashing process
-            flash_impl().catch(on_failed).done()
-        }
-
-        // Whole ESC flashing algorithm
-        function flash_impl() {
-            return _4way.initFlash(escIdx)
-            // check that the target ESC is still SiLabs
-            .then(select_interface)
-            // migrate settings from previous version if asked to
-            .then(_4way.read.bind(_4way, BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE))
-            .then(function(message) {
-                var new_settings = message.params,
-                    offset = BLHELI_LAYOUT.MODE.offset;
-
-                // @todo move elsewhere
-                on_finished()
-
-                // ensure mode match
-                if (compare(new_settings.subarray(offset, offset + 2), esc_settings.subarray(offset, offset + 2))) {
-                    self.print('Writing settings back\n');
-                    // copy changed settings
-                    var begin = BLHELI_LAYOUT.P_GAIN.offset,
-                        end = BLHELI_LAYOUT.BRAKE_ON_STOP.offset + BLHELI_LAYOUT.BRAKE_ON_STOP.size;
-
-                    new_settings.set(esc_settings.subarray(begin, end), begin);
-
-                    // set settings as current
-                    self.esc_settings[escIdx] = new_settings;
-
-                    return write_settings()
-                } else {
-                    self.print('Will not write settings back due to different MODE\n');
-
-                    // read settings back
-                    return read_settings()
-                }
+                var clamped_length = Math.min(block.bytes, image.byteLength - block.address);
+                image.set(block.data.slice(0, clamped_length), block.address);
             })
+
+            return image
         }
 
         function select_interface(message) {
@@ -652,7 +686,8 @@ TABS.esc.initialize = function (callback) {
 
             switch (interface_mode) {
                 case _4way_modes.SiLBLB: return flash_silabs_blb(message)
-                case _4way_modes.AtmBLB: return flash_atmel_blb(message)
+                case _4way_modes.AtmBLB:
+                case _4way_modes.AtmSK:  return flash_atmel(message)
                 default: throw new Error('Flashing with interface mode ' + interface_mode + ' is not yet implemented')
             }
         }
@@ -688,9 +723,9 @@ TABS.esc.initialize = function (callback) {
 
         // @todo
         // 1. add check for ATmega8 vs. ATmega16, they have different flash and eeprom sizes
-        // 2. remove SiLabs bootloader omitting code or modify it to support Atmel
-        // 3. SK and BLHeli bootloaders start at different addresses, unused flash memory should be erase to 0xFF up to bootloader
-        function flash_atmel_blb(message) {
+        function flash_atmel(message) {
+            // SimonK uses word instead of byte addressing for flash and address arithmetic on subsequent reads/writes
+            var is_simonk = esc_metainfo.interface_mode === _4way_modes.AtmSK
             // @todo check device id
 
             return _4way.readEEprom(0, BLHELI_LAYOUT_SIZE)
@@ -710,7 +745,8 @@ TABS.esc.initialize = function (callback) {
             })
             // write RCALL bootloader_start
             .then(() => {
-                var address = 0x40,
+                var address = is_simonk ? 0x20 : 0x40,
+                    // @todo for BLHeli we can jump 0x200 bytes further, do it
                     rcall = [ 0xDF, 0xCD ],
                     bytes = new Uint8Array(64).fill(0xFF)
 
@@ -739,30 +775,51 @@ TABS.esc.initialize = function (callback) {
             // write from 0x80 up to bootloader start
             .then(() => {
                 var begin_address = 0x80,
-                    end_address = 0x1E00
-                    step = 0x100,
+                    end_address = BLHELI_ATMEL_BLB_ADDRESS_8
+                    write_step = is_simonk ? 0x40 : 0x100,
+                    verify_step = 0x100,
                     promise = Q()
 
                 // write
-                for (var address = begin_address; address < end_address; address += step) {
-                    var end = min(address + step, end_address)
+                for (var address = begin_address; address < end_address; address += write_step) {
+                    var end = min(address + write_step, end_address),
+                        write_address = address
+
+                    if (is_simonk) {
+                        if (address === begin_address) {
+                            write_address /= 2
+                        } else {
+                            // SimonK bootloader will continue from the last address where we left off
+                            write_address = 0xFFFF
+                        }
+                    }
 
                     promise = promise
-                    .then(_4way.write.bind(_4way, address, flash_image.subarray(address, end)))
+                    .then(_4way.write.bind(_4way, write_address, flash_image.subarray(address, end)))
                     .then(message => {
                         update_progress(message.params.byteLength)
                     })
                 }
 
                 // verify
-                for (var address = begin_address; address < end_address; address += step) {
-                    var bytesToRead = min(address + step, end_address) - address
+                for (let address = begin_address; address < end_address; address += verify_step) {
+                    var bytesToRead = min(address + verify_step, end_address) - address,
+                        read_address = address
+
+                    if (is_simonk) {
+                        if (address === begin_address) {
+                            read_address /= 2
+                        } else {
+                            // SimonK bootloader will continue from the last address where we left off
+                            read_address = 0xFFFF
+                        }
+                    }
 
                     promise = promise
-                    .then(_4way.write.read(_4way, address, bytesToRead))
+                    .then(_4way.read.bind(_4way, read_address, bytesToRead))
                     .then(message => {
-                        if (!compare(message.params, flash_image.subarray(message.address, message.address + message.params.byteLength))) {
-                            throw new Error('Failed to verify write at address 0x' + message.address.toString(0x10))
+                        if (!compare(message.params, flash_image.subarray(address, address + message.params.byteLength))) {
+                            throw new Error('Failed to verify write at address 0x' + address.toString(0x10))
                         }
 
                         update_progress(message.params.byteLength)
@@ -772,42 +829,61 @@ TABS.esc.initialize = function (callback) {
                 return promise
             })
             // write 128 remaining bytes
-            .then(_4way.write.bind(_4way, 0, flash_image.subarray(0, 0x80)))
-            .then(message => {
-                update_progress(message.params.byteLength)
-            })
-            .then(_4way.read.bind(_4way, 0, 0x80))
-            .then(message => {
-                if (!compare(message.params, flash_image.subarray(message.address, message.address + message.params.byteLength))) {
-                    throw new Error('Failed to verify write at address 0x' + message.address.toString(0x10))
-                }
+            .then(() => {
+                // @todo combine
+                if (is_simonk) {
+                    return _4way.write(0, flash_image.subarray(0, 0x40))
+                    .then(message => {
+                        update_progress(message.params.byteLength)
+                    })
+                    .then(_4way.write.bind(_4way, 0xFFFF, flash_image.subarray(0x40, 0x80)))
+                    .then(_4way.read.bind(_4way, 0, 0x80))
+                    .then(message => {
+                        if (!compare(message.params, flash_image.subarray(0, 0x80))) {
+                            throw new Error('Failed to verify write at address 0x' + message.address.toString(0x10))
+                        }
 
-                update_progress(message.params.byteLength)
+                        update_progress(message.params.byteLength)
+                    })
+                } else {
+                    return _4way.write(0, flash_image.subarray(0, 0x80))
+                    .then(message => {
+                        update_progress(message.params.byteLength)
+                    })
+                    .then(_4way.read.bind(_4way, 0, 0x80))
+                    .then(message => {
+                        if (!compare(message.params, flash_image.subarray(message.address, message.address + message.params.byteLength))) {
+                            throw new Error('Failed to verify write at address 0x' + message.address.toString(0x10))
+                        }
+
+                        update_progress(message.params.byteLength)
+                    })
+                }
             })
             // write EEprom changes
             .then(() => {
-                var EEPROM_SIZE = 512,
-                    eeprom = new Uint8Array(EEPROM_SIZE)
+                var eeprom = new Uint8Array(BLHELI_ATMEL_EEPROM_SIZE)
 
                 // read whole EEprom
-                var promise = _4way.readEEprom(0, 256)
+                var promise = _4way.readEEprom(0, 0x100)
                 .then(message => {
-                    eeprom.set(message.params, message.address)
+                    eeprom.set(message.params, 0)
                 })
-                .then(_4way.readEEprom.bind(_4way, 256, 256))
+                .then(_4way.readEEprom.bind(_4way, is_simonk ? 0xFFFF : 0x100, 0x100))
                 .then(message => {
-                    eeprom.set(message.params, message.address)
+                    eeprom.set(message.params, 0x100)
                 })
                 // write differing bytes
                 .then(() => {
-                    var promise = Q()
+                    var promise = Q(),
+                        max_bytes_per_write = is_simonk ? 0x40 : 0x100
 
                     // write only changed bytes for Atmel
                     for (var pos = 0; pos < eeprom.byteLength; ++pos) {
                         var offset = pos
 
                         // find the longest span of modified bytes
-                        while (eeprom[pos] != eeprom_image[pos] && (pos - offset) <= 256) {
+                        while (eeprom[pos] != eeprom_image[pos] && (pos - offset) <= max_bytes_per_write) {
                             ++pos
                         }
 
@@ -999,19 +1075,23 @@ TABS.esc.initialize = function (callback) {
             var elapsed_sec = (Date.now() - start_timestamp) * 1.0e-3
 
             self.print('Firmware flashing failed ' + (error ? ': ' + error.stack : ' ') + ' after ' + elapsed_sec + ' seconds');
-            $('a.flash').removeClass('disabled');
+            $('a.connect').removeClass('disabled')
             progress_e.hide();
+
+            var first_esc_available = self.esc_metainfo.findIndex(function(item) {
+                return item.available
+            })
+
+            update_settings_ui(first_esc_available)
         }
 
         function on_finished() {
             var elapsed_sec = (Date.now() - start_timestamp) * 1.0e-3
 
             self.print('Flashing firmware to ESC ' + (escIdx + 1) + ' finished in ' + elapsed_sec + ' seconds');
-            $('a.flash').removeClass('disabled');
+            $('a.flash, a.connect').removeClass('disabled')
             progress_e.hide();
         }
-
-        select_file();
     }
 
     // ask the FC to switch into 4way interface mode
