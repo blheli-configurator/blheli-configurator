@@ -85,7 +85,7 @@
 }
 
 .tab-esc .number span {
-    margin-left: 0px;
+    margin-left: 3px;
 }
 
 .tab-esc .spacer_box {
@@ -164,7 +164,7 @@
 }
 
 .tab-esc .checkbox span:last-child {
-    margin-left: 64px;
+    margin-left: 102px;
 }
 
 .tab-esc .escInfo {

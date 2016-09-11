@@ -1,5 +1,642 @@
 'use strict';
 
+function compare(lhs_array, rhs_array) {
+    if (lhs_array.byteLength != rhs_array.byteLength) {
+        return false;
+    }
+
+    for (var i = 0; i < lhs_array.byteLength; ++i) {
+        if (lhs_array[i] !== rhs_array[i]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function ascii2buf(str) {
+    var view = new Uint8Array(str.length)
+
+    for (var i = 0; i < str.length; ++i) {
+        view[i] = str.charCodeAt(i)
+    }
+
+    return view;
+}
+
+function buf2ascii(buf) {
+    return String.fromCharCode.apply(null, buf)
+}
+
+var CommonSettings = React.createClass({
+    render: function() {
+        return (
+            <div className="gui_box grey">
+                <div className="gui_box_titlebar">
+                    <div className="spacer_box_title">Common Parameters</div>
+                </div>
+                <div className="spacer_box">
+                    {this.renderControls()}
+                </div>
+            </div>
+        );
+    },
+    handleCheckbox: function(e) {        
+        var name = e.target.name,
+            value = e.target.checked ? 1 : 0,
+            escSettings = this.props.escSettings;
+
+        escSettings.forEach(settings => settings[BLHELI_LAYOUT[name].offset] = value);
+
+        this.props.onUserInput(escSettings);
+    },
+    handleSelect: function(e) {
+        var name = e.target.name,
+            value = e.target.value,
+            escSettings = this.props.escSettings;
+
+        escSettings.forEach(settings => settings[BLHELI_LAYOUT[name].offset] = value);
+
+        this.props.onUserInput(escSettings);
+    },
+    handleNumber: function(e) {
+        var el = e.target,
+            escSettings = this.props.escSettings,
+            value = Math.max(Math.min(el.value, el.max), el.min);
+
+        // @todo validate new value, handle step
+        escSettings.forEach(settings => settings[BLHELI_LAYOUT[el.name].offset] = value);
+
+        this.props.onUserInput(escSettings);
+    },
+    renderCheckbox: function(name, label) {
+        return (
+            <div className="checkbox">
+                <label>
+                    <input
+                        type="checkbox"
+                        name={name}
+                        checked={this.props.escSettings[0][BLHELI_LAYOUT[name].offset] === 1}
+                        onChange={this.handleCheckbox}
+                    />
+                    <span>{chrome.i18n.getMessage(label)}</span>
+                </label>
+            </div>
+        );
+    },
+    renderSelect: function(name, options, label) {
+        return (
+            <div className="select">
+                <label>
+                    <select
+                        name={name}
+                        value={this.props.escSettings[0][BLHELI_LAYOUT[name].offset]}
+                        onChange={this.handleSelect}
+                    >
+                        {
+                            options.map(pair => <option value={pair[0]}>{pair[1]}</option>)
+                        }
+                    </select>
+                    <span>{chrome.i18n.getMessage(label)}</span>
+                </label>
+            </div>
+        );
+    },
+    renderNumber: function(name, min, max, step, label) {
+        return (
+            <div className="number">
+                <label>
+                    <input
+                        type="number"
+                        name={name}
+                        step={step}
+                        min={min}
+                        max={max}
+                        value={this.props.escSettings[0][BLHELI_LAYOUT[name].offset]}
+                        onChange={this.handleNumber}
+                    />
+                    <span>{chrome.i18n.getMessage(label)}</span>
+                </label>
+            </div>
+        );
+    },
+    renderControls: function() {
+        if (this.props.escSettings.length === 0) {
+            return null;
+        }
+
+        const noneAvailable = !this.props.escMetainfo.some(info => info.available);
+        if (noneAvailable) {
+            return null;
+        }
+
+        // @todo check all ESCs are in sync
+        var rows = [];
+
+        // if mode
+        // if version
+        // foreach setting
+        //  generate
+
+        rows.push(this.renderCheckbox('PROGRAMMING_BY_TX', 'escProgrammingByTX'));
+        rows.push(this.renderSelect(
+            'GOVERNOR_MODE',
+            [ [ '1', 'HiRange' ], [ '2', 'MidRange' ], [ '3', 'LoRange' ], [ '4', 'Off' ] ],
+            'escClosedLoopMode'
+        ));
+        if (this.props.escSettings[0][BLHELI_LAYOUT['GOVERNOR_MODE'].offset] !== 4) {
+            const options = [
+                [ '1', '0.13' ], [ '2', '0.17' ], [ '3', '0.25' ], [ '4', '0.38' ],
+                [ '5', '0.50' ], [ '6', '0.75' ], [ '7', '1.00' ], [ '8', '1.50' ],
+                [ '9', '2.00' ], [ '10', '3.00' ], [ '11', '4.00' ], [ '12', '6.00' ],
+                [ '13', '8.00' ]
+            ];
+
+            rows.push(this.renderSelect('P_GAIN', options, 'escClosedLoopPGain'));
+            rows.push(this.renderSelect('I_GAIN', options, 'escClosedLoopIGain'));
+        }
+        rows.push(this.renderSelect(
+            'MOTOR_GAIN',
+            [ [ '1', '0.75' ], [ '2', '0.88' ], [ '3', '1.00' ], [ '4', '1.12' ], [ '5', '1.25'] ],
+            'escMotorGain'
+        ));
+        rows.push(this.renderSelect(
+            'STARTUP_POWER',
+            [ [ '1', '0.031' ], [ '2', '0.047' ], [ '3', '0.063' ], [ '4', '0.094' ], [ '5', '0.125' ], [ '6', '0.188' ], [ '7', '0.25' ], [ '8', '0.38' ], [ '9', '0.50' ], [ '10', '0.75' ], [ '11', '1.00' ], [ '12', '1.25' ], [ '13', '1.50' ] ],
+            'escStartupPower'
+        ));
+        rows.push(this.renderCheckbox('TEMPERATURE_PROTECTION', 'escTemperatureProtection'));
+        rows.push(this.renderSelect(
+            'PWM_DITHER',
+            [ [ '1', 'Off' ], [ '2', '3' ], [ '3', '7' ], [ '4', '15' ], [ '5', '31' ] ],
+            'escPWMOutputDither'
+        ));
+        rows.push(this.renderCheckbox('LOW_RPM_POWER_PROTECTION', 'escLowRPMPowerProtection'));
+        rows.push(this.renderCheckbox('BRAKE_ON_STOP', 'escBrakeOnStop'));
+        rows.push(this.renderSelect(
+            'DEMAG_COMPENSATION',
+            [ [ '1', 'Off' ], [ '2', 'Low' ], [ '3', 'High' ] ],
+            'escDemagCompensation'
+        ));
+        rows.push(this.renderSelect(
+            'PWM_FREQUENCY',
+            [ [ '1', 'Off' ], [ '2', 'Low' ], [ '3', 'DampedLight' ] ],
+            'escPWMFrequencyDamped'
+        ));
+        rows.push(this.renderCheckbox('PWM_INPUT', 'escEnablePWMInput'));
+        rows.push(this.renderSelect(
+            'COMMUTATION_TIMING',
+            [ [ '1', 'Low' ], [ '2', 'MediumLow' ], [ '3', 'Medium' ], [ '4', 'MediumHigh' ], [ '5', 'High' ] ],
+            'escMotorTiming'
+        ));
+        rows.push(this.renderSelect(
+            'INPUT_PWM_POLARITY',
+            [ [ '1', 'Positive' ], [ '2', 'Negative' ] ],
+            'escInputPolarity'
+        ));
+        rows.push(this.renderNumber('BEEP_STRENGTH', 1, 255, 1, 'escBeepStrength'));
+        rows.push(this.renderNumber('BEACON_STRENGTH', 1, 255, 1, 'escBeaconStrength'));
+        rows.push(this.renderSelect(
+            'BEACON_DELAY',
+            [ [ '1', '1 minute' ], [ '2', '2 minutes' ], [ '3', '5 minutes' ], [ '4', '10 minutes' ], [ '5', 'Infinite' ] ],
+            'escBeaconDelay'
+        ));
+
+        return rows;
+    }
+});
+
+var IndividualSettings = React.createClass({
+    getInitialState: function() {
+        return {
+            canFlash: true,
+            isFlashing: false,
+            progress: 0
+        };
+    },
+    render: function() {
+        return (
+            <div className="gui_box grey">
+                <div className="gui_box_titlebar">
+                    <div className="spacer_box_title">
+                        {this.getTitle()}
+                    </div>
+                </div>
+                <div className="spacer_box">
+                    {this.renderControls()}
+                </div>
+            </div>
+        );
+    },
+    getTitle: function() {
+        var escSettings = this.props.escSettings[this.props.escIndex];
+
+        return 'ESC ' + (this.props.escIndex + 1) + '\t' + 'make' + ', ' + escSettings[0] + '.' + escSettings[1] + ', NAME';
+    },
+    renderControls: function() {
+        var rows = [];
+
+        rows.push(this.renderSelect(
+            'MOTOR_DIRECTION',
+            [ [ '1', 'Normal' ], [ '2', 'Reversed' ], [ '3', 'Bidirectional' ], [ '4', 'Bidirectional Reversed' ] ],
+            'escMotorDirection'
+        ));
+        rows.push(this.renderNumber('PPM_MIN_THROTTLE', 1000, 1500, 4, 'escPPMMinThrottle'));
+        rows.push(this.renderNumber('PPM_MAX_THROTTLE', 1520, 2020, 4, 'escPPMMaxThrottle'));
+        if (this.props.escSettings[this.props.escIndex][BLHELI_LAYOUT['MOTOR_DIRECTION'].offset] > 2) {
+            rows.push(this.renderNumber('PPM_CENTER_THROTTLE', 1000, 2020, 4, 'escPPMCenterThrottle'));
+        }
+
+        rows.push(
+            <div className="half">
+                <div className="default_btn half">
+                    {this.renderFlashButtonOrProgress()}
+                </div>
+            </div>
+        );
+
+        return rows;
+    },
+    renderFlashButtonOrProgress: function() {
+        if (this.state.isFlashing) {
+            return (
+                <progress className="progress" value={this.state.progress} min="0" max="100" />
+            );
+        }
+
+        return (
+            <a
+                href="#"
+                className={this.state.canFlash ? "" : "disabled"}
+                onClick={this.flashFirmware}
+            >
+                {chrome.i18n.getMessage('escButtonFlash')}
+            </a>
+        );
+    },
+    renderSelect: function(name, options, label) {
+        return (
+            <div className="select">
+                <label>
+                    <select
+                        name={name}
+                        value={this.props.escSettings[this.props.escIndex][BLHELI_LAYOUT[name].offset]}
+                        onChange={this.handleSelect}
+                    >
+                        {
+                            options.map(pair => <option value={pair[0]}>{pair[1]}</option>)
+                        }
+                    </select>
+                    <span>{chrome.i18n.getMessage(label)}</span>
+                </label>
+            </div>
+        );
+    },
+    renderNumber: function(name, min, max, step, label) {
+        return (
+            <div className="number">
+                <label>
+                    <input
+                        type="number"
+                        name={name}
+                        step={step}
+                        min={min}
+                        max={max}
+                        value={this.props.escSettings[this.props.escIndex][BLHELI_LAYOUT[name].offset]}
+                        onChange={this.handleNumber}
+                    />
+                    <span>{chrome.i18n.getMessage(label)}</span>
+                </label>
+            </div>
+        );
+    },
+    handleSelect: function(e) {
+        var name = e.target.name,
+            value = e.target.value,
+            escSettings = this.props.escSettings;
+
+        escSettings[this.props.escIndex][BLHELI_LAYOUT[name].offset] = value;
+
+        this.props.onUserInput(escSettings);
+    },
+    handleNumber: function(e) {
+        var el = e.target,
+            escSettings = this.props.escSettings;
+
+        // @todo validate new value, handle step
+        escSettings[this.props.escIndex][BLHELI_LAYOUT[el.name].offset] = Math.max(Math.min(el.value, el.max), el.min);
+
+        this.props.onUserInput(escSettings);
+    },
+    flashFirmware: function() {
+
+    }
+});
+
+var Configurator = React.createClass({
+    getInitialState: () => {
+        return {
+            canRead: true,
+            canWrite: false,
+            escSettings: [],
+            escMetainfo: [],
+            ignoreMCULayout: false,
+        };
+    },
+    componentDidMount: function() {
+
+    },
+    onUserInput: function(newSettings) {
+        this.setState({
+            escSettings: newSettings
+        });
+    },
+    readSetup: function() {
+        GUI.log('reading ESC setup');
+        // disallow further requests until we're finished
+        // @todo also disable settings alteration
+        this.setState({
+            canRead: false,
+            canWrite: false
+        });
+
+        this.readSetupImpl()
+        .then(() => {
+            this.setState({
+                canRead: true,
+                canWrite: true
+            });
+            GUI.log('ESC setup read');   
+        })
+        .done();
+    },
+    readSetupImpl: function() {
+        var promise = Q(),
+            escSettings = [],
+            escMetainfo = [];
+
+        for (let esc = 0; esc < this.props.escCount; ++esc) {
+            escSettings.push({});
+            escMetainfo.push({});
+
+            promise = promise
+            // Ask 4way interface to initialize target ESC for flashing
+            .then(_4way.initFlash.bind(_4way, esc))
+            // Check interface mode and read settings
+            .then(message => {
+                var interface_mode = message.params[3]
+
+                // remember interface mode for ESC
+                escMetainfo[esc].interface_mode = interface_mode
+
+                // read everything in one big chunk
+                // SiLabs has no separate EEPROM, but Atmel has and therefore requires a different read command
+                var isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interface_mode)
+
+                if (isSiLabs) {
+                    return _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE);
+                }
+                
+                return _4way.readEEprom(0, BLHELI_LAYOUT_SIZE);
+            })
+            // Ensure MULTI mode and correct BLHeli version
+            .then(message => {
+                // Check whether revision is supported
+                var esc_settings = message.params,
+                    main_revision = esc_settings[0],
+                    sub_revision = esc_settings[1],
+                    layout_revision = esc_settings[2]
+
+                if (layout_revision < BLHELI_MIN_SUPPORTED_LAYOUT_REVISION) {
+                    GUI.log('ESC ' + (esc + 1) + ' has LAYOUT_REVISION ' + layout_revision + ', oldest supported is ' + BLHELI_MIN_SUPPORTED_LAYOUT_REVISION)
+                }
+
+                // Check for MULTI mode
+                // @todo replace with a DataView
+                var mode = esc_settings.subarray(BLHELI_LAYOUT.MODE.offset, BLHELI_LAYOUT.MODE.offset + BLHELI_LAYOUT.MODE.size)
+                    .reduce(function(sum, byte) { return (sum << 8) | byte; })
+                if (mode != BLHELI_MODES.MULTI) {
+                    GUI.log('ESC ' + (esc + 1) + ' has MODE different from MULTI: ' + mode.toString(0x10))
+                }
+
+                escSettings[esc] = esc_settings
+                escMetainfo[esc].available = true
+            })
+            .then(_4way.reset.bind(_4way, esc))
+            .catch(error => {
+                escMetainfo[esc].available = false
+            })
+        }
+
+        return promise.then(() => {
+            // Update backend and trigger representation
+            this.setState({
+                escSettings: escSettings,
+                escMetainfo: escMetainfo
+            });
+        });
+    },
+    writeSetupImpl: function() {
+        var promise = Q()
+
+        for (let esc = 0; esc < this.state.escSettings.length; ++esc) {
+            if (!this.state.escMetainfo[esc].available) {
+               continue;
+            }
+
+            promise = promise
+            // Ask 4way interface to initialize target ESC for flashing
+            .then(_4way.initFlash.bind(_4way, esc))
+            // Remember interface mode and read settings
+            .then(message => {
+                var interface_mode = message.params[3]
+
+                // remember interface mode for ESC
+                // this.setState(state => {
+                //     state.escMetainfo[esc].interface_mode = interface_mode;
+                //     return state;
+                // })
+
+                // read everything in one big chunk to check if any settings have changed
+                // SiLabs has no separate EEPROM, but Atmel has and therefore requires a different read command
+                var isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interface_mode)
+
+                if (isSiLabs) {
+                    return _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE);
+                }
+                
+                return _4way.readEEprom(0, BLHELI_LAYOUT_SIZE);
+            })
+            // Check for changes and perform write
+            .then(message => {
+                var escSettings = this.state.escSettings[esc],
+                    readbackSettings = message.params
+
+                // check for unexpected size mismatch
+                if (escSettings.byteLength != readbackSettings.byteLength) {
+                    throw new Error('byteLength of buffers do not match')
+                }
+
+                // check for actual changes, maybe we should not write to this ESC at all
+                if (compare(escSettings, readbackSettings)) {
+                    GUI.log('ESC ' + (esc + 1) + ': no changes')
+                    return
+                }
+
+                var interface_mode = this.state.escMetainfo[esc].interface_mode,
+                    isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interface_mode),
+                    promise = Q()
+
+                // should erase page to 0xFF on SiLabs before writing
+                if (isSiLabs) {
+                    promise = promise
+                    .then(_4way.pageErase.bind(_4way, BLHELI_SILABS_EEPROM_OFFSET / BLHELI_SILABS_PAGE_SIZE))
+                    // actual write
+                    .then(_4way.write.bind(_4way, BLHELI_SILABS_EEPROM_OFFSET, escSettings))
+                } else {
+                    // write only changed bytes for Atmel
+                    for (var pos = 0; pos < escSettings.byteLength; ++pos) {
+                        var offset = pos
+
+                        // find the longest span of modified bytes
+                        while (escSettings[pos] != readbackSettings[pos]) {
+                            ++pos
+                        }
+
+                        // byte unchanged, continue
+                        if (offset == pos) {
+                            continue
+                        }
+
+                        // write span
+                        promise = promise
+                        .then(_4way.writeEEprom.bind(_4way, offset, escSettings.subarray(offset, pos)))
+                    }
+                }
+
+                promise = promise
+                // readback
+                .then(() => {
+                    // SiLabs has no separate EEPROM, but Atmel has and therefore requires a different read command
+                    var isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interface_mode)
+
+                    if (isSiLabs) {
+                        return _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE);
+                    }
+                    
+                    return _4way.readEEprom(0, BLHELI_LAYOUT_SIZE);
+                })
+                // verify
+                .then(message => {
+                    if (!compare(escSettings, message.params)) {
+                        throw new Error('Failed to verify settings')
+                    }
+                })
+
+                return promise
+            })
+            .then(_4way.reset.bind(_4way, esc))
+            .catch(error => {
+                GUI.log('ESC ' + (esc + 1) + ', failed to write settings: ' + error.message)
+            })
+        }
+
+        return promise
+    },
+    writeSetup: function() {
+        GUI.log('writing ESC setup');
+        // disallow further requests until we're finished
+        // @todo also disable settings alteration
+        this.setState({
+            canRead: false,
+            canWrite: false
+        });
+
+        this.writeSetupImpl()
+        .then(() => {
+            GUI.log('ESC setup written');
+            this.readSetup();
+        })
+        .done();
+    },
+    render: function() {
+        return (
+            <div>
+                <div className="content_wrapper">
+                    <div className="tab_title">ESC Programming</div>
+                    <div className="note" style={{marginBottom: 20}}>
+                        <div className="note_spacer">
+                            <p>{chrome.i18n.getMessage('escFeaturesHelp')}</p>
+                        </div>
+                    </div>
+                    <div className="checkbox">
+                        <input type="checkbox" className="toggle" />
+                        <label>
+                            <span>{chrome.i18n.getMessage('escIgnoreInappropriateMCULayout')}</span>
+                        </label>
+                    </div>
+                    <div className="leftWrapper common-config">
+                        {this.renderCommonSettings()}
+                    </div>
+                    <div className="rightWrapper individual-config">
+                        {this.renderIndividualSettings()}
+                    </div>
+                </div>
+                <div className="content_toolbar">
+                    <div className="btn">
+                        <a
+                            href="#"
+                            className={this.state.canRead ? "read" : "read disabled"}
+                            onClick={this.readSetup}
+                        >
+                            {chrome.i18n.getMessage('escButtonRead')}
+                        </a>
+                    </div>
+                    <div className="btn">
+                        <a
+                            href="#"
+                            className={this.state.canWrite ? "write" : "write disabled"}
+                            onClick={this.writeSetup}
+                        >
+                            {chrome.i18n.getMessage('escButtonWrite')}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        );
+    },
+    renderCommonSettings: function() {
+        const noneAvailable = !this.state.escMetainfo.some(info => info.available);
+        if (noneAvailable) {
+            return null;
+        }
+
+        return (
+            <CommonSettings
+                escSettings={this.state.escSettings}
+                escMetainfo={this.state.escMetainfo}
+                onUserInput={this.onUserInput}
+            />
+        );
+    },
+    renderIndividualSettings: function() {
+        return this.state.escMetainfo.map((info, idx) => {
+            if (!info.available) {
+                return null;
+            }
+
+            return (
+                <IndividualSettings
+                    escIndex={idx}
+                    escSettings={this.state.escSettings}
+                    escMetainfo={this.state.escMetainfo}
+                    onUserInput={this.onUserInput}
+                />
+            );
+        });
+    }
+});
+
 TABS.esc = {
     esc_settings: [],
     esc_metainfo: [],
@@ -27,467 +664,12 @@ TABS.esc.initialize = function (callback) {
     function process_html() {
         // translate to user-selected language
         localize();
-
-        var individualConfigDiv = $('.tab-esc .content_wrapper .individual-config'),
-            individualConfigTemplate = individualConfigDiv.find('.template');
-
-        // create tabs for individual ESC parameters
-        for (var i = 0; i < ESC_CONFIG.connectedESCs; ++i) {
-            var escBox = individualConfigTemplate.clone();
-
-            escBox.css('display', '').removeClass('template').addClass('esc-' + i).addClass(i % 2 ? 'quarterRight' : 'quarterLeft');
-            escBox.find('.escNumber').text('ESC ' + (i + 1));
-            escBox.appendTo(individualConfigDiv);
-
-            $('select,input,a', escBox).data('esc', i);
-
-            self.esc_settings.push({});
-            self.esc_metainfo.push({ available: false });
-        }
-
-        var commonConfigContext = $('.common-config');
-
-        // Add UI handlers
-        $('input[type="checkbox"]', commonConfigContext).change(function() {
-            var element = $(this),
-                val = Number(element.is(':checked')),
-                name = this.id;
-
-            self.esc_settings.forEach(function(settings) {
-                settings[BLHELI_LAYOUT[name].offset] = val;
-            });
-        });
-
-        $('input[type="number"]', commonConfigContext).change(function() {
-            var element = $(this),
-                step = parseFloat(element.prop('step')),
-                val = parseFloat(element.val()),
-                name = this.id;
-
-            self.esc_settings.forEach(function(settings) {
-                settings[BLHELI_LAYOUT[name].offset] = val;
-            });
-        });
-
-        $('select', commonConfigContext).change(function() {
-            var element = $(this),
-                val = element.val(),
-                name = this.id;
-
-            self.esc_settings.forEach(function(settings) {
-                settings[BLHELI_LAYOUT[name].offset] = val;
-            });
-
-            // @todo extract to special handlers
-            if (name == 'GOVERNOR_MODE') {
-                if (val == 4) {
-                    $('#P_GAIN').parent().parent().hide();
-                    $('#I_GAIN').parent().parent().hide();
-                } else {
-                    $('#P_GAIN').parent().parent().show();
-                    $('#I_GAIN').parent().parent().show();
-                }
-            }
-        });
-
-        $('select', individualConfigDiv).change(function() {
-            var element = $(this),
-                escIdx = element.data('esc'),
-                name = this.id,
-                val = element.val();
-
-            self.esc_settings[escIdx][BLHELI_LAYOUT[name].offset] = val;
-
-            // @todo extract to special handlers
-            if (name == 'MOTOR_DIRECTION') {
-                var ppm_center_element = element.parent().parent().siblings().find('#PPM_CENTER_THROTTLE').parent().parent()
-                if (val == 3 || val == 4) {
-                    ppm_center_element.show();
-                } else {
-                    ppm_center_element.hide();
-                }
-            }
-        });
-
-        // @todo add logic for spreading PPM_MIN_THROTTLE and PPM_MAX_THROTTLE 500us apart
-        $('input[type="number"]', individualConfigDiv).change(function() {
-            var element = $(this),
-                escIdx = element.data('esc'),
-                name = this.id,
-                multiplier = element.data('multiplier'),
-                offset = element.data('offset'),
-                val = Math.floor((element.val() - offset) / multiplier);
-
-            // round down to multiple
-            element.val(val * multiplier + offset);
-            self.esc_settings[escIdx][BLHELI_LAYOUT[name].offset] = val;
-        });
-
-        // reading ESC setup from FC too fast fails spuriously, add a small delay
-        GUI.timeout_add('allow_read', () => {
-            $('a.read').removeClass('disabled')
-        }, 1500)
-
-        // add button handlers
-        $('a.write').click(write_settings);
-        $('a.read').click(read_settings);
-        $('a.flash').click(flash_firmware);
-
-        $('#ignore_inappropriate_mcu_layout').change(function() {
-            var element = $(this),
-                val = Number(element.is(':checked'))
-
-            self.ignore_inappropriate_mcu_layout = val
-        })
+        ReactDOM.render(
+            <Configurator escCount={ESC_CONFIG.connectedESCs} />,
+            document.getElementById('configurator')
+        );
 
         GUI.content_ready(callback);
-    }
-
-    // @todo combine
-    // Read setting(s), uses ReadEEprom for Atmel and Read for SiLabs
-    function read_eeprom_impl(interface_mode, address, bytesToRead) {
-        // SiLabs has no separate EEPROM, but Atmel has and therefore requires a different read command
-        var isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interface_mode)
-
-        if (isSiLabs) {
-            return _4way.read(BLHELI_SILABS_EEPROM_OFFSET + address, bytesToRead)
-        } else {
-            return _4way.readEEprom(address, bytesToRead)
-        }
-    }
-
-    function compare(lhs_array, rhs_array) {
-        if (lhs_array.byteLength != rhs_array.byteLength) {
-            return false;
-        }
-
-        for (var i = 0; i < lhs_array.byteLength; ++i) {
-            if (lhs_array[i] !== rhs_array[i]) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    function ascii2buf(str) {
-        var view = new Uint8Array(str.length)
-
-        for (var i = 0; i < str.length; ++i) {
-            view[i] = str.charCodeAt(i)
-        }
-
-        return view;
-    }
-
-    function buf2ascii(buf) {
-        return String.fromCharCode.apply(null, buf)
-    }
-
-    function write_settings() {
-        $('a.write, a.read, a.flash').addClass('disabled')
-
-        write_settings_impl()
-        .then(() => {
-            self.print('Settings written')
-
-            // settings readback
-            read_settings()
-        })
-        .done()
-    }
-
-    function write_settings_impl() {
-        var promise = Q()
-
-        for (let esc = 0; esc < self.esc_settings.length; ++esc) {
-            if (!self.esc_metainfo[esc].available) {
-               self.print('ESC ' + (esc + 1) + ' was not connected, skipping.')
-               continue;
-            }
-
-            promise = promise
-            // Ask 4way interface to initialize target ESC for flashing
-            .then(_4way.initFlash.bind(_4way, esc))
-            // Remember interface mode and read settings
-            .then(message => {
-                var interface_mode = message.params[3]
-
-                // remember interface mode for ESC
-                self.esc_metainfo[esc].interface_mode = interface_mode
-
-                // read everything in one big chunk to check if any settings have changed
-                return read_eeprom_impl(interface_mode, 0, BLHELI_LAYOUT_SIZE)
-            })
-            // Check for changes and perform write
-            .then(message => {
-                var esc_settings = self.esc_settings[esc],
-                    readback_settings = message.params
-
-                // check for unexpected size mismatch
-                if (esc_settings.byteLength != readback_settings.byteLength) {
-                    throw new Error('byteLength of buffers do not match')
-                }
-
-                // check for actual changes, maybe we should not write to this ESC at all
-                // @todo BLHeliSuite writes only hanged values to Atmel EEPROM, probably there's a reason for it
-                if (compare(esc_settings, readback_settings)) {
-                    self.print('ESC ' + (esc + 1) + ': no changes')
-                    return
-                }
-
-                var interface_mode = self.esc_metainfo[esc].interface_mode,
-                    isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interface_mode),
-                    promise = Q()
-
-                // should erase page to 0xFF on SiLabs before writing
-                if (isSiLabs) {
-                    promise = promise
-                    .then(_4way.pageErase.bind(_4way, BLHELI_SILABS_EEPROM_OFFSET / BLHELI_SILABS_PAGE_SIZE))
-                    // actual write
-                    .then(_4way.write.bind(_4way, BLHELI_SILABS_EEPROM_OFFSET, esc_settings))
-                } else {
-                    // write only changed bytes for Atmel
-                    for (var pos = 0; pos < esc_settings.byteLength; ++pos) {
-                        var offset = pos
-
-                        // find the longest span of modified bytes
-                        while (esc_settings[pos] != readback_settings[pos]) {
-                            ++pos
-                        }
-
-                        // byte unchanged, continue
-                        if (offset == pos) {
-                            continue
-                        }
-
-                        // write span
-                        promise = promise
-                        .then(_4way.writeEEprom.bind(_4way, offset, esc_settings.subarray(offset, pos)))
-                    }
-                }
-
-                promise = promise
-                // readback
-                .then(() => {
-                    return read_eeprom_impl(interface_mode, 0, BLHELI_LAYOUT_SIZE)
-                })
-                // verify
-                .then(message => {
-                    if (!compare(esc_settings, message.params)) {
-                        throw new Error('Failed to verify settings')
-                    }
-                })
-
-                return promise
-            })
-            .catch(error => {
-                self.print('ESC ' + (esc + 1) + ', failed to write settings: ' + error.message)
-            })
-        }
-
-        return promise
-    }
-
-    function read_settings() {
-        $('a.read, a.write, a.flash').addClass('disabled')
-
-        read_settings_impl()
-        .then(() => {
-            // @todo check agreement between ESC settings
-            var first_esc_available = self.esc_metainfo.findIndex(function(item) {
-                return item.available
-            })
-
-            update_settings_ui(first_esc_available)
-
-            $('a.read').removeClass('disabled')
-            if (first_esc_available != -1) {
-                $('a.write').removeClass('disabled')
-            }
-        })
-        .done()
-    }
-
-    function read_settings_impl() {
-        var promise = Q()
-
-        for (let esc = 0; esc < self.esc_settings.length; ++esc) {
-            promise = promise
-            // Ask 4way interface to initialize target ESC for flashing
-            .then(_4way.initFlash.bind(_4way, esc))
-            // Check interface mode and read settings
-            .then(message => {
-                var interface_mode = message.params[3]
-
-                // remember interface mode for ESC
-                self.esc_metainfo[esc].interface_mode = interface_mode
-
-                // read everything in one big chunk
-                return read_eeprom_impl(interface_mode, 0, BLHELI_LAYOUT_SIZE)
-            })
-            // Ensure MULTI mode and correct BLHeli version
-            .then(message => {
-                // Check whether revision is supported
-                var esc_settings = message.params,
-                    main_revision = esc_settings[0],
-                    sub_revision = esc_settings[1],
-                    layout_revision = esc_settings[2]
-
-                // @todo Reflect following checks in the UI, allowing to flash but not alter settings of ESCs which have wrong/unsupported BLHeli version
-
-                // BLHeli firmware sets these three bytes to 0 while flashing, so we can check if flashing has gone wrong
-                if (main_revision == 0 && sub_revision == 0 && layout_revision == 0) {
-                    self.print('ESC ' + (esc + 1) + ' is not flashed properly, all of (MAIN_REVISION, SUB_REVISION, LAYOUT_REVISION) are 0')
-                }
-
-                if (layout_revision < BLHELI_MIN_SUPPORTED_LAYOUT_REVISION) {
-                    self.print('ESC ' + (esc + 1) + ' has LAYOUT_REVISION ' + layout_revision + ', oldest supported is ' + BLHELI_MIN_SUPPORTED_LAYOUT_REVISION)
-                }
-
-                // Check for MULTI mode
-                // @todo replace with a DataView
-                var mode = esc_settings.subarray(BLHELI_LAYOUT.MODE.offset, BLHELI_LAYOUT.MODE.offset + BLHELI_LAYOUT.MODE.size)
-                    .reduce(function(sum, byte) { return (sum << 8) | byte; })
-                if (mode != BLHELI_MODES.MULTI) {
-                    self.print('ESC ' + (esc + 1) + ' has MODE different from MULTI: ' + mode.toString(0x10))
-                }
-
-                self.esc_settings[esc] = esc_settings
-                self.esc_metainfo[esc].available = true
-            })
-            .catch(error => {
-                self.esc_metainfo[esc].available = false
-                self.print('ESC ' + (esc + 1) + ' read settings failed: ' + error.message)
-            })
-        }
-
-        return promise
-    }
-
-    function update_settings_ui(first_esc_available) {
-        if (first_esc_available !== -1) {
-            var master_esc_settings = self.esc_settings[first_esc_available],
-                layout_revision = master_esc_settings[BLHELI_LAYOUT.LAYOUT_REVISION.offset];
-
-            // input[type=checkbox]
-            [
-                'PROGRAMMING_BY_TX', 'TEMPERATURE_PROTECTION', 'LOW_RPM_POWER_PROTECTION',
-                'BRAKE_ON_STOP', 'PWM_INPUT'
-            ].forEach(function(name) {
-                var element= $('#' + name),
-                    val = Number(element.is(':checked')),
-                    setting = BLHELI_LAYOUT[name],
-                    newVal = master_esc_settings[setting.offset];
-
-                if (setting.since <= layout_revision && (!setting.until || layout_revision < setting.until)) {
-                    element.parent().show();
-                    if (val != newVal) {
-                        element.trigger('click');
-                    }
-                } else {
-                    element.parent().hide();
-                }
-            });
-
-            // <select>, input[type=number]
-            [
-                'BEEP_STRENGTH', 'BEACON_STRENGTH', 'GOVERNOR_MODE',
-                'P_GAIN', 'I_GAIN', 'MOTOR_GAIN', 'STARTUP_POWER',
-                'PWM_DITHER', 'DEMAG_COMPENSATION', 'PWM_FREQUENCY',
-                'COMMUTATION_TIMING', 'INPUT_PWM_POLARITY', 'BEACON_DELAY'
-            ].forEach(function(name) {
-                var element = $('#' + name),
-                    val = element.val(),
-                    setting = BLHELI_LAYOUT[name],
-                    newVal = master_esc_settings[setting.offset];
-
-                if (setting.since <= layout_revision && (!setting.until || layout_revision < setting.until)) {
-                    element.parent().show();
-                    element.prop('disabled', false);
-                    if (val != newVal) {
-                        element.val(newVal);
-                    }
-                } else {
-                    element.parent().hide();
-                }
-            });
-
-            // @todo refactor
-            if (layout_revision < BLHELI_S_MIN_LAYOUT_REVISION) {
-                var closedLoopOff = master_esc_settings[BLHELI_LAYOUT.GOVERNOR_MODE.offset] == 4;
-                if (closedLoopOff) {
-                    $('#P_GAIN').parent().parent().hide();
-                    $('#I_GAIN').parent().parent().hide();
-                } else {
-                    $('#P_GAIN').parent().parent().show();
-                    $('#I_GAIN').parent().parent().show();
-                }
-            }
-        }
-
-        // set individual values
-        for (var i = 0; i < self.esc_settings.length; ++i) {
-            var container = $('.esc-' + i),
-                esc_settings = self.esc_settings[i],
-                esc_metainfo = self.esc_metainfo[i];
-
-            if (esc_metainfo.available) {
-                [ 'MOTOR_DIRECTION', 'PPM_MIN_THROTTLE', 'PPM_MAX_THROTTLE', 'PPM_CENTER_THROTTLE' ]
-                .forEach(function(name) {
-                    var element = $('#' + name, container),
-                        val = element.val(),
-                        settingInfo = BLHELI_LAYOUT[name],
-                        newVal = esc_settings[settingInfo.offset] * element.data('multiplier') + element.data('offset');
-
-                    element.prop('disabled', false);
-                    if (val != newVal) element.val(newVal);
-                });
-
-                // ugly hack to enable bidir reversed
-                $('#MOTOR_DIRECTION', container).find(':nth-child(4)').prop('hidden', layout_revision < BLHELI_S_MIN_LAYOUT_REVISION);
-
-                var layout_buf = esc_settings.subarray(BLHELI_LAYOUT.LAYOUT.offset, BLHELI_LAYOUT.LAYOUT.offset + BLHELI_LAYOUT.LAYOUT.size),
-                    name_buf = esc_settings.subarray(BLHELI_LAYOUT.NAME.offset, BLHELI_LAYOUT.NAME.offset + BLHELI_LAYOUT.NAME.size),
-                    layout = buf2ascii(layout_buf).trim(),
-                    name = buf2ascii(name_buf).trim(),
-                    make = layout.length > 0 ? layout : 'EMPTY'
-
-                if (esc_metainfo.interface_mode === _4way_modes.SiLBLB) {
-                    if (BLHELI_SILABS_ESCS.hasOwnProperty(layout)) {
-                        make = BLHELI_SILABS_ESCS[layout].name
-                        $('a.flash', container).removeClass('disabled')
-                    } else if (BLHELI_S_SILABS_ESCS.hasOwnProperty(layout)) {
-                        make = BLHELI_S_SILABS_ESCS[layout].name
-                        $('a.flash', container).removeClass('disabled')
-                    } else {
-                        $('a.flash', container).addClass('disabled')
-                    }
-                } else {
-                    if (BLHELI_ATMEL_ESCS.hasOwnProperty(layout)) {
-                        make = BLHELI_ATMEL_ESCS[layout].name
-                    }
-                    $('a.flash', container).addClass('disabled')
-                }
-
-                var title = make + ', ' + esc_settings[0] + '.' + esc_settings[1] + (name.length > 0 ? ', ' + name : '');
-
-                container.find('.escInfo').text(title);
-
-                var direction = esc_settings[BLHELI_LAYOUT.MOTOR_DIRECTION.offset],
-                    bidirectional = direction === 3 || direction === 4,
-                    ppm_center_element = container.find('#PPM_CENTER_THROTTLE').parent().parent()
-
-                if (bidirectional) {
-                    ppm_center_element.show();
-                } else {
-                    ppm_center_element.hide();
-                }
-            } else {
-                container.find('.escInfo').text('NOT CONNECTED')
-                $('a.flash', container).addClass('disabled')
-            }
-        }
     }
 
     function flash_firmware() {

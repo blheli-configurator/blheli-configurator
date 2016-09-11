@@ -164,7 +164,7 @@
     "escPWMOutputDither": {
         "message": "PWM Output Dither"
     },
-    "escLowRPMPowerPortection": {
+    "escLowRPMPowerProtection": {
         "message": "Low RPM Power Protection"
     },
     "escBrakeOnStop": {
