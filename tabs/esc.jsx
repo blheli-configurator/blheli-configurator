@@ -229,9 +229,28 @@ var IndividualSettings = React.createClass({
         );
     },
     getTitle: function() {
-        var escSettings = this.props.escSettings[this.props.escIndex];
+        var escSettings = this.props.escSettings[this.props.escIndex],
+            escMetainfo = this.props.escMetainfo[this.props.escIndex],
+            layoutBuf = escSettings.subarray(BLHELI_LAYOUT.LAYOUT.offset, BLHELI_LAYOUT.LAYOUT.offset + BLHELI_LAYOUT.LAYOUT.size),
+            nameBuf = escSettings.subarray(BLHELI_LAYOUT.NAME.offset, BLHELI_LAYOUT.NAME.offset + BLHELI_LAYOUT.NAME.size),
+            layout = buf2ascii(layoutBuf).trim(),
+            name = buf2ascii(nameBuf).trim(),
+            make = layout.length > 0 ? layout : 'EMPTY';
 
-        return 'ESC ' + (this.props.escIndex + 1) + '\t' + 'make' + ', ' + escSettings[0] + '.' + escSettings[1] + ', NAME';
+        if (escMetainfo.interface_mode === _4way_modes.SiLBLB) {
+            if (BLHELI_SILABS_ESCS.hasOwnProperty(layout)) {
+                make = BLHELI_SILABS_ESCS[layout].name
+            } else if (BLHELI_S_SILABS_ESCS.hasOwnProperty(layout)) {
+                make = BLHELI_S_SILABS_ESCS[layout].name
+            }
+        } else {
+            if (BLHELI_ATMEL_ESCS.hasOwnProperty(layout)) {
+                make = BLHELI_ATMEL_ESCS[layout].name
+            }
+        }
+
+        return 'ESC ' + (this.props.escIndex + 1) + ': ' + make + ', ' +
+            escSettings[0] + '.' + escSettings[1] + (name.length > 0 ? ', ' + name : '');
     },
     renderControls: function() {
         var rows = [];
