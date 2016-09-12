@@ -1044,19 +1044,16 @@ var Configurator = React.createClass({
             });
         });
     },
-    writeSetupImpl: function() {
-        var promise = Q()
-
+    writeSetupImpl: async function() {
         for (let esc = 0; esc < this.state.escSettings.length; ++esc) {
-            if (!this.state.escMetainfo[esc].available) {
-               continue;
-            }
+            try {
+                if (!this.state.escMetainfo[esc].available) {
+                   continue;
+                }
 
-            promise = promise
-            // Ask 4way interface to initialize target ESC for flashing
-            .then(_4way.initFlash.bind(_4way, esc))
-            // Remember interface mode and read settings
-            .then(message => {
+                // Ask 4way interface to initialize target ESC for flashing
+                const message = await _4way.initFlash(esc);
+                // Remember interface mode and read settings
                 var interface_mode = message.params[3]
 
                 // remember interface mode for ESC
@@ -1067,18 +1064,17 @@ var Configurator = React.createClass({
 
                 // read everything in one big chunk to check if any settings have changed
                 // SiLabs has no separate EEPROM, but Atmel has and therefore requires a different read command
-                var isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interface_mode)
+                var isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interface_mode),
+                    readbackSettings = null;
 
                 if (isSiLabs) {
-                    return _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE);
+                    readbackSettings = (await _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE)).params;
+                } else {
+                    readbackSettings = (await _4way.readEEprom(0, BLHELI_LAYOUT_SIZE)).params;
                 }
-                
-                return _4way.readEEprom(0, BLHELI_LAYOUT_SIZE);
-            })
-            // Check for changes and perform write
-            .then(message => {
-                var escSettings = this.state.escSettings[esc],
-                    readbackSettings = message.params
+
+                // Check for changes and perform write
+                var escSettings = this.state.escSettings[esc];
 
                 // check for unexpected size mismatch
                 if (escSettings.byteLength != readbackSettings.byteLength) {
@@ -1087,20 +1083,15 @@ var Configurator = React.createClass({
 
                 // check for actual changes, maybe we should not write to this ESC at all
                 if (compare(escSettings, readbackSettings)) {
-                    GUI.log('ESC ' + (esc + 1) + ': no changes')
-                    return
+                    GUI.log('ESC ' + (esc + 1) + ': no changes');
+                    continue;
                 }
-
-                var interface_mode = this.state.escMetainfo[esc].interface_mode,
-                    isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interface_mode),
-                    promise = Q()
 
                 // should erase page to 0xFF on SiLabs before writing
                 if (isSiLabs) {
-                    promise = promise
-                    .then(_4way.pageErase.bind(_4way, BLHELI_SILABS_EEPROM_OFFSET / BLHELI_SILABS_PAGE_SIZE))
+                    await _4way.pageErase(BLHELI_SILABS_EEPROM_OFFSET / BLHELI_SILABS_PAGE_SIZE);
                     // actual write
-                    .then(_4way.write.bind(_4way, BLHELI_SILABS_EEPROM_OFFSET, escSettings))
+                    await _4way.write(BLHELI_SILABS_EEPROM_OFFSET, escSettings);
                 } else {
                     // write only changed bytes for Atmel
                     for (var pos = 0; pos < escSettings.byteLength; ++pos) {
@@ -1117,41 +1108,29 @@ var Configurator = React.createClass({
                         }
 
                         // write span
-                        promise = promise
-                        .then(_4way.writeEEprom.bind(_4way, offset, escSettings.subarray(offset, pos)))
+                        await _4way.writeEEprom(offset, escSettings.subarray(offset, pos));
                     }
                 }
 
-                promise = promise
-                // readback
-                .then(() => {
-                    // SiLabs has no separate EEPROM, but Atmel has and therefore requires a different read command
-                    var isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interface_mode)
+                if (isSiLabs) {
+                    readbackSettings = (await _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE)).params;
+                } else {
+                    readbackSettings = (await _4way.readEEprom(0, BLHELI_LAYOUT_SIZE)).params;
+                }
 
-                    if (isSiLabs) {
-                        return _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE);
-                    }
-                    
-                    return _4way.readEEprom(0, BLHELI_LAYOUT_SIZE);
-                })
-                // verify
-                .then(message => {
-                    if (!compare(escSettings, message.params)) {
-                        throw new Error('Failed to verify settings')
-                    }
-                })
+                if (!compare(escSettings, readbackSettings)) {
+                    throw new Error('Failed to verify settings')
+                }
 
-                return promise
-            })
-            .then(_4way.reset.bind(_4way, esc))
-            .catch(error => {
-                GUI.log('ESC ' + (esc + 1) + ', failed to write settings: ' + error.message)
-            })
+                if (isSiLabs) {
+                    await _4way.reset(esc);
+                }
+            } catch (error) {
+                GUI.log('ESC ' + (esc + 1) + ', failed to write settings: ' + error.stack);
+            }
         }
-
-        return promise
     },
-    writeSetup: function() {
+    writeSetup: async function() {
         GUI.log('writing ESC setup');
         // disallow further requests until we're finished
         // @todo also disable settings alteration
@@ -1160,12 +1139,11 @@ var Configurator = React.createClass({
             canWrite: false
         });
 
-        this.writeSetupImpl()
-        .then(() => {
-            GUI.log('ESC setup written');
-            this.readSetup();
-        })
-        .done();
+        await this.writeSetupImpl();
+
+        GUI.log('ESC setup written');
+
+        this.readSetup();
     },
     handleIgnoreMCULayout: function(e) {
         this.setState({
