@@ -28,6 +28,77 @@ function buf2ascii(buf) {
     return String.fromCharCode.apply(null, buf)
 }
 
+var Checkbox = React.createClass({
+    render: function() {
+        return (
+            <div className="checkbox">
+                <label>
+                    <input
+                        type="checkbox"
+                        name={this.props.name}
+                        checked={this.props.value === 1 ? true : false}
+                        onChange={this.handleChange}
+                    />
+                    <span>{chrome.i18n.getMessage(this.props.label)}</span>
+                </label>
+            </div>
+        );
+    },
+    handleChange: function(e) {
+        this.props.onChange(e.target.name, e.target.checked ? 1 : 0);
+    }
+});
+
+var Select = React.createClass({
+    render: function() {
+        return (
+            <div className="select">
+                <label>
+                    <select
+                        name={this.props.name}
+                        value={this.props.value}
+                        onChange={this.handleChange}
+                    >
+                        {
+                            this.props.options.map(pair => <option value={pair[0]}>{pair[1]}</option>)
+                        }
+                    </select>
+                    <span>{chrome.i18n.getMessage(this.props.label)}</span>
+                </label>
+            </div>
+        );
+
+    },
+    handleChange: function(e) {
+        this.props.onChange(e.target.name, e.target.value);
+    } 
+});
+
+var Number = React.createClass({
+    render: function() {
+        return (
+            <div className="number">
+                <label>
+                    <input
+                        type="number"
+                        name={this.props.name}
+                        step={this.props.step}
+                        min={this.props.min}
+                        max={this.props.max}
+                        value={this.props.value}
+                        onChange={this.handleChange}
+                    />
+                    <span>{chrome.i18n.getMessage(this.props.label)}</span>
+                </label>
+            </div>
+        );
+    },
+    handleChange: function(e) {
+        const el = e.target;
+        this.props.onChange(el.name, Math.max(Math.min(el.value, el.max), el.min))
+    }
+});
+
 var CommonSettings = React.createClass({
     render: function() {
         return (
@@ -41,83 +112,43 @@ var CommonSettings = React.createClass({
             </div>
         );
     },
-    handleCheckbox: function(e) {        
-        var name = e.target.name,
-            value = e.target.checked ? 1 : 0,
-            escSettings = this.props.escSettings;
-
+    handleChange: function(name, value) {        
+        var escSettings = this.props.escSettings;
         escSettings.forEach(settings => settings[BLHELI_LAYOUT[name].offset] = value);
-
-        this.props.onUserInput(escSettings);
-    },
-    handleSelect: function(e) {
-        var name = e.target.name,
-            value = e.target.value,
-            escSettings = this.props.escSettings;
-
-        escSettings.forEach(settings => settings[BLHELI_LAYOUT[name].offset] = value);
-
-        this.props.onUserInput(escSettings);
-    },
-    handleNumber: function(e) {
-        var el = e.target,
-            escSettings = this.props.escSettings,
-            value = Math.max(Math.min(el.value, el.max), el.min);
-
-        // @todo validate new value, handle step
-        escSettings.forEach(settings => settings[BLHELI_LAYOUT[el.name].offset] = value);
-
         this.props.onUserInput(escSettings);
     },
     renderCheckbox: function(name, label) {
         return (
-            <div className="checkbox">
-                <label>
-                    <input
-                        type="checkbox"
-                        name={name}
-                        checked={this.props.escSettings[0][BLHELI_LAYOUT[name].offset] === 1}
-                        onChange={this.handleCheckbox}
-                    />
-                    <span>{chrome.i18n.getMessage(label)}</span>
-                </label>
-            </div>
+            <Checkbox
+                name={name}
+                value={this.props.escSettings[0][BLHELI_LAYOUT[name].offset]}
+                label={label}
+                onChange={this.handleChange}
+            />
         );
     },
     renderSelect: function(name, options, label) {
         return (
-            <div className="select">
-                <label>
-                    <select
-                        name={name}
-                        value={this.props.escSettings[0][BLHELI_LAYOUT[name].offset]}
-                        onChange={this.handleSelect}
-                    >
-                        {
-                            options.map(pair => <option value={pair[0]}>{pair[1]}</option>)
-                        }
-                    </select>
-                    <span>{chrome.i18n.getMessage(label)}</span>
-                </label>
-            </div>
+            <Select
+                name={name}
+                value={this.props.escSettings[0][BLHELI_LAYOUT[name].offset]}
+                options={options}
+                label={label}
+                onChange={this.handleChange}
+            />
         );
     },
     renderNumber: function(name, min, max, step, label) {
         return (
-            <div className="number">
-                <label>
-                    <input
-                        type="number"
-                        name={name}
-                        step={step}
-                        min={min}
-                        max={max}
-                        value={this.props.escSettings[0][BLHELI_LAYOUT[name].offset]}
-                        onChange={this.handleNumber}
-                    />
-                    <span>{chrome.i18n.getMessage(label)}</span>
-                </label>
-            </div>
+            <Number
+                name={name}
+                step={step}
+                min={min}
+                max={max}
+                value={this.props.escSettings[0][BLHELI_LAYOUT[name].offset]}
+                label={label}
+                onChange={this.handleChange}
+            />
         );
     },
     renderControls: function() {
@@ -288,58 +319,33 @@ var IndividualSettings = React.createClass({
 
         return rows;
     },
-    renderSelect: function(name, options, label) {
+   renderSelect: function(name, options, label) {
         return (
-            <div className="select">
-                <label>
-                    <select
-                        name={name}
-                        value={this.props.escSettings[this.props.escIndex][BLHELI_LAYOUT[name].offset]}
-                        onChange={this.handleSelect}
-                    >
-                        {
-                            options.map(pair => <option value={pair[0]}>{pair[1]}</option>)
-                        }
-                    </select>
-                    <span>{chrome.i18n.getMessage(label)}</span>
-                </label>
-            </div>
+            <Select
+                name={name}
+                value={this.props.escSettings[this.props.escIndex][BLHELI_LAYOUT[name].offset]}
+                options={options}
+                label={label}
+                onChange={this.handleChange}
+            />
         );
     },
     renderNumber: function(name, min, max, step, label) {
         return (
-            <div className="number">
-                <label>
-                    <input
-                        type="number"
-                        name={name}
-                        step={step}
-                        min={min}
-                        max={max}
-                        value={this.props.escSettings[this.props.escIndex][BLHELI_LAYOUT[name].offset]}
-                        onChange={this.handleNumber}
-                    />
-                    <span>{chrome.i18n.getMessage(label)}</span>
-                </label>
-            </div>
+            <Number
+                name={name}
+                step={step}
+                min={min}
+                max={max}
+                value={this.props.escSettings[this.props.escIndex][BLHELI_LAYOUT[name].offset]}
+                label={label}
+                onChange={this.handleChange}
+            />
         );
     },
-    handleSelect: function(e) {
-        var name = e.target.name,
-            value = e.target.value,
-            escSettings = this.props.escSettings;
-
+    handleChange: function(name, value) {
+        var escSettings = this.props.escSettings;
         escSettings[this.props.escIndex][BLHELI_LAYOUT[name].offset] = value;
-
-        this.props.onUserInput(escSettings);
-    },
-    handleNumber: function(e) {
-        var el = e.target,
-            escSettings = this.props.escSettings;
-
-        // @todo validate new value, handle step
-        escSettings[this.props.escIndex][BLHELI_LAYOUT[el.name].offset] = Math.max(Math.min(el.value, el.max), el.min);
-
         this.props.onUserInput(escSettings);
     },
     flashFirmware: function() {
