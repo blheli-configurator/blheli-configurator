@@ -959,7 +959,7 @@ var Configurator = React.createClass({
             escSettings: newSettings
         });
     },
-    readSetup: function() {
+    readSetup: async function() {
         GUI.log('reading ESC setup');
         // disallow further requests until we're finished
         // @todo also disable settings alteration
@@ -968,52 +968,49 @@ var Configurator = React.createClass({
             canWrite: false
         });
 
-        this.readSetupImpl()
-        .then(() => {
-            this.setState({
-                canRead: true,
-                canWrite: true
-            });
-            GUI.log('ESC setup read');   
-        })
-        .done();
+        await this.readSetupImpl();
+
+        this.setState({
+            canRead: true,
+            canWrite: true
+        });
+
+        GUI.log('ESC setup read');   
     },
-    readSetupImpl: function() {
-        var promise = Q(),
-            escSettings = [],
+    readSetupImpl: async function() {
+        var escSettings = [],
             escMetainfo = [];
 
         for (let esc = 0; esc < this.props.escCount; ++esc) {
             escSettings.push({});
             escMetainfo.push({});
 
-            promise = promise
-            // Ask 4way interface to initialize target ESC for flashing
-            .then(_4way.initFlash.bind(_4way, esc))
-            // Check interface mode and read settings
-            .then(message => {
-                var interface_mode = message.params[3]
+            try {
+                // Ask 4way interface to initialize target ESC for flashing
+                const message = await _4way.initFlash(esc);
+
+                // Check interface mode and read settings
+                const interface_mode = message.params[3]
 
                 // remember interface mode for ESC
                 escMetainfo[esc].interface_mode = interface_mode
 
                 // read everything in one big chunk
                 // SiLabs has no separate EEPROM, but Atmel has and therefore requires a different read command
-                var isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interface_mode)
+                var isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interface_mode),
+                    readSettings = null;
 
                 if (isSiLabs) {
-                    return _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE);
+                    readSettings = (await _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE)).params;
+                } else {
+                    readSettings = (await _4way.readEEprom(0, BLHELI_LAYOUT_SIZE)).params;
                 }
-                
-                return _4way.readEEprom(0, BLHELI_LAYOUT_SIZE);
-            })
-            // Ensure MULTI mode and correct BLHeli version
-            .then(message => {
+
+                // Ensure MULTI mode and correct BLHeli version
                 // Check whether revision is supported
-                var readSettings = message.params,
-                    main_revision = readSettings[0],
+                var main_revision = readSettings[0],
                     sub_revision = readSettings[1],
-                    layout_revision = readSettings[2]
+                    layout_revision = readSettings[2];
 
                 if (layout_revision < BLHELI_MIN_SUPPORTED_LAYOUT_REVISION) {
                     GUI.log('ESC ' + (esc + 1) + ' has LAYOUT_REVISION ' + layout_revision + ', oldest supported is ' + BLHELI_MIN_SUPPORTED_LAYOUT_REVISION)
@@ -1029,19 +1026,19 @@ var Configurator = React.createClass({
 
                 escSettings[esc] = readSettings
                 escMetainfo[esc].available = true
-            })
-            .then(_4way.reset.bind(_4way, esc))
-            .catch(error => {
+
+                if (isSiLabs) {
+                    await _4way.reset(esc);
+                }
+            } catch (error) {
                 escMetainfo[esc].available = false
-            })
+            }
         }
 
-        return promise.then(() => {
-            // Update backend and trigger representation
-            this.setState({
-                escSettings: escSettings,
-                escMetainfo: escMetainfo
-            });
+        // Update backend and trigger representation
+        this.setState({
+            escSettings: escSettings,
+            escMetainfo: escMetainfo
         });
     },
     writeSetupImpl: async function() {
