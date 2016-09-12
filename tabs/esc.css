@@ -171,11 +171,14 @@
     float: right;
 }
 
+.tab-esc .hidden {
+    display: none;
+}
+
 .tab-esc .flash_btn .progress {
     position: absolute;
     width: 100%;
     height: 100%;
-    display: none;
     border: 1px solid #5929aa;
     border-radius: 5px;
 }
