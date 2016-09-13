@@ -113,127 +113,85 @@ var CommonSettings = React.createClass({
         );
     },
     handleChange: function(name, value) {        
+        // @todo probably shouldn't alter props like this
         var escSettings = this.props.escSettings;
         escSettings.forEach(settings => settings[BLHELI_LAYOUT[name].offset] = value);
         this.props.onUserInput(escSettings);
     },
-    renderCheckbox: function(name, label) {
-        return (
-            <Checkbox
-                name={name}
-                value={this.props.escSettings[0][BLHELI_LAYOUT[name].offset]}
-                label={label}
-                onChange={this.handleChange}
-            />
-        );
-    },
-    renderSelect: function(name, options, label) {
-        return (
-            <Select
-                name={name}
-                value={this.props.escSettings[0][BLHELI_LAYOUT[name].offset]}
-                options={options}
-                label={label}
-                onChange={this.handleChange}
-            />
-        );
-    },
-    renderNumber: function(name, min, max, step, label) {
-        return (
-            <Number
-                name={name}
-                step={step}
-                min={min}
-                max={max}
-                value={this.props.escSettings[0][BLHELI_LAYOUT[name].offset]}
-                label={label}
-                onChange={this.handleChange}
-            />
-        );
-    },
     renderControls: function() {
-        if (this.props.escSettings.length === 0) {
-            return null;
-        }
-
         const noneAvailable = !this.props.escMetainfo.some(info => info.available);
         if (noneAvailable) {
-            return null;
+            return (
+                <h3>Read Settings first</h3>
+            );
+        }
+
+        const allMulti = this.props.escSettings.all(data => {
+            const view = new DataView(data.buffer);
+            return view.getUint16(BLHELI_LAYOUT.MODE.offset) === BLHELI_MODES.MULTI;
+        });
+        if (!allMulti) {
+            return (
+                <h3>Only MULTI mode currently supported</h3>
+            );
         }
 
         // @todo check all ESCs are in sync
-        var rows = [];
+        // @todo select mode
 
-        // if mode
-        // if version
-        // foreach setting
-        //  generate
-
-        rows.push(this.renderCheckbox('PROGRAMMING_BY_TX', 'escProgrammingByTX'));
-        rows.push(this.renderSelect(
-            'GOVERNOR_MODE',
-            [ [ '1', 'HiRange' ], [ '2', 'MidRange' ], [ '3', 'LoRange' ], [ '4', 'Off' ] ],
-            'escClosedLoopMode'
-        ));
-        if (this.props.escSettings[0][BLHELI_LAYOUT['GOVERNOR_MODE'].offset] !== 4) {
-            const options = [
-                [ '1', '0.13' ], [ '2', '0.17' ], [ '3', '0.25' ], [ '4', '0.38' ],
-                [ '5', '0.50' ], [ '6', '0.75' ], [ '7', '1.00' ], [ '8', '1.50' ],
-                [ '9', '2.00' ], [ '10', '3.00' ], [ '11', '4.00' ], [ '12', '6.00' ],
-                [ '13', '8.00' ]
-            ];
-
-            rows.push(this.renderSelect('P_GAIN', options, 'escClosedLoopPGain'));
-            rows.push(this.renderSelect('I_GAIN', options, 'escClosedLoopIGain'));
+        const version = this.props.escSettings[0][0] + '.' + this.props.escSettings[0][1];
+        if (!(version in BLHELI_SETTINGS_DESCRIPTIONS)) {
+            return (
+                <h3>Version {version} is unsupported</h3>
+            );
         }
-        rows.push(this.renderSelect(
-            'MOTOR_GAIN',
-            [ [ '1', '0.75' ], [ '2', '0.88' ], [ '3', '1.00' ], [ '4', '1.12' ], [ '5', '1.25'] ],
-            'escMotorGain'
-        ));
-        rows.push(this.renderSelect(
-            'STARTUP_POWER',
-            [ [ '1', '0.031' ], [ '2', '0.047' ], [ '3', '0.063' ], [ '4', '0.094' ], [ '5', '0.125' ], [ '6', '0.188' ], [ '7', '0.25' ], [ '8', '0.38' ], [ '9', '0.50' ], [ '10', '0.75' ], [ '11', '1.00' ], [ '12', '1.25' ], [ '13', '1.50' ] ],
-            'escStartupPower'
-        ));
-        rows.push(this.renderCheckbox('TEMPERATURE_PROTECTION', 'escTemperatureProtection'));
-        rows.push(this.renderSelect(
-            'PWM_DITHER',
-            [ [ '1', 'Off' ], [ '2', '3' ], [ '3', '7' ], [ '4', '15' ], [ '5', '31' ] ],
-            'escPWMOutputDither'
-        ));
-        rows.push(this.renderCheckbox('LOW_RPM_POWER_PROTECTION', 'escLowRPMPowerProtection'));
-        rows.push(this.renderCheckbox('BRAKE_ON_STOP', 'escBrakeOnStop'));
-        rows.push(this.renderSelect(
-            'DEMAG_COMPENSATION',
-            [ [ '1', 'Off' ], [ '2', 'Low' ], [ '3', 'High' ] ],
-            'escDemagCompensation'
-        ));
-        rows.push(this.renderSelect(
-            'PWM_FREQUENCY',
-            [ [ '1', 'Off' ], [ '2', 'Low' ], [ '3', 'DampedLight' ] ],
-            'escPWMFrequencyDamped'
-        ));
-        rows.push(this.renderCheckbox('PWM_INPUT', 'escEnablePWMInput'));
-        rows.push(this.renderSelect(
-            'COMMUTATION_TIMING',
-            [ [ '1', 'Low' ], [ '2', 'MediumLow' ], [ '3', 'Medium' ], [ '4', 'MediumHigh' ], [ '5', 'High' ] ],
-            'escMotorTiming'
-        ));
-        rows.push(this.renderSelect(
-            'INPUT_PWM_POLARITY',
-            [ [ '1', 'Positive' ], [ '2', 'Negative' ] ],
-            'escInputPolarity'
-        ));
-        rows.push(this.renderNumber('BEEP_STRENGTH', 1, 255, 1, 'escBeepStrength'));
-        rows.push(this.renderNumber('BEACON_STRENGTH', 1, 255, 1, 'escBeaconStrength'));
-        rows.push(this.renderSelect(
-            'BEACON_DELAY',
-            [ [ '1', '1 minute' ], [ '2', '2 minutes' ], [ '3', '5 minutes' ], [ '4', '10 minutes' ], [ '5', 'Infinite' ] ],
-            'escBeaconDelay'
-        ));
 
-        return rows;
+        return BLHELI_SETTINGS_DESCRIPTIONS[version]
+            .map(this.renderSetting.bind(this, this.props.escSettings[0]));
+    },
+    renderSetting: function(settings, desc) {
+        // @todo move elsewhere
+        if (desc.name in [ 'P_GAIN', 'I_GAIN' ] && settings[BLHELI_LAYOUT.GOVERNOR_MODE] === 4) {
+            return null;
+        }
+
+        switch (desc.type) {
+            case 'bool': {
+                return (
+                    <Checkbox
+                        name={desc.name}
+                        value={settings[BLHELI_LAYOUT[desc.name].offset]}
+                        label={desc.label}
+                        onChange={this.handleChange}
+                    />
+                );
+            }
+            case 'enum': {
+                return (
+                    <Select
+                        name={desc.name}
+                        value={settings[BLHELI_LAYOUT[desc.name].offset]}
+                        options={desc.options}
+                        label={desc.label}
+                        onChange={this.handleChange}
+                    />
+                );
+            }
+            case 'number': {
+                return (
+                    <Number
+                        name={desc.name}
+                        step={desc.step}
+                        min={desc.min}
+                        max={desc.max}
+                        value={settings[BLHELI_LAYOUT[desc.name].offset]}
+                        label={desc.label}
+                        onChange={this.handleChange}
+                    />
+                );
+            }
+            default: throw new Error('Logic error');
+        }
     }
 });
 
