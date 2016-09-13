@@ -60,7 +60,7 @@ var Select = React.createClass({
                         onChange={this.handleChange}
                     >
                         {
-                            this.props.options.map(pair => <option value={pair[0]}>{pair[1]}</option>)
+                            this.props.options.map(option => <option value={option.value}>{option.label}</option>)
                         }
                     </select>
                     <span>{chrome.i18n.getMessage(this.props.label)}</span>
@@ -126,7 +126,11 @@ var CommonSettings = React.createClass({
             );
         }
 
-        const allMulti = this.props.escSettings.all(data => {
+        const allMulti = this.props.escSettings.every((data, index) => {
+            if (!this.props.escMetainfo[index].available) {
+                return true;
+            }
+
             const view = new DataView(data.buffer);
             return view.getUint16(BLHELI_LAYOUT.MODE.offset) === BLHELI_MODES.MULTI;
         });
@@ -246,7 +250,10 @@ var IndividualSettings = React.createClass({
 
         rows.push(this.renderSelect(
             'MOTOR_DIRECTION',
-            [ [ '1', 'Normal' ], [ '2', 'Reversed' ], [ '3', 'Bidirectional' ], [ '4', 'Bidirectional Reversed' ] ],
+            [
+                { value: '1', label: 'Normal' }, { value: '2', label: 'Reversed' },
+                { value: '3', label: 'Bidirectional' }, { value: '4', label: 'Bidirectional Reversed' }
+            ],
             'escMotorDirection'
         ));
         rows.push(this.renderNumber('PPM_MIN_THROTTLE', 1, 125, 1, 'escPPMMinThrottle'));
@@ -1005,6 +1012,7 @@ var Configurator = React.createClass({
             escMetainfo: escMetainfo
         });
     },
+    // @todo add validation of each setting via BLHELI_SETTINGS_DESCRIPTION
     writeSetupImpl: async function() {
         for (let esc = 0; esc < this.state.escSettings.length; ++esc) {
             try {

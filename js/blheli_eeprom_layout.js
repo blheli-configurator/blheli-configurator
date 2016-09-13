@@ -65,9 +65,9 @@ var BLHELI_LAYOUT = {
     BRAKE_ON_STOP:              {   offset: 0x27, size: 1   },
     LED_CONTROL:                {   offset: 0x28, size: 1   },
 
-    LAYOUT:                     {   offset: 0x40, size: 1   },
-    MCU:                        {   offset: 0x50, size: 1   },
-    NAME:                       {   offset: 0x60, size: 1   }
+    LAYOUT:                     {   offset: 0x40, size: 16   },
+    MCU:                        {   offset: 0x50, size: 16   },
+    NAME:                       {   offset: 0x60, size: 16   }
 };
 
 // @todo PWM_DITHER in layout version 0x14 is 0, 7, 15, 31, 63
