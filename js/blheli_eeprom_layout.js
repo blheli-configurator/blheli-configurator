@@ -69,6 +69,3 @@ var BLHELI_LAYOUT = {
     MCU:                        {   offset: 0x50, size: 16   },
     NAME:                       {   offset: 0x60, size: 16   }
 };
-
-// @todo PWM_DITHER in layout version 0x14 is 0, 7, 15, 31, 63
-// @todo PWM_DITHER in version 14.0 vas 1, 7, 15, 31, 63

@@ -224,20 +224,20 @@ var IndividualSettings = React.createClass({
     getTitle: function() {
         var escSettings = this.props.escSettings[this.props.escIndex],
             escMetainfo = this.props.escMetainfo[this.props.escIndex],
-            layoutBuf = escSettings.subarray(BLHELI_LAYOUT.LAYOUT.offset, BLHELI_LAYOUT.LAYOUT.offset + BLHELI_LAYOUT.LAYOUT.size),
-            nameBuf = escSettings.subarray(BLHELI_LAYOUT.NAME.offset, BLHELI_LAYOUT.NAME.offset + BLHELI_LAYOUT.NAME.size),
+            layoutBuf = escSettings.subarray(BLHELI_LAYOUT.LAYOUT.offset).subarray(0, BLHELI_LAYOUT.LAYOUT.size),
+            nameBuf = escSettings.subarray(BLHELI_LAYOUT.NAME.offset).subarray(0, BLHELI_LAYOUT.NAME.size),
             layout = buf2ascii(layoutBuf).trim(),
             name = buf2ascii(nameBuf).trim(),
             make = layout.length > 0 ? layout : 'EMPTY';
 
         if (escMetainfo.interface_mode === _4way_modes.SiLBLB) {
-            if (BLHELI_SILABS_ESCS.hasOwnProperty(layout)) {
+            if (layout in BLHELI_SILABS_ESCS) {
                 make = BLHELI_SILABS_ESCS[layout].name
-            } else if (BLHELI_S_SILABS_ESCS.hasOwnProperty(layout)) {
+            } else if (layout in BLHELI_S_SILABS_ESCS) {
                 make = BLHELI_S_SILABS_ESCS[layout].name
             }
         } else {
-            if (BLHELI_ATMEL_ESCS.hasOwnProperty(layout)) {
+            if (layout in BLHELI_ATMEL_ESCS) {
                 make = BLHELI_ATMEL_ESCS[layout].name
             }
         }
