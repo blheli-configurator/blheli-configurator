@@ -39,7 +39,7 @@ var Checkbox = React.createClass({
                         checked={this.props.value === 1 ? true : false}
                         onChange={this.handleChange}
                     />
-                    <span>{chrome.i18n.getMessage(this.props.label)}</span>
+                    <span className={this.props.notInSync ? "not-in-sync" : ""}>{chrome.i18n.getMessage(this.props.label)}</span>
                 </label>
             </div>
         );
@@ -56,14 +56,15 @@ var Select = React.createClass({
                 <label>
                     <select
                         name={this.props.name}
-                        value={this.props.value}
+                        value={this.props.notInSync ? null : this.props.value}
                         onChange={this.handleChange}
                     >
+                        <option className="hidden" disabled selected value />
                         {
                             this.props.options.map(option => <option value={option.value}>{option.label}</option>)
                         }
                     </select>
-                    <span>{chrome.i18n.getMessage(this.props.label)}</span>
+                    <span className={this.props.notInSync ? "not-in-sync" : ""}>{chrome.i18n.getMessage(this.props.label)}</span>
                 </label>
             </div>
         );
@@ -85,10 +86,10 @@ var Number = React.createClass({
                         step={this.props.step}
                         min={this.props.min}
                         max={this.props.max}
-                        value={this.props.value}
+                        value={this.props.notInSync ? null : this.props.value}
                         onChange={this.handleChange}
                     />
-                    <span>{chrome.i18n.getMessage(this.props.label)}</span>
+                    <span className={this.props.notInSync ? "not-in-sync" : ""}>{chrome.i18n.getMessage(this.props.label)}</span>
                 </label>
             </div>
         );
@@ -119,46 +120,58 @@ var CommonSettings = React.createClass({
         this.props.onUserInput(escSettings);
     },
     renderControls: function() {
-        const noneAvailable = !this.props.escMetainfo.some(info => info.available);
-        if (noneAvailable) {
+        // filter escSettings to sieve unavailable ones
+        const availableSettings = this.props.escSettings.filter((i, idx) => this.props.escMetainfo[idx].available);
+        if (availableSettings.length === 0) {
             return (
                 <h3>Read Settings first</h3>
             );
         }
 
-        const allMulti = this.props.escSettings.every((data, index) => {
-            if (!this.props.escMetainfo[index].available) {
-                return true;
-            }
+        // ensure all ESCs have supported firmware version
+        for (let i = 0; i < availableSettings.length; ++i) {
+            const layoutRevision = availableSettings[i][BLHELI_LAYOUT.LAYOUT_REVISION.offset].toString();
 
-            const view = new DataView(data.buffer);
+            if (!(layoutRevision in BLHELI_SETTINGS_DESCRIPTIONS)) {
+                return (
+                    <h3>Version {availableSettings[i][0] + '.' + availableSettings[i][1]} is unsupported, please update</h3>
+                );
+            }
+        }
+
+        // ensure all ESCs are MULTI        
+        const allMulti = availableSettings.every(settings => {
+            const view = new DataView(settings.buffer);
             return view.getUint16(BLHELI_LAYOUT.MODE.offset) === BLHELI_MODES.MULTI;
         });
+
         if (!allMulti) {
             return (
-                <h3>Only MULTI mode currently supported</h3>
+                <h3>Only MULTI mode currently supported, please update</h3>
             );
         }
 
-        // @todo check all ESCs are in sync
-        // @todo select mode
+        const masterSettings = availableSettings[0],
+              layoutRevision = masterSettings[BLHELI_LAYOUT.LAYOUT_REVISION.offset],
+              revision = masterSettings[BLHELI_LAYOUT.MAIN_REVISION.offset] + '.' + masterSettings[BLHELI_LAYOUT.SUB_REVISION.offset];
 
-        const version = this.props.escSettings[0][0] + '.' + this.props.escSettings[0][1];
-        if (!(version in BLHELI_SETTINGS_DESCRIPTIONS)) {
-            return (
-                <h3>Version {version} is unsupported</h3>
-            );
-        }
+        return BLHELI_SETTINGS_DESCRIPTIONS[layoutRevision].MULTI.base.map(setting => {
+            // @todo move elsewhere
+            if (setting.name in [ 'P_GAIN', 'I_GAIN' ] && masterSettings[BLHELI_LAYOUT.GOVERNOR_MODE] === 4) {
+                return null;
+            }
 
-        return BLHELI_SETTINGS_DESCRIPTIONS[version]
-            .map(this.renderSetting.bind(this, this.props.escSettings[0]));
+            const offset = BLHELI_LAYOUT[setting.name].offset;
+            const notInSync = availableSettings.reduce((x, y) => x[offset] === y[offset] ? x : -1) === -1;
+
+            // @todo find settingsDesc override
+            const overrides = BLHELI_SETTINGS_DESCRIPTIONS[layoutRevision].MULTI.overrides[revision],
+                  override = overrides ? overrides.find(override => override.name === setting.name) : null;
+
+            return this.renderSetting(masterSettings, notInSync, override ? override : setting);
+        });
     },
-    renderSetting: function(settings, desc) {
-        // @todo move elsewhere
-        if (desc.name in [ 'P_GAIN', 'I_GAIN' ] && settings[BLHELI_LAYOUT.GOVERNOR_MODE] === 4) {
-            return null;
-        }
-
+    renderSetting: function(settings, notInSync, desc) {
         switch (desc.type) {
             case 'bool': {
                 return (
@@ -166,6 +179,7 @@ var CommonSettings = React.createClass({
                         name={desc.name}
                         value={settings[BLHELI_LAYOUT[desc.name].offset]}
                         label={desc.label}
+                        notInSync={notInSync}
                         onChange={this.handleChange}
                     />
                 );
@@ -177,6 +191,7 @@ var CommonSettings = React.createClass({
                         value={settings[BLHELI_LAYOUT[desc.name].offset]}
                         options={desc.options}
                         label={desc.label}
+                        notInSync={notInSync}
                         onChange={this.handleChange}
                     />
                 );
@@ -190,6 +205,7 @@ var CommonSettings = React.createClass({
                         max={desc.max}
                         value={settings[BLHELI_LAYOUT[desc.name].offset]}
                         label={desc.label}
+                        notInSync={notInSync}
                         onChange={this.handleChange}
                     />
                 );
@@ -1124,17 +1140,17 @@ var Configurator = React.createClass({
             <div>
                 <div className="content_wrapper">
                     <div className="tab_title">ESC Programming</div>
-                    <div className="note" style={{marginBottom: 20}}>
+                    <div className="note">
                         <div className="note_spacer">
-                            <p>{chrome.i18n.getMessage('escFeaturesHelp')}</p>
+                            <p dangerouslySetInnerHTML={{ __html: chrome.i18n.getMessage('escFeaturesHelp') }} />
                         </div>
                     </div>
                     <div className="checkbox">
-                        <input
-                            type="checkbox"
-                            onChange={this.handleIgnoreMCULayout}
-                        />
                         <label>
+                            <input
+                                type="checkbox"
+                                onChange={this.handleIgnoreMCULayout}
+                            />
                             <span>{chrome.i18n.getMessage('escIgnoreInappropriateMCULayout')}</span>
                         </label>
                     </div>
