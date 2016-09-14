@@ -164,7 +164,6 @@ var CommonSettings = React.createClass({
             const offset = BLHELI_LAYOUT[setting.name].offset;
             const notInSync = availableSettings.reduce((x, y) => x[offset] === y[offset] ? x : -1) === -1;
 
-            // @todo find settingsDesc override
             const overrides = BLHELI_SETTINGS_DESCRIPTIONS[layoutRevision].MULTI.overrides[revision],
                   override = overrides ? overrides.find(override => override.name === setting.name) : null;
 
@@ -762,9 +761,11 @@ var IndividualSettings = React.createClass({
 
             // @todo ask user if he wishes to continue
 
+            const settings_image = is_atmel ? eeprom_image : flash_image.subarray(BLHELI_SILABS_EEPROM_OFFSET);
+
             // check LAYOUT
             var target_layout = escSettings.subarray(BLHELI_LAYOUT.LAYOUT.offset, BLHELI_LAYOUT.LAYOUT.offset + BLHELI_LAYOUT.LAYOUT.size),
-                fw_layout = flash_image.subarray(BLHELI_SILABS_EEPROM_OFFSET).subarray(BLHELI_LAYOUT.LAYOUT.offset, BLHELI_LAYOUT.LAYOUT.offset + BLHELI_LAYOUT.LAYOUT.size);
+                fw_layout = settings_image.subarray(BLHELI_LAYOUT.LAYOUT.offset, BLHELI_LAYOUT.LAYOUT.offset + BLHELI_LAYOUT.LAYOUT.size);
 
             if (!compare(target_layout, fw_layout)) {
                 var target_layout_str = buf2ascii(target_layout).trim();
@@ -782,7 +783,7 @@ var IndividualSettings = React.createClass({
 
             // check MCU, if it does not match there's either wrong HEX or corrupted ESC. Disallow for now
             var target_mcu = escSettings.subarray(BLHELI_LAYOUT.MCU.offset, BLHELI_LAYOUT.MCU.offset + BLHELI_LAYOUT.MCU.size),
-                fw_mcu = flash_image.subarray(BLHELI_SILABS_EEPROM_OFFSET).subarray(BLHELI_LAYOUT.MCU.offset, BLHELI_LAYOUT.MCU.offset + BLHELI_LAYOUT.MCU.size);
+                fw_mcu = settings_image.subarray(BLHELI_LAYOUT.MCU.offset, BLHELI_LAYOUT.MCU.offset + BLHELI_LAYOUT.MCU.size);
             if (!compare(target_mcu, fw_mcu)) {
                 var target_mcu_str = buf2ascii(target_mcu).trim();
                 if (target_mcu_str.length == 0) {
