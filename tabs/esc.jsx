@@ -56,10 +56,10 @@ var Select = React.createClass({
                 <label>
                     <select
                         name={this.props.name}
-                        value={this.props.notInSync ? null : this.props.value}
+                        value={this.props.notInSync ? -1 : this.props.value}
                         onChange={this.handleChange}
                     >
-                        <option className="hidden" disabled selected value />
+                        <option className="hidden" disabled selected value="-1" />
                         {
                             this.props.options.map(option => <option value={option.value}>{option.label}</option>)
                         }
@@ -235,7 +235,7 @@ var IndividualSettings = React.createClass({
             escMetainfo = this.props.escMetainfo[this.props.escIndex],
             layout = escSettings.LAYOUT.trim(),
             name = escSettings.NAME.trim(),
-            make = layout.length > 0 ? layout : 'EMPTY';
+            make = layout;
 
         if (escMetainfo.interface_mode === _4way_modes.SiLBLB) {
             if (layout in BLHELI_SILABS_ESCS) {
@@ -416,7 +416,7 @@ var IndividualSettings = React.createClass({
 
                 // set settings as current
                 var allSettings = self.props.escSettings;
-                allSettings[escIdx] = new_settings;
+                allSettings[escIdx] = blheliSettingsObject(new_settings);
                 self.props.onUserInput(allSettings);
 
                 self.props.writeSetup();
