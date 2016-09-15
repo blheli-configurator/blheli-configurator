@@ -71,7 +71,7 @@ var Select = React.createClass({
 
     },
     handleChange: function(e) {
-        this.props.onChange(e.target.name, e.target.value);
+        this.props.onChange(e.target.name, parseInt(e.target.value));
     }
 });
 
@@ -97,11 +97,11 @@ var Number = React.createClass({
     },
     handleChange: function(e) {
         const el = e.target;
-        this.props.onChange(el.name, el.value);
+        this.props.onChange(el.name, parseInt(el.value));
     },
     handleBlur: function(e) {
         const el = e.target;
-        this.props.onChange(el.name, Math.max(Math.min(el.value, el.max), el.min));
+        this.props.onChange(el.name, Math.max(Math.min(parseInt(el.value), el.max), el.min));
     }
 });
 
@@ -258,21 +258,15 @@ var IndividualSettings = React.createClass({
             escSettings.MAIN_REVISION + '.' + escSettings.SUB_REVISION + (name.length > 0 ? ', ' + name : '');
     },
     renderControls: function() {
-        var rows = [];
+        const escSettings = this.props.escSettings[this.props.escIndex];
 
-        rows.push(this.renderSelect(
-            'MOTOR_DIRECTION',
-            [
-                { value: '1', label: 'Normal' }, { value: '2', label: 'Reversed' },
-                { value: '3', label: 'Bidirectional' }, { value: '4', label: 'Bidirectional Reversed' }
-            ],
-            'escMotorDirection'
-        ));
-        rows.push(this.renderNumber('PPM_MIN_THROTTLE', 1, 125, 1, 'escPPMMinThrottle'));
-        rows.push(this.renderNumber('PPM_MAX_THROTTLE', 126, 255, 1, 'escPPMMaxThrottle'));
-        if (this.props.escSettings[this.props.escIndex][BLHELI_LAYOUT['MOTOR_DIRECTION'].offset] > 2) {
-            rows.push(this.renderNumber('PPM_CENTER_THROTTLE', 1, 255, 1, 'escPPMCenterThrottle'));
-        }
+        var rows = BLHELI_INDIVIDUAL_SETTINGS_DESCRIPTIONS[escSettings.LAYOUT_REVISION].base.map(setting => {
+            if (setting.visibleIf && !setting.visibleIf(escSettings)) {
+                return null;
+            }
+
+            return this.renderSetting(escSettings, setting);
+        });
 
         rows.push(
             <div className="half">
@@ -296,7 +290,46 @@ var IndividualSettings = React.createClass({
 
         return rows;
     },
-   renderSelect: function(name, options, label) {
+    renderSetting: function(settings, desc) {
+        switch (desc.type) {
+            case 'bool': {
+                return (
+                    <Checkbox
+                        name={desc.name}
+                        value={settings[desc.name]}
+                        label={desc.label}
+                        onChange={this.handleChange}
+                    />
+                );
+            }
+            case 'enum': {
+                return (
+                    <Select
+                        name={desc.name}
+                        value={settings[desc.name]}
+                        options={desc.options}
+                        label={desc.label}
+                        onChange={this.handleChange}
+                    />
+                );
+            }
+            case 'number': {
+                return (
+                    <Number
+                        name={desc.name}
+                        step={desc.step}
+                        min={desc.min}
+                        max={desc.max}
+                        value={settings[desc.name]}
+                        label={desc.label}
+                        onChange={this.handleChange}
+                    />
+                );
+            }
+            default: throw new Error('Logic error');
+        }
+    },
+    renderSelect: function(name, options, label) {
         return (
             <Select
                 name={name}
