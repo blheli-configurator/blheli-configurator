@@ -116,7 +116,7 @@ var CommonSettings = React.createClass({
     handleChange: function(name, value) {        
         // @todo probably shouldn't alter props like this
         var escSettings = this.props.escSettings;
-        escSettings.forEach(settings => settings[BLHELI_LAYOUT[name].offset] = value);
+        escSettings.forEach(settings => settings[name] = value);
         this.props.onUserInput(escSettings);
     },
     renderControls: function() {
@@ -130,21 +130,17 @@ var CommonSettings = React.createClass({
 
         // ensure all ESCs have supported firmware version
         for (let i = 0; i < availableSettings.length; ++i) {
-            const layoutRevision = availableSettings[i][BLHELI_LAYOUT.LAYOUT_REVISION.offset].toString();
+            const layoutRevision = availableSettings[i].LAYOUT_REVISION.toString();
 
             if (!(layoutRevision in BLHELI_SETTINGS_DESCRIPTIONS)) {
                 return (
-                    <h3>Version {availableSettings[i][0] + '.' + availableSettings[i][1]} is unsupported, please update</h3>
+                    <h3>Version {availableSettings[i].MAIN_REVISION + '.' + availableSettings[i].SUB_REVISION} is unsupported, please update</h3>
                 );
             }
         }
 
         // ensure all ESCs are MULTI        
-        const allMulti = availableSettings.every(settings => {
-            const view = new DataView(settings.buffer);
-            return view.getUint16(BLHELI_LAYOUT.MODE.offset) === BLHELI_MODES.MULTI;
-        });
-
+        const allMulti = availableSettings.every(settings => settings.MODE === BLHELI_MODES.MULTI);
         if (!allMulti) {
             return (
                 <h3>Only MULTI mode currently supported, please update</h3>
@@ -152,19 +148,17 @@ var CommonSettings = React.createClass({
         }
 
         const masterSettings = availableSettings[0],
-              layoutRevision = masterSettings[BLHELI_LAYOUT.LAYOUT_REVISION.offset],
-              revision = masterSettings[BLHELI_LAYOUT.MAIN_REVISION.offset] + '.' + masterSettings[BLHELI_LAYOUT.SUB_REVISION.offset];
+              layoutRevision = masterSettings.LAYOUT_REVISION,
+              revision = masterSettings.MAIN_REVISION + '.' + masterSettings.SUB_REVISION;
 
         return BLHELI_SETTINGS_DESCRIPTIONS[layoutRevision].MULTI.base.map(setting => {
             // @todo move elsewhere
-            if (setting.name in [ 'P_GAIN', 'I_GAIN' ] && masterSettings[BLHELI_LAYOUT.GOVERNOR_MODE] === 4) {
+            if (setting.visibleIf && !setting.visibleIf(masterSettings)) {
                 return null;
             }
 
-            const offset = BLHELI_LAYOUT[setting.name].offset;
-            const notInSync = availableSettings.reduce((x, y) => x[offset] === y[offset] ? x : -1) === -1;
-
-            const overrides = BLHELI_SETTINGS_DESCRIPTIONS[layoutRevision].MULTI.overrides[revision],
+            const notInSync = availableSettings.reduce((x, y) => x[setting.name] === y[setting.name] ? x : -1) === -1,
+                  overrides = BLHELI_SETTINGS_DESCRIPTIONS[layoutRevision].MULTI.overrides[revision],
                   override = overrides ? overrides.find(override => override.name === setting.name) : null;
 
             return this.renderSetting(masterSettings, notInSync, override ? override : setting);
@@ -176,7 +170,7 @@ var CommonSettings = React.createClass({
                 return (
                     <Checkbox
                         name={desc.name}
-                        value={settings[BLHELI_LAYOUT[desc.name].offset]}
+                        value={settings[desc.name]}
                         label={desc.label}
                         notInSync={notInSync}
                         onChange={this.handleChange}
@@ -187,7 +181,7 @@ var CommonSettings = React.createClass({
                 return (
                     <Select
                         name={desc.name}
-                        value={settings[BLHELI_LAYOUT[desc.name].offset]}
+                        value={settings[desc.name]}
                         options={desc.options}
                         label={desc.label}
                         notInSync={notInSync}
@@ -202,7 +196,7 @@ var CommonSettings = React.createClass({
                         step={desc.step}
                         min={desc.min}
                         max={desc.max}
-                        value={settings[BLHELI_LAYOUT[desc.name].offset]}
+                        value={settings[desc.name]}
                         label={desc.label}
                         notInSync={notInSync}
                         onChange={this.handleChange}
@@ -239,10 +233,8 @@ var IndividualSettings = React.createClass({
     getTitle: function() {
         var escSettings = this.props.escSettings[this.props.escIndex],
             escMetainfo = this.props.escMetainfo[this.props.escIndex],
-            layoutBuf = escSettings.subarray(BLHELI_LAYOUT.LAYOUT.offset).subarray(0, BLHELI_LAYOUT.LAYOUT.size),
-            nameBuf = escSettings.subarray(BLHELI_LAYOUT.NAME.offset).subarray(0, BLHELI_LAYOUT.NAME.size),
-            layout = buf2ascii(layoutBuf).trim(),
-            name = buf2ascii(nameBuf).trim(),
+            layout = escSettings.LAYOUT.trim(),
+            name = escSettings.NAME.trim(),
             make = layout.length > 0 ? layout : 'EMPTY';
 
         if (escMetainfo.interface_mode === _4way_modes.SiLBLB) {
@@ -258,7 +250,7 @@ var IndividualSettings = React.createClass({
         }
 
         return 'ESC ' + (this.props.escIndex + 1) + ': ' + make + ', ' +
-            escSettings[0] + '.' + escSettings[1] + (name.length > 0 ? ', ' + name : '');
+            escSettings.MAIN_REVISION + '.' + escSettings.SUB_REVISION + (name.length > 0 ? ', ' + name : '');
     },
     renderControls: function() {
         var rows = [];
@@ -303,7 +295,7 @@ var IndividualSettings = React.createClass({
         return (
             <Select
                 name={name}
-                value={this.props.escSettings[this.props.escIndex][BLHELI_LAYOUT[name].offset]}
+                value={this.props.escSettings[this.props.escIndex][name]}
                 options={options}
                 label={label}
                 onChange={this.handleChange}
@@ -317,7 +309,7 @@ var IndividualSettings = React.createClass({
                 step={step}
                 min={min}
                 max={max}
-                value={this.props.escSettings[this.props.escIndex][BLHELI_LAYOUT[name].offset]}
+                value={this.props.escSettings[this.props.escIndex][name]}
                 label={label}
                 onChange={this.handleChange}
             />
@@ -325,12 +317,12 @@ var IndividualSettings = React.createClass({
     },
     handleChange: function(name, value) {
         var escSettings = this.props.escSettings;
-        escSettings[this.props.escIndex][BLHELI_LAYOUT[name].offset] = value;
+        escSettings[this.props.escIndex][name] = value;
         this.props.onUserInput(escSettings);
     },
     flashFirmware: function() {
         var escIdx = this.props.escIndex,
-            escSettings = this.props.escSettings[escIdx],
+            escSettings = blheliSettingsArray(this.props.escSettings[escIdx]),
             escMetainfo = this.props.escMetainfo[escIdx],
             start_timestamp = Date.now(),
             is_atmel = [ _4way_modes.AtmBLB, _4way_modes.AtmSK ].includes(escMetainfo.interface_mode),
@@ -986,40 +978,35 @@ var Configurator = React.createClass({
                 // read everything in one big chunk
                 // SiLabs has no separate EEPROM, but Atmel has and therefore requires a different read command
                 var isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interface_mode),
-                    readSettings = null;
+                    settingsArray = null;
 
                 if (isSiLabs) {
-                    readSettings = (await _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE)).params;
+                    settingsArray = (await _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE)).params;
                 } else {
-                    readSettings = (await _4way.readEEprom(0, BLHELI_LAYOUT_SIZE)).params;
+                    settingsArray = (await _4way.readEEprom(0, BLHELI_LAYOUT_SIZE)).params;
                 }
+
+                const settings = blheliSettingsObject(settingsArray);
 
                 // Ensure MULTI mode and correct BLHeli version
                 // Check whether revision is supported
-                var main_revision = readSettings[0],
-                    sub_revision = readSettings[1],
-                    layout_revision = readSettings[2];
-
-                if (layout_revision < BLHELI_MIN_SUPPORTED_LAYOUT_REVISION) {
+                if (settings.LAYOUT_REVISION < BLHELI_MIN_SUPPORTED_LAYOUT_REVISION) {
                     GUI.log('ESC ' + (esc + 1) + ' has LAYOUT_REVISION ' + layout_revision + ', oldest supported is ' + BLHELI_MIN_SUPPORTED_LAYOUT_REVISION)
                 }
 
                 // Check for MULTI mode
-                // @todo replace with a DataView
-                var mode = readSettings.subarray(BLHELI_LAYOUT.MODE.offset, BLHELI_LAYOUT.MODE.offset + BLHELI_LAYOUT.MODE.size)
-                    .reduce(function(sum, byte) { return (sum << 8) | byte; })
-                if (mode != BLHELI_MODES.MULTI) {
+                if (settings.MODE != BLHELI_MODES.MULTI) {
                     GUI.log('ESC ' + (esc + 1) + ' has MODE different from MULTI: ' + mode.toString(0x10))
                 }
 
-                escSettings[esc] = readSettings
-                escMetainfo[esc].available = true
+                escSettings[esc] = settings;
+                escMetainfo[esc].available = true;
 
                 if (isSiLabs) {
                     await _4way.reset(esc);
                 }
             } catch (error) {
-                escMetainfo[esc].available = false
+                escMetainfo[esc].available = false;
             }
         }
 
@@ -1060,7 +1047,7 @@ var Configurator = React.createClass({
                 }
 
                 // Check for changes and perform write
-                var escSettings = this.state.escSettings[esc];
+                var escSettings = blheliSettingsArray(this.state.escSettings[esc]);
 
                 // check for unexpected size mismatch
                 if (escSettings.byteLength != readbackSettings.byteLength) {

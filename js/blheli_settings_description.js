@@ -79,6 +79,7 @@ var BLHELI_MULTI_SETTINGS_LAYOUT_21 = [
             { value: '11', label: '4.00' }, { value: '12', label: '6.00' },
             { value: '13', label: '8.00' }
         ],
+        visibleIf: settings => settings.GOVERNOR_MODE !== 4,
         label: 'escClosedLoopPGain'
     },
     {
@@ -91,6 +92,7 @@ var BLHELI_MULTI_SETTINGS_LAYOUT_21 = [
             { value: '11', label: '4.00' }, { value: '12', label: '6.00' },
             { value: '13', label: '8.00' }
         ],
+        visibleIf: settings => settings.GOVERNOR_MODE !== 4,
         label: 'escClosedLoopIGain'
     },
     {
@@ -199,6 +201,7 @@ var BLHELI_MULTI_SETTINGS_LAYOUT_20 = [
             { value: '11', label: '4.00' }, { value: '12', label: '6.00' },
             { value: '13', label: '8.00' }
         ],
+        visibleIf: settings => settings.GOVERNOR_MODE !== 4,
         label: 'escClosedLoopPGain'
     },
     {
@@ -211,6 +214,7 @@ var BLHELI_MULTI_SETTINGS_LAYOUT_20 = [
             { value: '11', label: '4.00' }, { value: '12', label: '6.00' },
             { value: '13', label: '8.00' }
         ],
+        visibleIf: settings => settings.GOVERNOR_MODE !== 4,
         label: 'escClosedLoopIGain'
     },
     {
@@ -316,6 +320,7 @@ var BLHELI_MULTI_SETTINGS_LAYOUT_19 = [
             { value: '11', label: '4.00' }, { value: '12', label: '6.00' },
             { value: '13', label: '8.00' }
         ],
+        visibleIf: settings => settings.GOVERNOR_MODE !== 4,
         label: 'escClosedLoopPGain'
     },
     {
@@ -328,6 +333,7 @@ var BLHELI_MULTI_SETTINGS_LAYOUT_19 = [
             { value: '11', label: '4.00' }, { value: '12', label: '6.00' },
             { value: '13', label: '8.00' }
         ],
+        visibleIf: settings => settings.GOVERNOR_MODE !== 4,
         label: 'escClosedLoopIGain'
     },
     {
