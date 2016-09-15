@@ -72,7 +72,7 @@ var Select = React.createClass({
     },
     handleChange: function(e) {
         this.props.onChange(e.target.name, e.target.value);
-    } 
+    }
 });
 
 var Number = React.createClass({
@@ -88,6 +88,7 @@ var Number = React.createClass({
                         max={this.props.max}
                         value={this.props.notInSync ? null : this.props.value}
                         onChange={this.handleChange}
+                        onBlur={this.handleBlur}
                     />
                     <span className={this.props.notInSync ? "not-in-sync" : ""}>{chrome.i18n.getMessage(this.props.label)}</span>
                 </label>
@@ -96,7 +97,11 @@ var Number = React.createClass({
     },
     handleChange: function(e) {
         const el = e.target;
-        this.props.onChange(el.name, Math.max(Math.min(el.value, el.max), el.min))
+        this.props.onChange(el.name, el.value);
+    },
+    handleBlur: function(e) {
+        const el = e.target;
+        this.props.onChange(el.name, Math.max(Math.min(el.value, el.max), el.min));
     }
 });
 
@@ -1133,21 +1138,7 @@ var Configurator = React.createClass({
                             <p dangerouslySetInnerHTML={{ __html: chrome.i18n.getMessage('escFeaturesHelp') }} />
                         </div>
                     </div>
-                    <div className="checkbox">
-                        <label>
-                            <input
-                                type="checkbox"
-                                onChange={this.handleIgnoreMCULayout}
-                            />
-                            <span>{chrome.i18n.getMessage('escIgnoreInappropriateMCULayout')}</span>
-                        </label>
-                    </div>
-                    <div className="leftWrapper common-config">
-                        {this.renderCommonSettings()}
-                    </div>
-                    <div className="rightWrapper individual-config">
-                        {this.renderIndividualSettings()}
-                    </div>
+                    {this.renderContent()}
                 </div>
                 <div className="content_toolbar">
                     <div className="btn">
@@ -1172,12 +1163,33 @@ var Configurator = React.createClass({
             </div>
         );
     },
-    renderCommonSettings: function() {
+    renderContent: function() {
         const noneAvailable = !this.state.escMetainfo.some(info => info.available);
         if (noneAvailable) {
             return null;
         }
 
+        return (
+            <div>
+                <div className="checkbox">
+                    <label>
+                        <input
+                            type="checkbox"
+                            onChange={this.handleIgnoreMCULayout}
+                        />
+                        <span>{chrome.i18n.getMessage('escIgnoreInappropriateMCULayout')}</span>
+                    </label>
+                </div>
+                <div className="leftWrapper common-config">
+                    {this.renderCommonSettings()}
+                </div>
+                <div className="rightWrapper individual-config">
+                    {this.renderIndividualSettings()}
+                </div>
+            </div>
+        );
+    },
+    renderCommonSettings: function() {
         return (
             <CommonSettings
                 escSettings={this.state.escSettings}
