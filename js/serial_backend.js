@@ -167,11 +167,6 @@ function onOpen(openInfo) {
                                     // continue as usually
                                     CONFIGURATOR.connectionValid = true;
                                     GUI.allowedTabs = GUI.defaultAllowedTabsWhenConnected.slice();
-                                    if (semver.lt(CONFIG.apiVersion, "1.4.0")) {
-                                        GUI.allowedTabs.splice(GUI.allowedTabs.indexOf('led_strip'), 1);
-                                    }
-
-                                    GUI.canChangePidController = semver.gte(CONFIG.apiVersion, CONFIGURATOR.pidControllerChangeMinApiVersion);
 
                                     onConnect();
 
@@ -211,8 +206,6 @@ function onConnect() {
     $('#tabs ul.mode-disconnected').hide();
     $('#tabs ul.mode-connected').show(); 
      
-    MSP.send_message(MSP_codes.MSP_STATUS, false, false);
-    
     var port_picker = $('#portsinput');
     port_picker.hide(); 
 }

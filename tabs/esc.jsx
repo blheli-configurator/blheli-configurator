@@ -964,6 +964,7 @@ var Configurator = React.createClass({
         return {
             canRead: true,
             canWrite: false,
+            canFlash: false,
             escSettings: [],
             escMetainfo: [],
             ignoreMCULayout: false,
@@ -1156,6 +1157,9 @@ var Configurator = React.createClass({
 
         this.readSetup();
     },
+    flashAll: function() {
+
+    },
     handleIgnoreMCULayout: function(e) {
         this.setState({
             ignoreMCULayout: e.target.checked
@@ -1190,6 +1194,15 @@ var Configurator = React.createClass({
                             onClick={this.writeSetup}
                         >
                             {chrome.i18n.getMessage('escButtonWrite')}
+                        </a>
+                    </div>
+                    <div className="btn">
+                        <a
+                            href="#"
+                            className={this.state.canFlash ? "flash" : "flash disabled"}
+                            onClick={this.flashAll}
+                        >
+                            {'escButtonFlashAll'}
                         </a>
                     </div>
                 </div>
