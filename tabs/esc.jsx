@@ -359,9 +359,219 @@ var IndividualSettings = React.createClass({
         this.props.onUserInput(escSettings);
     },
     flashFirmware: function() {
-        var escIdx = this.props.escIndex,
-            escSettings = blheliSettingsArray(this.props.escSettings[escIdx]),
-            escMetainfo = this.props.escMetainfo[escIdx],
+        // Disallow clicking again
+        this.setState({ canFlash: false });
+
+        this.props.flashFirmware(this.props.escIndex,
+            () => this.setState({ isFlashing: true }),
+            progress => this.setState({ progress: progress }),
+            () => this.setState(this.getInitialState())
+        );
+    }
+});
+
+var Configurator = React.createClass({
+    getInitialState: () => {
+        return {
+            canRead: true,
+            canWrite: false,
+            canFlashAll: false,
+            escSettings: [],
+            escMetainfo: [],
+            ignoreMCULayout: false,
+        };
+    },
+    componentDidMount: function() {
+
+    },
+    onUserInput: function(newSettings) {
+        this.setState({
+            escSettings: newSettings
+        });
+    },
+    readSetup: async function() {
+        GUI.log('reading ESC setup');
+        // disallow further requests until we're finished
+        // @todo also disable settings alteration
+        this.setState({
+            canRead: false,
+            canWrite: false
+        });
+
+        await this.readSetupImpl();
+
+        this.setState({
+            canRead: true,
+            canWrite: true
+        });
+
+        GUI.log('ESC setup read');   
+    },
+    readSetupImpl: async function() {
+        var escSettings = [],
+            escMetainfo = [];
+
+        for (let esc = 0; esc < this.props.escCount; ++esc) {
+            escSettings.push({});
+            escMetainfo.push({});
+
+            try {
+                // Ask 4way interface to initialize target ESC for flashing
+                const message = await _4way.initFlash(esc);
+
+                // Check interface mode and read settings
+                const interface_mode = message.params[3]
+
+                // remember interface mode for ESC
+                escMetainfo[esc].interface_mode = interface_mode
+
+                // read everything in one big chunk
+                // SiLabs has no separate EEPROM, but Atmel has and therefore requires a different read command
+                var isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interface_mode),
+                    settingsArray = null;
+
+                if (isSiLabs) {
+                    settingsArray = (await _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE)).params;
+                } else {
+                    settingsArray = (await _4way.readEEprom(0, BLHELI_LAYOUT_SIZE)).params;
+                }
+
+                const settings = blheliSettingsObject(settingsArray);
+
+                // Ensure MULTI mode and correct BLHeli version
+                // Check whether revision is supported
+                if (settings.LAYOUT_REVISION < BLHELI_MIN_SUPPORTED_LAYOUT_REVISION) {
+                    GUI.log('ESC ' + (esc + 1) + ' has LAYOUT_REVISION ' + layout_revision + ', oldest supported is ' + BLHELI_MIN_SUPPORTED_LAYOUT_REVISION)
+                }
+
+                // Check for MULTI mode
+                if (settings.MODE != BLHELI_MODES.MULTI) {
+                    GUI.log('ESC ' + (esc + 1) + ' has MODE different from MULTI: ' + mode.toString(0x10))
+                }
+
+                escSettings[esc] = settings;
+                escMetainfo[esc].available = true;
+
+                if (isSiLabs) {
+                    await _4way.reset(esc);
+                }
+            } catch (error) {
+                escMetainfo[esc].available = false;
+            }
+        }
+
+        // Update backend and trigger representation
+        this.setState({
+            escSettings: escSettings,
+            escMetainfo: escMetainfo
+        });
+    },
+    // @todo add validation of each setting via BLHELI_SETTINGS_DESCRIPTION
+    writeSetupImpl: async function() {
+        for (let esc = 0; esc < this.state.escSettings.length; ++esc) {
+            try {
+                if (!this.state.escMetainfo[esc].available) {
+                   continue;
+                }
+
+                // Ask 4way interface to initialize target ESC for flashing
+                const message = await _4way.initFlash(esc);
+                // Remember interface mode and read settings
+                var interface_mode = message.params[3]
+
+                // remember interface mode for ESC
+                // this.setState(state => {
+                //     state.escMetainfo[esc].interface_mode = interface_mode;
+                //     return state;
+                // })
+
+                // read everything in one big chunk to check if any settings have changed
+                // SiLabs has no separate EEPROM, but Atmel has and therefore requires a different read command
+                var isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interface_mode),
+                    readbackSettings = null;
+
+                if (isSiLabs) {
+                    readbackSettings = (await _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE)).params;
+                } else {
+                    readbackSettings = (await _4way.readEEprom(0, BLHELI_LAYOUT_SIZE)).params;
+                }
+
+                // Check for changes and perform write
+                var escSettings = blheliSettingsArray(this.state.escSettings[esc]);
+
+                // check for unexpected size mismatch
+                if (escSettings.byteLength != readbackSettings.byteLength) {
+                    throw new Error('byteLength of buffers do not match')
+                }
+
+                // check for actual changes, maybe we should not write to this ESC at all
+                if (compare(escSettings, readbackSettings)) {
+                    GUI.log('ESC ' + (esc + 1) + ': no changes');
+                    continue;
+                }
+
+                // should erase page to 0xFF on SiLabs before writing
+                if (isSiLabs) {
+                    await _4way.pageErase(BLHELI_SILABS_EEPROM_OFFSET / BLHELI_SILABS_PAGE_SIZE);
+                    // actual write
+                    await _4way.write(BLHELI_SILABS_EEPROM_OFFSET, escSettings);
+                } else {
+                    // write only changed bytes for Atmel
+                    for (var pos = 0; pos < escSettings.byteLength; ++pos) {
+                        var offset = pos
+
+                        // find the longest span of modified bytes
+                        while (escSettings[pos] != readbackSettings[pos]) {
+                            ++pos
+                        }
+
+                        // byte unchanged, continue
+                        if (offset == pos) {
+                            continue
+                        }
+
+                        // write span
+                        await _4way.writeEEprom(offset, escSettings.subarray(offset, pos));
+                    }
+                }
+
+                if (isSiLabs) {
+                    readbackSettings = (await _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE)).params;
+                } else {
+                    readbackSettings = (await _4way.readEEprom(0, BLHELI_LAYOUT_SIZE)).params;
+                }
+
+                if (!compare(escSettings, readbackSettings)) {
+                    throw new Error('Failed to verify settings')
+                }
+
+                if (isSiLabs) {
+                    await _4way.reset(esc);
+                }
+            } catch (error) {
+                GUI.log('ESC ' + (esc + 1) + ', failed to write settings: ' + error.stack);
+            }
+        }
+    },
+    writeSetup: async function() {
+        GUI.log('writing ESC setup');
+        // disallow further requests until we're finished
+        // @todo also disable settings alteration
+        this.setState({
+            canRead: false,
+            canWrite: false
+        });
+
+        await this.writeSetupImpl();
+
+        GUI.log('ESC setup written');
+
+        this.readSetup();
+    },
+    flashFirmware: function(escIndex, notifyStart, notifyProgress, notifyEnd) {
+        var escIdx = escIndex,
+            escSettings = blheliSettingsArray(this.state.escSettings[escIdx]),
+            escMetainfo = this.state.escMetainfo[escIdx],
             start_timestamp = Date.now(),
             is_atmel = [ _4way_modes.AtmBLB, _4way_modes.AtmSK ].includes(escMetainfo.interface_mode),
             self = this;
@@ -371,11 +581,7 @@ var IndividualSettings = React.createClass({
         // rough estimate, each location gets erased, written and verified at least once
         var max_flash_size = is_atmel ? BLHELI_ATMEL_BLB_ADDRESS_8 : BLHELI_SILABS_ADDRESS_SPACE_SIZE,
             bytes_to_process = max_flash_size * 3,
-            bytes_processed = 0
-
-        // Disallow clicking again
-        this.setState({ canFlash: false });
-        // @todo notify parent component that we're flashing
+            bytes_processed = 0;
 
         // Ask user to select HEX
         select_file('hex')
@@ -422,10 +628,10 @@ var IndividualSettings = React.createClass({
 
             // @todo some sanity checks on size of flash
         })
-        .then(() => this.setState({
-            isFlashing: true,
-            progress: 0
-        }))
+        .then(() => {
+            notifyStart();
+            notifyProgress(0);
+        })
         // start the actual flashing process
         .then(_4way.initFlash.bind(_4way, escIdx))
         // select flashing algorithm given interface mode
@@ -453,16 +659,16 @@ var IndividualSettings = React.createClass({
                 new_settings.set(escSettings.subarray(begin, end), begin);
 
                 // set settings as current
-                var allSettings = self.props.escSettings;
+                var allSettings = self.state.escSettings;
                 allSettings[escIdx] = blheliSettingsObject(new_settings);
-                self.props.onUserInput(allSettings);
+                self.onUserInput(allSettings);
 
-                self.props.writeSetup();
+                self.writeSetup();
             } else {
                 GUI.log('Will not write settings back due to different MODE\n');
 
                 // read settings back
-                self.props.readSetup();
+                self.readSetup();
             }
         })
         .catch(error => {
@@ -471,14 +677,12 @@ var IndividualSettings = React.createClass({
             GUI.log('Firmware flashing failed ' + (error ? ': ' + error.stack : ' ') + ' after ' + elapsed_sec + ' seconds');
             $('a.connect').removeClass('disabled')
         })
-        .then(() => this.setState(this.getInitialState()))
+        .then(notifyEnd)
         .done();
 
         function update_progress(bytes) {
             bytes_processed += bytes;
-            self.setState({
-                progress: Math.min(Math.ceil(100 * bytes_processed / bytes_to_process), 100)
-            });
+            notifyProgress(Math.min(Math.ceil(100 * bytes_processed / bytes_to_process), 100));
         }
 
         function parse_hex(data) {
@@ -804,7 +1008,7 @@ var IndividualSettings = React.createClass({
                 }
 
                 var msg = 'Target LAYOUT ' + target_layout_str + ' is different from HEX ' + buf2ascii(fw_layout).trim()
-                if (self.props.ignoreMCULayout) {
+                if (self.state.ignoreMCULayout) {
                     GUI.log(msg)
                 } else {
                     throw new Error(msg)
@@ -821,7 +1025,7 @@ var IndividualSettings = React.createClass({
                 }
 
                 var msg = 'Target MCU ' + target_mcu_str + ' is different from HEX ' + buf2ascii(fw_mcu).trim()
-                if (self.props.ignoreMCULayout) {
+                if (self.state.ignoreMCULayout) {
                     GUI.log(msg)
                 } else {
                     throw new Error(msg)
@@ -956,206 +1160,6 @@ var IndividualSettings = React.createClass({
 
             return promise
         }
-    }
-});
-
-var Configurator = React.createClass({
-    getInitialState: () => {
-        return {
-            canRead: true,
-            canWrite: false,
-            canFlash: false,
-            escSettings: [],
-            escMetainfo: [],
-            ignoreMCULayout: false,
-        };
-    },
-    componentDidMount: function() {
-
-    },
-    onUserInput: function(newSettings) {
-        this.setState({
-            escSettings: newSettings
-        });
-    },
-    readSetup: async function() {
-        GUI.log('reading ESC setup');
-        // disallow further requests until we're finished
-        // @todo also disable settings alteration
-        this.setState({
-            canRead: false,
-            canWrite: false
-        });
-
-        await this.readSetupImpl();
-
-        this.setState({
-            canRead: true,
-            canWrite: true
-        });
-
-        GUI.log('ESC setup read');   
-    },
-    readSetupImpl: async function() {
-        var escSettings = [],
-            escMetainfo = [];
-
-        for (let esc = 0; esc < this.props.escCount; ++esc) {
-            escSettings.push({});
-            escMetainfo.push({});
-
-            try {
-                // Ask 4way interface to initialize target ESC for flashing
-                const message = await _4way.initFlash(esc);
-
-                // Check interface mode and read settings
-                const interface_mode = message.params[3]
-
-                // remember interface mode for ESC
-                escMetainfo[esc].interface_mode = interface_mode
-
-                // read everything in one big chunk
-                // SiLabs has no separate EEPROM, but Atmel has and therefore requires a different read command
-                var isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interface_mode),
-                    settingsArray = null;
-
-                if (isSiLabs) {
-                    settingsArray = (await _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE)).params;
-                } else {
-                    settingsArray = (await _4way.readEEprom(0, BLHELI_LAYOUT_SIZE)).params;
-                }
-
-                const settings = blheliSettingsObject(settingsArray);
-
-                // Ensure MULTI mode and correct BLHeli version
-                // Check whether revision is supported
-                if (settings.LAYOUT_REVISION < BLHELI_MIN_SUPPORTED_LAYOUT_REVISION) {
-                    GUI.log('ESC ' + (esc + 1) + ' has LAYOUT_REVISION ' + layout_revision + ', oldest supported is ' + BLHELI_MIN_SUPPORTED_LAYOUT_REVISION)
-                }
-
-                // Check for MULTI mode
-                if (settings.MODE != BLHELI_MODES.MULTI) {
-                    GUI.log('ESC ' + (esc + 1) + ' has MODE different from MULTI: ' + mode.toString(0x10))
-                }
-
-                escSettings[esc] = settings;
-                escMetainfo[esc].available = true;
-
-                if (isSiLabs) {
-                    await _4way.reset(esc);
-                }
-            } catch (error) {
-                escMetainfo[esc].available = false;
-            }
-        }
-
-        // Update backend and trigger representation
-        this.setState({
-            escSettings: escSettings,
-            escMetainfo: escMetainfo
-        });
-    },
-    // @todo add validation of each setting via BLHELI_SETTINGS_DESCRIPTION
-    writeSetupImpl: async function() {
-        for (let esc = 0; esc < this.state.escSettings.length; ++esc) {
-            try {
-                if (!this.state.escMetainfo[esc].available) {
-                   continue;
-                }
-
-                // Ask 4way interface to initialize target ESC for flashing
-                const message = await _4way.initFlash(esc);
-                // Remember interface mode and read settings
-                var interface_mode = message.params[3]
-
-                // remember interface mode for ESC
-                // this.setState(state => {
-                //     state.escMetainfo[esc].interface_mode = interface_mode;
-                //     return state;
-                // })
-
-                // read everything in one big chunk to check if any settings have changed
-                // SiLabs has no separate EEPROM, but Atmel has and therefore requires a different read command
-                var isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interface_mode),
-                    readbackSettings = null;
-
-                if (isSiLabs) {
-                    readbackSettings = (await _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE)).params;
-                } else {
-                    readbackSettings = (await _4way.readEEprom(0, BLHELI_LAYOUT_SIZE)).params;
-                }
-
-                // Check for changes and perform write
-                var escSettings = blheliSettingsArray(this.state.escSettings[esc]);
-
-                // check for unexpected size mismatch
-                if (escSettings.byteLength != readbackSettings.byteLength) {
-                    throw new Error('byteLength of buffers do not match')
-                }
-
-                // check for actual changes, maybe we should not write to this ESC at all
-                if (compare(escSettings, readbackSettings)) {
-                    GUI.log('ESC ' + (esc + 1) + ': no changes');
-                    continue;
-                }
-
-                // should erase page to 0xFF on SiLabs before writing
-                if (isSiLabs) {
-                    await _4way.pageErase(BLHELI_SILABS_EEPROM_OFFSET / BLHELI_SILABS_PAGE_SIZE);
-                    // actual write
-                    await _4way.write(BLHELI_SILABS_EEPROM_OFFSET, escSettings);
-                } else {
-                    // write only changed bytes for Atmel
-                    for (var pos = 0; pos < escSettings.byteLength; ++pos) {
-                        var offset = pos
-
-                        // find the longest span of modified bytes
-                        while (escSettings[pos] != readbackSettings[pos]) {
-                            ++pos
-                        }
-
-                        // byte unchanged, continue
-                        if (offset == pos) {
-                            continue
-                        }
-
-                        // write span
-                        await _4way.writeEEprom(offset, escSettings.subarray(offset, pos));
-                    }
-                }
-
-                if (isSiLabs) {
-                    readbackSettings = (await _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE)).params;
-                } else {
-                    readbackSettings = (await _4way.readEEprom(0, BLHELI_LAYOUT_SIZE)).params;
-                }
-
-                if (!compare(escSettings, readbackSettings)) {
-                    throw new Error('Failed to verify settings')
-                }
-
-                if (isSiLabs) {
-                    await _4way.reset(esc);
-                }
-            } catch (error) {
-                GUI.log('ESC ' + (esc + 1) + ', failed to write settings: ' + error.stack);
-            }
-        }
-    },
-    writeSetup: async function() {
-        GUI.log('writing ESC setup');
-        // disallow further requests until we're finished
-        // @todo also disable settings alteration
-        this.setState({
-            canRead: false,
-            canWrite: false
-        });
-
-        await this.writeSetupImpl();
-
-        GUI.log('ESC setup written');
-
-        this.readSetup();
     },
     flashAll: function() {
 
@@ -1199,7 +1203,7 @@ var Configurator = React.createClass({
                     <div className="btn">
                         <a
                             href="#"
-                            className={this.state.canFlash ? "flash" : "flash disabled"}
+                            className={this.state.canFlashAll ? "flash" : "flash disabled"}
                             onClick={this.flashAll}
                         >
                             {'escButtonFlashAll'}
@@ -1255,10 +1259,8 @@ var Configurator = React.createClass({
                     escIndex={idx}
                     escSettings={this.state.escSettings}
                     escMetainfo={this.state.escMetainfo}
-                    ignoreMCULayout={this.state.ignoreMCULayout}
                     onUserInput={this.onUserInput}
-                    writeSetup={this.writeSetup}
-                    readSetup={this.readSetup}
+                    flashFirmware={this.flashFirmware}
                 />
             );
         });
