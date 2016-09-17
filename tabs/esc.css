@@ -14,14 +14,14 @@
     margin: 0 0 0 20px;
 }
 
-.tab-esc .individual-config .gui_box:nth-child(odd) {
+/*.tab-esc .individual-config .gui_box:nth-child(odd) {
     width: calc(50% - 10px);
 }
 
 .tab-esc .individual-config .gui_box:nth-child(even) {
     width: calc(50% - 5px);
     margin-left: 10px;
-}
+}*/
 
 .tab-esc .backdrop {
     border: 1px solid silver;

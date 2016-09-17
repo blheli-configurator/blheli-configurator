@@ -1167,7 +1167,7 @@ var Configurator = React.createClass({
     },
     render: function() {
         return (
-            <div>
+            <div className="tab-esc toolbar_fixed_bottom">
                 <div className="content_wrapper">
                     <div className="tab_title">ESC Programming</div>
                     <div className="note">
@@ -1279,25 +1279,20 @@ TABS.esc.initialize = function (callback) {
         googleAnalytics.sendAppView('ESC');
     }
 
-    function load_html() {
+    function render_html() {
         // set flag to allow messages redirect to 4way-if handler
         CONFIGURATOR.escActive = true;
-        $('#content').load("./tabs/esc.html", process_html);
-    }
 
-    function process_html() {
-        // translate to user-selected language
-        localize();
         ReactDOM.render(
             <Configurator escCount={ESC_CONFIG.connectedESCs} />,
-            document.getElementById('configurator')
+            document.getElementById('content')
         );
 
         GUI.content_ready(callback);
     }
 
     // ask the FC to switch into 4way interface mode
-    MSP.send_message(MSP_codes.MSP_SET_4WAY_IF, null, null, load_html);
+    MSP.send_message(MSP_codes.MSP_SET_4WAY_IF, null, null, render_html);
 };
 
 TABS.esc.cleanup = function (callback) {

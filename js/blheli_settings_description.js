@@ -33,19 +33,19 @@ var BLHELI_S_SETTINGS_LAYOUT_33 = [
         name: 'BRAKE_ON_STOP', type: 'bool', label: 'escBrakeOnStop'
     },
     {
-        name: 'DEMAG_COMPENSATION', type: 'enum', options: [
+        name: 'DEMAG_COMPENSATION', type: 'enum', label: 'escDemagCompensation',
+        options: [
             { value: '1', label: 'Off' }, { value: '2', label: 'Low' },
             { value: '3', label: 'High' }
-        ],
-        label: 'escDemagCompensation'
+        ]
     },
     {
-        name: 'COMMUTATION_TIMING', type: 'enum', options: [
+        name: 'COMMUTATION_TIMING', type: 'enum', label: 'escMotorTiming',
+        options: [
             { value: '1', label: 'Low' }, { value: '2', label: 'MediumLow' },
             { value: '3', label: 'Medium' }, { value: '4', label: 'MediumHigh' },
             { value: '5', label: 'High' }
-        ],
-        label: 'escMotorTiming'
+        ]
     },
     {
         name: 'BEEP_STRENGTH', type: 'number', min: 1, max: 255, step: 1, label: 'escBeepStrength'
@@ -54,12 +54,12 @@ var BLHELI_S_SETTINGS_LAYOUT_33 = [
         name: 'BEACON_STRENGTH', type: 'number', min: 1, max: 255, step: 1, label: 'escBeaconStrength'
     },
     {
-        name: 'BEACON_DELAY', type: 'enum', options: [
+        name: 'BEACON_DELAY', type: 'enum', label: 'escBeaconDelay',
+        options: [
             { value: '1', label: '1 minute' }, { value: '2', label: '2 minutes' },
             { value: '3', label: '5 minutes' }, { value: '4', label: '10 minutes' },
             { value: '5', label: 'Infinite' }
-        ],
-        label: 'escBeaconDelay'
+        ]
     }
 ];
 
@@ -90,19 +90,19 @@ var BLHELI_S_SETTINGS_LAYOUT_32 = [
         name: 'BRAKE_ON_STOP', type: 'bool', label: 'escBrakeOnStop'
     },
     {
-        name: 'DEMAG_COMPENSATION', type: 'enum', options: [
+        name: 'DEMAG_COMPENSATION', type: 'enum', label: 'escDemagCompensation',
+        options: [
             { value: '1', label: 'Off' }, { value: '2', label: 'Low' },
             { value: '3', label: 'High' }
-        ],
-        label: 'escDemagCompensation'
+        ]
     },
     {
-        name: 'COMMUTATION_TIMING', type: 'enum', options: [
+        name: 'COMMUTATION_TIMING', type: 'enum', label: 'escMotorTiming',
+        options: [
             { value: '1', label: 'Low' }, { value: '2', label: 'MediumLow' },
             { value: '3', label: 'Medium' }, { value: '4', label: 'MediumHigh' },
             { value: '5', label: 'High' }
-        ],
-        label: 'escMotorTiming'
+        ]
     },
     {
         name: 'BEEP_STRENGTH', type: 'number', min: 1, max: 255, step: 1, label: 'escBeepStrength'
@@ -111,12 +111,12 @@ var BLHELI_S_SETTINGS_LAYOUT_32 = [
         name: 'BEACON_STRENGTH', type: 'number', min: 1, max: 255, step: 1, label: 'escBeaconStrength'
     },
     {
-        name: 'BEACON_DELAY', type: 'enum', options: [
+        name: 'BEACON_DELAY', type: 'enum', label: 'escBeaconDelay',
+        options: [
             { value: '1', label: '1 minute' }, { value: '2', label: '2 minutes' },
             { value: '3', label: '5 minutes' }, { value: '4', label: '10 minutes' },
             { value: '5', label: 'Infinite' }
-        ],
-        label: 'escBeaconDelay'
+        ]
     }
 ];
 
@@ -126,11 +126,11 @@ var BLHELI_MULTI_SETTINGS_LAYOUT_21 = [
         name: 'PROGRAMMING_BY_TX', type: 'bool', label: 'escProgrammingByTX'
     },
     {
-        name: 'GOVERNOR_MODE', type: 'enum', options: [
+        name: 'GOVERNOR_MODE', type: 'enum', label: 'escClosedLoopMode',
+        options: [
             { value: '1', label: 'HiRange' }, { value: '2', label: 'MidRange' },
             { value: '3', label: 'LoRange' }, { value: '4', label: 'Off' }
-        ],
-        label: 'escClosedLoopMode'
+        ]
     },
     {
         name: 'P_GAIN', type: 'enum', options: [
@@ -182,12 +182,12 @@ var BLHELI_MULTI_SETTINGS_LAYOUT_21 = [
         name: 'TEMPERATURE_PROTECTION', type: 'bool', label: 'escTemperatureProtection'
     },
     {
-        name: 'PWM_DITHER', type: 'enum', options: [
+        name: 'PWM_DITHER', type: 'enum', label: 'escPWMOutputDither',
+        options: [
             { value: '1', label: 'Off' }, { value: '2', label: '3' },
             { value: '3', label: '7' }, { value: '4', label: '15' },
             { value: '5', label: '31' }
-        ],
-        label: 'escPWMOutputDither'
+        ]
     },
     {
         name: 'LOW_RPM_POWER_PROTECTION', type: 'bool', label: 'escLowRPMPowerProtection'
@@ -196,35 +196,35 @@ var BLHELI_MULTI_SETTINGS_LAYOUT_21 = [
         name: 'BRAKE_ON_STOP', type: 'bool', label: 'escBrakeOnStop'
     },
     {
-        name: 'DEMAG_COMPENSATION', type: 'enum', options: [
+        name: 'DEMAG_COMPENSATION', type: 'enum', label: 'escDemagCompensation',
+        options: [
             { value: '1', label: 'Off' }, { value: '2', label: 'Low' },
             { value: '3', label: 'High' }
-        ],
-        label: 'escDemagCompensation'
+        ]
     },
     {
-        name: 'PWM_FREQUENCY', type: 'enum', options: [
+        name: 'PWM_FREQUENCY', type: 'enum', label: 'escPWMFrequencyDamped',
+        options: [
             { value: '1', label: 'Off' }, { value: '2', label: 'Low' },
             { value: '3', label: 'DampedLight' }
-        ],
-        label: 'escPWMFrequencyDamped'
+        ]
     },
     {
         name: 'PWM_INPUT', type: 'bool', label: 'escEnablePWMInput'
     },
     {
-        name: 'COMMUTATION_TIMING', type: 'enum', options: [
+        name: 'COMMUTATION_TIMING', type: 'enum', label: 'escMotorTiming',
+        options: [
             { value: '1', label: 'Low' }, { value: '2', label: 'MediumLow' },
             { value: '3', label: 'Medium' }, { value: '4', label: 'MediumHigh' },
             { value: '5', label: 'High' }
-        ],
-        label: 'escMotorTiming'
+        ]
     },
     {
-        name: 'INPUT_PWM_POLARITY', type: 'enum', options: [
+        name: 'INPUT_PWM_POLARITY', type: 'enum', label: 'escInputPolarity',
+        options: [
             { value: '1', label: 'Positive' }, { value: '2', label: 'Negative' }
-        ],
-        label: 'escInputPolarity'
+        ]
     },
     {
         name: 'BEEP_STRENGTH', type: 'number', min: 1, max: 255, step: 1, label: 'escBeepStrength'
@@ -233,12 +233,12 @@ var BLHELI_MULTI_SETTINGS_LAYOUT_21 = [
         name: 'BEACON_STRENGTH', type: 'number', min: 1, max: 255, step: 1, label: 'escBeaconStrength'
     },
     {
-        name: 'BEACON_DELAY', type: 'enum', options: [
+        name: 'BEACON_DELAY', type: 'enum', label: 'escBeaconDelay',
+        options: [
             { value: '1', label: '1 minute' }, { value: '2', label: '2 minutes' },
             { value: '3', label: '5 minutes' }, { value: '4', label: '10 minutes' },
             { value: '5', label: 'Infinite' }
-        ],
-        label: 'escBeaconDelay'
+        ]
     }
 ];
 
@@ -248,11 +248,11 @@ var BLHELI_MULTI_SETTINGS_LAYOUT_20 = [
         name: 'PROGRAMMING_BY_TX', type: 'bool', label: 'escProgrammingByTX'
     },
     {
-        name: 'GOVERNOR_MODE', type: 'enum', options: [
+        name: 'GOVERNOR_MODE', type: 'enum', label: 'escClosedLoopMode',
+        options: [
             { value: '1', label: 'HiRange' }, { value: '2', label: 'MidRange' },
             { value: '3', label: 'LoRange' }, { value: '4', label: 'Off' }
-        ],
-        label: 'escClosedLoopMode'
+        ]
     },
     {
         name: 'P_GAIN', type: 'enum', options: [
@@ -304,46 +304,46 @@ var BLHELI_MULTI_SETTINGS_LAYOUT_20 = [
         name: 'TEMPERATURE_PROTECTION', type: 'bool', label: 'escTemperatureProtection'
     },
     {
-        name: 'PWM_DITHER', type: 'enum', options: [
+        name: 'PWM_DITHER', type: 'enum', label: 'escPWMOutputDither',
+        options: [
             { value: '1', label: 'Off' }, { value: '2', label: '7' },
             { value: '3', label: '15' }, { value: '4', label: '31' },
             { value: '5', label: '63' }
-        ],
-        label: 'escPWMOutputDither'
+        ]
     },
     {
         name: 'LOW_RPM_POWER_PROTECTION', type: 'bool', label: 'escLowRPMPowerProtection'
     },
     {
-        name: 'DEMAG_COMPENSATION', type: 'enum', options: [
+        name: 'DEMAG_COMPENSATION', type: 'enum', label: 'escDemagCompensation',
+        options: [
             { value: '1', label: 'Off' }, { value: '2', label: 'Low' },
             { value: '3', label: 'High' }
-        ],
-        label: 'escDemagCompensation'
+        ]
     },
     {
-        name: 'PWM_FREQUENCY', type: 'enum', options: [
+        name: 'PWM_FREQUENCY', type: 'enum', label: 'escPWMFrequencyDamped',
+        options: [
             { value: '1', label: 'Off' }, { value: '2', label: 'Low' },
             { value: '3', label: 'DampedLight' }
-        ],
-        label: 'escPWMFrequencyDamped'
+        ]
     },
     {
         name: 'PWM_INPUT', type: 'bool', label: 'escEnablePWMInput'
     },
     {
-        name: 'COMMUTATION_TIMING', type: 'enum', options: [
+        name: 'COMMUTATION_TIMING', type: 'enum', label: 'escMotorTiming',
+        options: [
             { value: '1', label: 'Low' }, { value: '2', label: 'MediumLow' },
             { value: '3', label: 'Medium' }, { value: '4', label: 'MediumHigh' },
             { value: '5', label: 'High' }
-        ],
-        label: 'escMotorTiming'
+        ]
     },
     {
-        name: 'INPUT_PWM_POLARITY', type: 'enum', options: [
+        name: 'INPUT_PWM_POLARITY', type: 'enum', label: 'escInputPolarity',
+        options: [
             { value: '1', label: 'Positive' }, { value: '2', label: 'Negative' }
-        ],
-        label: 'escInputPolarity'
+        ]
     },
     {
         name: 'BEEP_STRENGTH', type: 'number', min: 1, max: 255, step: 1, label: 'escBeepStrength'
@@ -352,12 +352,12 @@ var BLHELI_MULTI_SETTINGS_LAYOUT_20 = [
         name: 'BEACON_STRENGTH', type: 'number', min: 1, max: 255, step: 1, label: 'escBeaconStrength'
     },
     {
-        name: 'BEACON_DELAY', type: 'enum', options: [
+        name: 'BEACON_DELAY', type: 'enum', label: 'escBeaconDelay',
+        options: [
             { value: '1', label: '1 minute' }, { value: '2', label: '2 minutes' },
             { value: '3', label: '5 minutes' }, { value: '4', label: '10 minutes' },
             { value: '5', label: 'Infinite' }
-        ],
-        label: 'escBeaconDelay'
+        ]
     }
 ];
 
@@ -367,11 +367,11 @@ var BLHELI_MULTI_SETTINGS_LAYOUT_19 = [
         name: 'PROGRAMMING_BY_TX', type: 'bool', label: 'escProgrammingByTX'
     },
     {
-        name: 'GOVERNOR_MODE', type: 'enum', options: [
+        name: 'GOVERNOR_MODE', type: 'enum', label: 'escClosedLoopMode',
+        options: [
             { value: '1', label: 'HiRange' }, { value: '2', label: 'MidRange' },
             { value: '3', label: 'LoRange' }, { value: '4', label: 'Off' }
-        ],
-        label: 'escClosedLoopMode'
+        ]
     },
     {
         name: 'P_GAIN', type: 'enum', options: [
@@ -431,34 +431,34 @@ var BLHELI_MULTI_SETTINGS_LAYOUT_19 = [
         name: 'TEMPERATURE_PROTECTION', type: 'bool', label: 'escTemperatureProtection'
     },
     {
-        name: 'PWM_DITHER', type: 'enum', options: [
+        name: 'PWM_DITHER', type: 'enum', label: 'escPWMOutputDither',
+        options: [
             { value: '1', label: '1' }, { value: '2', label: '3' },
             { value: '3', label: '7' }, { value: '4', label: '15' },
             { value: '5', label: '31' }
-        ],
-        label: 'escPWMOutputDither'
+        ]
     },
     {
-        name: 'DEMAG_COMPENSATION', type: 'enum', options: [
+        name: 'DEMAG_COMPENSATION', type: 'enum', label: 'escDemagCompensation',
+        options: [
             { value: '1', label: 'Off' }, { value: '2', label: 'Low' },
             { value: '3', label: 'High' }
-        ],
-        label: 'escDemagCompensation'
+        ]
     },
     {
-        name: 'PWM_FREQUENCY', type: 'enum', options: [
+        name: 'PWM_FREQUENCY', type: 'enum', label: 'escPWMFrequencyDamped',
+        options: [
             { value: '1', label: 'Off' }, { value: '2', label: 'Low' },
             { value: '3', label: 'DampedLight' }
-        ],
-        label: 'escPWMFrequencyDamped'
+        ]
     },
     {
-        name: 'COMMUTATION_TIMING', type: 'enum', options: [
+        name: 'COMMUTATION_TIMING', type: 'enum', label: 'escMotorTiming',
+        options: [
             { value: '1', label: 'Low' }, { value: '2', label: 'MediumLow' },
             { value: '3', label: 'Medium' }, { value: '4', label: 'MediumHigh' },
             { value: '5', label: 'High' }
-        ],
-        label: 'escMotorTiming'
+        ]
     },
     {
         name: 'BEEP_STRENGTH', type: 'number', min: 1, max: 255, step: 1, label: 'escBeepStrength'
@@ -467,12 +467,12 @@ var BLHELI_MULTI_SETTINGS_LAYOUT_19 = [
         name: 'BEACON_STRENGTH', type: 'number', min: 1, max: 255, step: 1, label: 'escBeaconStrength'
     },
     {
-        name: 'BEACON_DELAY', type: 'enum', options: [
+        name: 'BEACON_DELAY', type: 'enum', label: 'escBeaconDelay',
+        options: [
             { value: '1', label: '1 minute' }, { value: '2', label: '2 minutes' },
             { value: '3', label: '5 minutes' }, { value: '4', label: '10 minutes' },
             { value: '5', label: 'Infinite' }
-        ],
-        label: 'escBeaconDelay'
+        ]
     }
 ];
 
@@ -510,12 +510,12 @@ var BLHELI_SETTINGS_DESCRIPTIONS = {
             overrides: {
                 '14.5': [
                     {
-                        name: 'PWM_DITHER', type: 'enum', options: [
+                        name: 'PWM_DITHER', type: 'enum', label: 'escPWMOutputDither',
+                        options: [
                             { value: '1', label: 'Off' }, { value: '2', label: '7' },
                             { value: '3', label: '15' }, { value: '4', label: '31' },
                             { value: '5', label: '63' }
-                        ],
-                        label: 'escPWMOutputDither'
+                        ]
                     }
                 ],
             }
@@ -534,12 +534,12 @@ var BLHELI_SETTINGS_DESCRIPTIONS = {
             overrides: {
                 '14.0': [
                     {
-                        name: 'PWM_DITHER', type: 'enum', options: [
+                        name: 'PWM_DITHER', type: 'enum', label: 'escPWMOutputDither',
+                        options: [
                             { value: '1', label: '1' }, { value: '2', label: '3' },
                             { value: '3', label: '7' }, { value: '4', label: '15' },
                             { value: '5', label: '31' }
-                        ],
-                        label: 'escPWMOutputDither'
+                        ]
                     }
                 ]
             }
