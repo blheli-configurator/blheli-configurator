@@ -242,7 +242,7 @@ var IndividualSettings = React.createClass({
             name = escSettings.NAME.trim(),
             make = layout;
 
-        if (escMetainfo.interface_mode === _4way_modes.SiLBLB) {
+        if (escMetainfo.interfaceMode === _4way_modes.SiLBLB) {
             if (layout in BLHELI_SILABS_ESCS) {
                 make = BLHELI_SILABS_ESCS[layout].name
             } else if (layout in BLHELI_S_SILABS_ESCS) {
@@ -279,7 +279,7 @@ var IndividualSettings = React.createClass({
                     />
                     <a
                         href="#"
-                        className={this.state.canFlash ? "" : "disabled"}
+                        className={this.props.canFlash && this.state.canFlash ? "" : "disabled"}
                         onClick={this.flashFirmware}
                     >
                         {chrome.i18n.getMessage('escButtonFlash')}
@@ -394,6 +394,8 @@ var Configurator = React.createClass({
     },
     readSetup: async function() {
         GUI.log('reading ESC setup');
+        $('a.connect').addClass('disabled');
+
         // disallow further requests until we're finished
         // @todo also disable settings alteration
         this.setState({
@@ -414,6 +416,7 @@ var Configurator = React.createClass({
             canFlash: availableSettings.length > 0 && canFlash
         });
 
+        $('a.connect').removeClass('disabled');
         GUI.log('ESC setup read');   
     },
     readSetupImpl: async function() {
@@ -429,14 +432,14 @@ var Configurator = React.createClass({
                 const message = await _4way.initFlash(esc);
 
                 // Check interface mode and read settings
-                const interface_mode = message.params[3]
+                const interfaceMode = message.params[3]
 
                 // remember interface mode for ESC
-                escMetainfo[esc].interface_mode = interface_mode
+                escMetainfo[esc].interfaceMode = interfaceMode
 
                 // read everything in one big chunk
                 // SiLabs has no separate EEPROM, but Atmel has and therefore requires a different read command
-                var isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interface_mode),
+                var isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interfaceMode),
                     settingsArray = null;
 
                 if (isSiLabs) {
@@ -455,7 +458,7 @@ var Configurator = React.createClass({
 
                 // Check for MULTI mode
                 if (settings.MODE != BLHELI_MODES.MULTI) {
-                    GUI.log('ESC ' + (esc + 1) + ' has MODE different from MULTI: ' + mode.toString(0x10))
+                    GUI.log('ESC ' + (esc + 1) + ' has MODE different from MULTI: ' + settings.MODE.toString(0x10))
                 }
 
                 escSettings[esc] = settings;
@@ -465,6 +468,7 @@ var Configurator = React.createClass({
                     await _4way.reset(esc);
                 }
             } catch (error) {
+                console.log('ESC', esc + 1, 'read settings failed', error);
                 escMetainfo[esc].available = false;
             }
         }
@@ -486,17 +490,17 @@ var Configurator = React.createClass({
                 // Ask 4way interface to initialize target ESC for flashing
                 const message = await _4way.initFlash(esc);
                 // Remember interface mode and read settings
-                var interface_mode = message.params[3]
+                var interfaceMode = message.params[3]
 
                 // remember interface mode for ESC
                 // this.setState(state => {
-                //     state.escMetainfo[esc].interface_mode = interface_mode;
+                //     state.escMetainfo[esc].interfaceMode = interfaceMode;
                 //     return state;
                 // })
 
                 // read everything in one big chunk to check if any settings have changed
                 // SiLabs has no separate EEPROM, but Atmel has and therefore requires a different read command
-                var isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interface_mode),
+                var isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interfaceMode),
                     readbackSettings = null;
 
                 if (isSiLabs) {
@@ -564,6 +568,8 @@ var Configurator = React.createClass({
     },
     writeSetup: async function() {
         GUI.log('writing ESC setup');
+        $('a.connect').addClass('disabled');
+
         // disallow further requests until we're finished
         // @todo also disable settings alteration
         this.setState({
@@ -577,13 +583,17 @@ var Configurator = React.createClass({
         GUI.log('ESC setup written');
 
         await this.readSetup();
+
+        $('a.connect').removeClass('disabled');
     },
     flashFirmware: async function(escIndex, notifyStart, notifyProgress, notifyEnd) {
+        $('a.connect').addClass('disabled');
+
         this.setState({ isFlashing: true });
 
         var escSettings = this.state.escSettings[escIndex],
             escMetainfo = this.state.escMetainfo[escIndex],
-            isAtmel = [ _4way_modes.AtmBLB, _4way_modes.AtmSK ].includes(escMetainfo.interface_mode);
+            isAtmel = [ _4way_modes.AtmBLB, _4way_modes.AtmSK ].includes(escMetainfo.interfaceMode);
 
         try {
             var images = await getLocalFirmware(isAtmel);
@@ -600,11 +610,13 @@ var Configurator = React.createClass({
 
         notifyEnd();
         this.setState({ isFlashing: false });
+
+        $('a.connect').removeClass('disabled');
     },
     flashFirmwareImpl: async function(escIndex, escSettings, escMetainfo, flashImage, eepromImage, notifyProgress) {
         try {
             var startTimestamp = Date.now(),
-                isAtmel = [ _4way_modes.AtmBLB, _4way_modes.AtmSK ].includes(escMetainfo.interface_mode),
+                isAtmel = [ _4way_modes.AtmBLB, _4way_modes.AtmSK ].includes(escMetainfo.interfaceMode),
                 self = this;
 
             // rough estimate, each location gets erased, written and verified at least once
@@ -628,10 +640,14 @@ var Configurator = React.createClass({
             if (newSettings.MODE === escSettings.MODE) {
                 GUI.log('Writing settings back\n');
 
-                // @todo find intersection between newSettings and escSettings with respect to their versions
-                // copy only the changed settings
-                // copy changed settings
-                var allSettings = self.state.escSettings;
+                // find intersection between newSettings and escSettings with respect to their versions
+                for (var prop in newSettings) {
+                    if (newSettings.hasOwnProperty(prop) && escSettings.hasOwnProperty(prop)) {
+                        newSettings[prop] = escSettings[prop];                        
+                    }
+                }
+
+                var allSettings = self.state.escSettings.slice();
                 allSettings[escIndex] = newSettings;
                 self.onUserInput(allSettings);
 
@@ -647,22 +663,20 @@ var Configurator = React.createClass({
             GUI.log('Firmware flashing failed ' + (error ? ': ' + error.stack : ' ') + ' after ' + elapsedSec + ' seconds');
         }
 
-        $('a.connect').removeClass('disabled')
-
         function updateProgress(bytes) {
             bytes_processed += bytes;
             notifyProgress(Math.min(Math.ceil(100 * bytes_processed / bytes_to_process), 100));
         }
 
         function selectInterfaceAndFlash(message) {
-            var interface_mode = message.params[3]
-            escMetainfo.interface_mode = interface_mode
+            var interfaceMode = message.params[3]
+            escMetainfo.interfaceMode = interfaceMode
 
-            switch (interface_mode) {
+            switch (interfaceMode) {
                 case _4way_modes.SiLBLB: return flashSiLabsBLB(message)
                 case _4way_modes.AtmBLB:
                 case _4way_modes.AtmSK:  return flashAtmel(message)
-                default: throw new Error('Flashing with interface mode ' + interface_mode + ' is not yet implemented')
+                default: throw new Error('Flashing with interface mode ' + interfaceMode + ' is not yet implemented')
             }
         }
 
@@ -699,7 +713,7 @@ var Configurator = React.createClass({
         // 1. add check for ATmega8 vs. ATmega16, they have different flash and eeprom sizes
         function flashAtmel(message) {
             // SimonK uses word instead of byte addressing for flash and address arithmetic on subsequent reads/writes
-            const isSimonK = escMetainfo.interface_mode === _4way_modes.AtmSK
+            const isSimonK = escMetainfo.interfaceMode === _4way_modes.AtmSK
             // @todo check device id
 
             return _4way.readEEprom(0, BLHELI_LAYOUT_SIZE)
@@ -1050,10 +1064,12 @@ var Configurator = React.createClass({
         }
     },
     flashAll: async function() {
+        $('a.connect').addClass('disabled');
+
         this.setState({ isFlashing: true });
         
         const availableSettings = this.state.escSettings.filter((i, idx) => this.state.escMetainfo[idx].available),
-              isAtmel = [ _4way_modes.AtmBLB, _4way_modes.AtmSK ].includes(availableSettings[0].interface_mode);
+              isAtmel = [ _4way_modes.AtmBLB, _4way_modes.AtmSK ].includes(availableSettings[0].interfaceMode);
 
         var images = await getLocalFirmware(isAtmel);
 
@@ -1072,6 +1088,8 @@ var Configurator = React.createClass({
         }
 
         this.setState({ isFlashing: false });
+
+        $('a.connect').removeClass('disabled');
     },
     handleIgnoreMCULayout: function(e) {
         this.setState({
@@ -1169,6 +1187,7 @@ var Configurator = React.createClass({
                     escSettings={this.state.escSettings}
                     escMetainfo={this.state.escMetainfo}
                     onUserInput={this.onUserInput}
+                    canFlash={!this.state.isFlashing}
                     flashFirmware={this.flashFirmware}
                 />
             );
