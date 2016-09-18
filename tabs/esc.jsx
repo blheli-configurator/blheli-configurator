@@ -642,7 +642,8 @@ var Configurator = React.createClass({
 
                 // find intersection between newSettings and escSettings with respect to their versions
                 for (var prop in newSettings) {
-                    if (newSettings.hasOwnProperty(prop) && escSettings.hasOwnProperty(prop)) {
+                    if (newSettings.hasOwnProperty(prop) && escSettings.hasOwnProperty(prop) &&
+                        blheliCanMigrate(prop, escSettings, newSettings)) {
                         newSettings[prop] = escSettings[prop];                        
                     }
                 }
@@ -1071,20 +1072,24 @@ var Configurator = React.createClass({
         const availableSettings = this.state.escSettings.filter((i, idx) => this.state.escMetainfo[idx].available),
               isAtmel = [ _4way_modes.AtmBLB, _4way_modes.AtmSK ].includes(availableSettings[0].interfaceMode);
 
-        var images = await getLocalFirmware(isAtmel);
+        try {
+            var images = await getLocalFirmware(isAtmel);
 
-        // @todo perform some sanity checks on size of flash
-        for (let escIndex = 0; escIndex < this.props.escCount; ++escIndex) {
-            if (!this.state.escMetainfo[escIndex].available) {
-                continue;
+            // @todo perform some sanity checks on size of flash
+            for (let escIndex = 0; escIndex < this.props.escCount; ++escIndex) {
+                if (!this.state.escMetainfo[escIndex].available) {
+                    continue;
+                }
+
+                GUI.log("Starting flash of ESC " + (escIndex + 1));
+                var escSettings = this.state.escSettings[escIndex],
+                    escMetainfo = this.state.escMetainfo[escIndex];
+
+                await this.flashFirmwareImpl(escIndex, escSettings, escMetainfo, images.flash, images.eeprom, function notifyStart() {}, function notifyProgress(progress) {}, function notifyEnd() {});
+                GUI.log("Finished flashing ESC " + (escIndex + 1));
             }
-
-            GUI.log("Starting flash of ESC " + (escIndex + 1));
-            var escSettings = this.state.escSettings[escIndex],
-                escMetainfo = this.state.escMetainfo[escIndex];
-
-            await this.flashFirmwareImpl(escIndex, escSettings, escMetainfo, images.flash, images.eeprom, function notifyStart() {}, function notifyProgress(progress) {}, function notifyEnd() {});
-            GUI.log("Finished flashing ESC " + (escIndex + 1));
+        } catch (error) {
+            GUI.log('Flashing failed: ' + error.message);
         }
 
         this.setState({ isFlashing: false });

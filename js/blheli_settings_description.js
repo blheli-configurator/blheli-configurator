@@ -626,3 +626,30 @@ var BLHELI_INDIVIDUAL_SETTINGS_DESCRIPTIONS = {
         base: BLHELI_INDIVIDUAL_SETTINGS
     }
 };
+
+// @todo reconsinder, I don't like coupling between UI and underlying settings and versioning
+function blheliCanMigrate(settingName, fromSettings, toSettings) {
+    if (fromSettings.MODE === BLHELI_MODES.MULTI && toSettings.MODE === BLHELI_MODES.MULTI) {
+        var fromCommons = BLHELI_SETTINGS_DESCRIPTIONS[fromSettings.LAYOUT_REVISION].MULTI.base,
+            toCommons = BLHELI_SETTINGS_DESCRIPTIONS[toSettings.LAYOUT_REVISION].MULTI.base;
+
+        var fromCommon = fromCommons.find(setting => setting.name === settingName),
+            toCommon = toCommons.find(setting => setting.name === settingName);
+
+        if (fromCommon && toCommon) {
+            return true;
+        }
+
+        var fromIndividuals = BLHELI_INDIVIDUAL_SETTINGS_DESCRIPTIONS[fromSettings.LAYOUT_REVISION].base,
+            toIndividuals = BLHELI_INDIVIDUAL_SETTINGS_DESCRIPTIONS[toSettings.LAYOUT_REVISION].base;
+
+        var fromIndividual = fromIndividuals.find(setting => setting.name === settingName),
+            toIndividual = toIndividuals.find(setting => setting.name === settingName);
+
+        if (fromIndividual && toIndividual) {
+            return true;
+        }
+    }
+
+    return false;
+}
