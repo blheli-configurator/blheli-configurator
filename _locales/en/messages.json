@@ -203,6 +203,9 @@
     "escButtonFlash": {
         "message": "FLASH FIRMWARE"
     },
+    "escButtonFlashAll": {
+        "message": "Flash All"
+    },
     "escIgnoreInappropriateMCULayout": {
         "message": "Ignore inappropriate MCU and Layout?"
     }

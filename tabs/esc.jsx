@@ -411,7 +411,7 @@ var Configurator = React.createClass({
         this.setState({
             canRead: true,
             canWrite: availableSettings.length > 0,
-            canFlash: canFlash
+            canFlash: availableSettings.length > 0 && canFlash
         });
 
         GUI.log('ESC setup read');   
@@ -1094,7 +1094,7 @@ var Configurator = React.createClass({
                     <div className="btn">
                         <a
                             href="#"
-                            className={!this.state.isFlashing && this.state.canRead ? "read" : "read disabled"}
+                            className={!this.state.isFlashing && this.state.canRead ? "" : "disabled"}
                             onClick={this.readSetup}
                         >
                             {chrome.i18n.getMessage('escButtonRead')}
@@ -1103,7 +1103,7 @@ var Configurator = React.createClass({
                     <div className="btn">
                         <a
                             href="#"
-                            className={!this.state.isFlashing && this.state.canWrite ? "write" : "write disabled"}
+                            className={!this.state.isFlashing && this.state.canWrite ? "" : "disabled"}
                             onClick={this.writeSetup}
                         >
                             {chrome.i18n.getMessage('escButtonWrite')}
@@ -1112,10 +1112,10 @@ var Configurator = React.createClass({
                     <div className="btn">
                         <a
                             href="#"
-                            className={!this.state.isFlashing && this.state.canFlash ? "flash" : "flash disabled"}
+                            className={!this.state.isFlashing && this.state.canFlash ? "" : "disabled"}
                             onClick={this.flashAll}
                         >
-                            {'escButtonFlashAll'}
+                            {chrome.i18n.getMessage('escButtonFlashAll')}
                         </a>
                     </div>
                 </div>
