@@ -11,6 +11,6 @@
         "react-switchery": "1.0.0"
     },
     "scripts": {
-        "build": "babel tabs/esc.jsx -o tabs/esc.js"
+        "build": "babel tabs/esc.jsx -o tabs/esc.js; babel js/flashing_helpers.jsx -o js/flashing_helpers.js"
     }
 }

@@ -375,9 +375,12 @@ var Configurator = React.createClass({
         return {
             canRead: true,
             canWrite: false,
-            canFlashAll: false,
+            canFlash: false,
+            isFlashing: false,
+
             escSettings: [],
             escMetainfo: [],
+
             ignoreMCULayout: false,
         };
     },
@@ -395,14 +398,20 @@ var Configurator = React.createClass({
         // @todo also disable settings alteration
         this.setState({
             canRead: false,
-            canWrite: false
+            canWrite: false,
+            canFlash: false
         });
 
         await this.readSetupImpl();
 
+        // Enable `Flash All` if all ESCs are identical
+        const availableSettings = this.state.escSettings.filter((i, idx) => this.state.escMetainfo[idx].available);
+        const canFlash = availableSettings.every(settings => settings.MCU === availableSettings[0].MCU);
+
         this.setState({
             canRead: true,
-            canWrite: true
+            canWrite: availableSettings.length > 0,
+            canFlash: canFlash
         });
 
         GUI.log('ESC setup read');   
@@ -559,146 +568,40 @@ var Configurator = React.createClass({
         // @todo also disable settings alteration
         this.setState({
             canRead: false,
-            canWrite: false
+            canWrite: false,
+            canFlash: false
         });
 
         await this.writeSetupImpl();
 
         GUI.log('ESC setup written');
 
-        this.readSetup();
+        await this.readSetup();
     },
     flashFirmware: async function(escIndex, notifyStart, notifyProgress, notifyEnd) {
+        this.setState({ isFlashing: true });
+
         var escSettings = this.state.escSettings[escIndex],
             escMetainfo = this.state.escMetainfo[escIndex],
-            isAtmel = [ _4way_modes.AtmBLB, _4way_modes.AtmSK ].includes(escMetainfo.interface_mode),
-            flashImage,
-            eepromImage;
+            isAtmel = [ _4way_modes.AtmBLB, _4way_modes.AtmSK ].includes(escMetainfo.interface_mode);
 
-        const max_flash_size = isAtmel ? BLHELI_ATMEL_BLB_ADDRESS_8 : BLHELI_SILABS_ADDRESS_SPACE_SIZE;
+        try {
+            var images = await getLocalFirmware(isAtmel);
 
-        function parseHex(data) {
-            // parsing hex in different thread
-            var worker = new Worker('./js/workers/hex_parser.js'),
-                deferred = Q.defer()
+            // @todo perform some sanity checks on size of flash
 
-            worker.onmessage = event => deferred.resolve(event.data)
-            // send data over for processing
-            worker.postMessage(data)
+            notifyStart();
+            notifyProgress(0);
 
-            return deferred.promise
+            await this.flashFirmwareImpl(escIndex, escSettings, escMetainfo, images.flash, images.eeprom, notifyProgress);
+        } catch (error) {
+            GUI.log('Flashing failed: ' + error.message);
         }
 
-        function selectFile(ext) {
-            var deferred = Q.defer()
-
-            // Open file dialog
-            chrome.fileSystem.chooseEntry({
-                type: 'openFile',
-                accepts: [ { extensions: [ ext ] } ]
-            }, fileEntry => {
-                if (chrome.runtime.lastError) {
-                    deferred.reject(new Error(chrome.runtime.lastError.message))
-                    return
-                }
-
-                chrome.fileSystem.getDisplayPath(fileEntry, path => {
-                    GUI.log('Loading file from ' + path)
-
-                    fileEntry.file(file => {
-                        var reader = new FileReader
-
-                        reader.onprogress = e => {
-                            if (e.total > 32 * 1024) { // 32 KiB
-                                deferred.reject('File size limit of 32 KiB exceeded')
-                            }
-                        }
-
-                        reader.onloadend = e => {
-                            if (e.total !== 0 && e.total === e.loaded) {
-                                GUI.log('Loaded file ' + path)
-
-                                deferred.resolve(e.target.result)
-                            } else {
-                                deferred.reject(new Error('Failed to load ' + path))
-                            }
-                        }
-
-                        reader.readAsText(file)
-                    })
-                })
-            })
-
-            return deferred.promise
-        }
-
-        // Fills a memory image of ESC MCU's address space with target firmware
-        function fillImage(data, size) {
-            var image = new Uint8Array(size).fill(0xFF)
-
-            data.data.forEach(function(block) {
-                // Check preconditions
-                if (block.address >= image.byteLength) {
-                    if (block.address == BLHELI_SILABS_BOOTLOADER_ADDRESS) {
-                        GUI.log('Block at 0x' + block.address.toString(0x10) + ' of 0x' + block.bytes.toString(0x10) + ' bytes contains bootloader, skipping\n');
-                    } else {
-                        GUI.log('Block at 0x' + block.address.toString(0x10) + ' is outside of target address space\n');
-                    }
-
-                    return;
-                }
-
-                if (block.address + block.bytes >= image.byteLength) {
-                    GUI.log('Block at 0x' + block.address.toString(0x10) + ' spans past the end of target address space\n');
-                }
-
-                // block.data may be too large, select maximum allowed size
-                var clamped_length = Math.min(block.bytes, image.byteLength - block.address);
-                image.set(block.data.slice(0, clamped_length), block.address);
-            })
-
-            return image
-        }
-
-        // Ask user to select HEX
-        const hexContent = await selectFile('hex');
-        const parsedHex = await parseHex(hexContent);
-        if (parsedHex) {
-            GUI.log('Loaded local firmware: ' + parsedHex.bytes_total + ' bytes');
-            flashImage = fillImage(parsedHex, max_flash_size);
-
-            // sanity check
-            const MCU = buf2ascii(flashImage.subarray(BLHELI_SILABS_EEPROM_OFFSET).subarray(BLHELI_LAYOUT.MCU.offset).subarray(0, BLHELI_LAYOUT.MCU.size));
-            if (!MCU.includes('#BLHELI#')) {
-                throw new Error('HEX does not look like a valid SiLabs BLHeli flash file')
-            }
-        } else {
-            throw new Error('HEX file corrupt')
-        }
-
-        // Ask EEP on Atmel
-        if (isAtmel) {
-            const eepContent = await selectFile('eep');
-            const parsedEep = await parseHex(eepContent);
-            if (parsedEep) {
-                GUI.log('Loaded local EEprom: ' + parsedEep.bytes_total + 'bytes');
-                eepromImage = fillImage(parsedEep, BLHELI_ATMEL_EEPROM_SIZE);
-
-                // sanity check
-                const MCU = buf2ascii(eepromImage.subarray(BLHELI_LAYOUT.MCU.offset).subarray(0, BLHELI_LAYOUT.MCU.size));
-                if (!MCU.includes('#BLHELI#')) {
-                    throw new Error('EEP does not look like a valid Atmel BLHeli EEprom file');
-                }
-            } else {
-                throw new Error('EEP file corrupt')
-            }
-        }
-
-        // @todo perform some sanity checks on size of flash
-
-        await this.flashFirmwareImpl(escIndex, escSettings, escMetainfo, flashImage, eepromImage, notifyStart, notifyProgress, notifyEnd);
+        notifyEnd();
+        this.setState({ isFlashing: false });
     },
-    flashFirmwareImpl: async function(escIndex, escSettings, escMetainfo, flashImage, eepromImage, notifyStart, notifyProgress, notifyEnd) {
+    flashFirmwareImpl: async function(escIndex, escSettings, escMetainfo, flashImage, eepromImage, notifyProgress) {
         try {
             var startTimestamp = Date.now(),
                 isAtmel = [ _4way_modes.AtmBLB, _4way_modes.AtmSK ].includes(escMetainfo.interface_mode),
@@ -709,105 +612,99 @@ var Configurator = React.createClass({
                 bytes_to_process = max_flash_size * 3,
                 bytes_processed = 0;
 
-            notifyStart();
-            notifyProgress(0);
-
             // start the actual flashing process
             const initFlashResponse = await _4way.initFlash(escIndex);
             // select flashing algorithm given interface mode
-            await select_interface(initFlashResponse);
+            await selectInterfaceAndFlash(initFlashResponse);
 
             // migrate settings from previous version if asked to
             const newSettings = blheliSettingsObject((await _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE)).params);
 
             // @todo move elsewhere
-            var elapsedSec = (Date.now() - startTimestamp) * 1.0e-3
-
+            const elapsedSec = (Date.now() - startTimestamp) * 1.0e-3
             GUI.log('Flashing firmware to ESC ' + (escIndex + 1) + ' finished in ' + elapsedSec + ' seconds');
-            $('a.connect').removeClass('disabled')
 
             // ensure mode match
             if (newSettings.MODE === escSettings.MODE) {
                 GUI.log('Writing settings back\n');
-                // find intersection between newSettings and escSettings with respect to their versions
+
+                // @todo find intersection between newSettings and escSettings with respect to their versions
                 // copy only the changed settings
                 // copy changed settings
                 var allSettings = self.state.escSettings;
                 allSettings[escIndex] = newSettings;
                 self.onUserInput(allSettings);
 
-                self.writeSetup();
+                await self.writeSetup();
             } else {
                 GUI.log('Will not write settings back due to different MODE\n');
 
                 // read settings back
-                self.readSetup();
+                await self.readSetup();
             }
-
-            notifyEnd();
         } catch (error) {
-            var elapsedSec = (Date.now() - startTimestamp) * 1.0e-3;
-
+            const elapsedSec = (Date.now() - startTimestamp) * 1.0e-3;
             GUI.log('Firmware flashing failed ' + (error ? ': ' + error.stack : ' ') + ' after ' + elapsedSec + ' seconds');
-            $('a.connect').removeClass('disabled')
         }
 
-        function update_progress(bytes) {
+        $('a.connect').removeClass('disabled')
+
+        function updateProgress(bytes) {
             bytes_processed += bytes;
             notifyProgress(Math.min(Math.ceil(100 * bytes_processed / bytes_to_process), 100));
         }
 
-        function select_interface(message) {
+        function selectInterfaceAndFlash(message) {
             var interface_mode = message.params[3]
             escMetainfo.interface_mode = interface_mode
 
             switch (interface_mode) {
-                case _4way_modes.SiLBLB: return flash_silabs_blb(message)
+                case _4way_modes.SiLBLB: return flashSiLabsBLB(message)
                 case _4way_modes.AtmBLB:
-                case _4way_modes.AtmSK:  return flash_atmel(message)
+                case _4way_modes.AtmSK:  return flashAtmel(message)
                 default: throw new Error('Flashing with interface mode ' + interface_mode + ' is not yet implemented')
             }
         }
 
-        function flash_silabs_blb(message) {
+        function flashSiLabsBLB(message) {
             // @todo check device id
 
             // read current settings
             return _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE)
             // check MCU and LAYOUT
-            .then(check_esc_and_mcu)
+            .then(checkESCAndMCU)
             // erase EEPROM page
-            .then(erase_page.bind(undefined, 0x0D))
+            .then(erasePage.bind(undefined, 0x0D))
             // write **FLASH*FAILED** as ESC NAME
-            .then(write_eeprom_safeguard)
+            .then(writeEEpromSafeguard)
             // write `LJMP bootloader` to avoid bricking            
-            .then(write_bootloader_failsafe)
+            .then(writeBootloaderFailsafe)
             // erase up to EEPROM, skipping first two first pages with bootloader failsafe
-            .then(erase_pages.bind(undefined, 0x02, 0x0D))
+            .then(erasePages.bind(undefined, 0x02, 0x0D))
             // write & verify just erased locations
-            .then(write_pages.bind(undefined, 0x02, 0x0D))
+            .then(writePages.bind(undefined, 0x02, 0x0D))
             // write & verify first page
-            .then(write_page.bind(undefined, 0x00))
+            .then(writePage.bind(undefined, 0x00))
             // erase second page
-            .then(erase_page.bind(undefined, 0x01))
+            .then(erasePage.bind(undefined, 0x01))
             // write & verify second page
-            .then(write_page.bind(undefined, 0x01))
+            .then(writePage.bind(undefined, 0x01))
             // erase EEPROM
-            .then(erase_page.bind(undefined, 0x0D))
+            .then(erasePage.bind(undefined, 0x0D))
             // write & verify EEPROM
-            .then(write_page.bind(undefined, 0x0D))
+            .then(writePage.bind(undefined, 0x0D))
         }
 
         // @todo
         // 1. add check for ATmega8 vs. ATmega16, they have different flash and eeprom sizes
-        function flash_atmel(message) {
+        function flashAtmel(message) {
             // SimonK uses word instead of byte addressing for flash and address arithmetic on subsequent reads/writes
-            var is_simonk = escMetainfo.interface_mode === _4way_modes.AtmSK
+            const isSimonK = escMetainfo.interface_mode === _4way_modes.AtmSK
             // @todo check device id
 
             return _4way.readEEprom(0, BLHELI_LAYOUT_SIZE)
             // check MCU and LAYOUT
-            .then(check_esc_and_mcu)
+            .then(checkESCAndMCU)
             // write **FLASH*FAILED** as NAME
             .then(() => {
                 var bytes = ascii2buf('**FLASH*FAILED**')
@@ -822,7 +719,7 @@ var Configurator = React.createClass({
             })
             // write RCALL bootloader_start
             .then(() => {
-                var address = is_simonk ? 0x20 : 0x40,
+                var address = isSimonK ? 0x20 : 0x40,
                     // @todo for BLHeli we can jump 0x200 bytes further, do it
                     rcall = [ 0xDF, 0xCD ],
                     bytes = new Uint8Array(64).fill(0xFF)
@@ -853,7 +750,7 @@ var Configurator = React.createClass({
             .then(() => {
                 var begin_address = 0x80,
                     end_address = BLHELI_ATMEL_BLB_ADDRESS_8
-                    write_step = is_simonk ? 0x40 : 0x100,
+                    write_step = isSimonK ? 0x40 : 0x100,
                     verify_step = 0x100,
                     promise = Q()
 
@@ -862,7 +759,7 @@ var Configurator = React.createClass({
                     var end = min(address + write_step, end_address),
                         write_address = address
 
-                    if (is_simonk) {
+                    if (isSimonK) {
                         if (address === begin_address) {
                             write_address /= 2
                         } else {
@@ -874,7 +771,7 @@ var Configurator = React.createClass({
                     promise = promise
                     .then(_4way.write.bind(_4way, write_address, flashImage.subarray(address, end)))
                     .then(message => {
-                        update_progress(message.params.byteLength)
+                        updateProgress(message.params.byteLength)
                     })
                 }
 
@@ -883,7 +780,7 @@ var Configurator = React.createClass({
                     var bytesToRead = min(address + verify_step, end_address) - address,
                         read_address = address
 
-                    if (is_simonk) {
+                    if (isSimonK) {
                         if (address === begin_address) {
                             read_address /= 2
                         } else {
@@ -899,7 +796,7 @@ var Configurator = React.createClass({
                             throw new Error('Failed to verify write at address 0x' + address.toString(0x10))
                         }
 
-                        update_progress(message.params.byteLength)
+                        updateProgress(message.params.byteLength)
                     })
                 }
 
@@ -908,10 +805,10 @@ var Configurator = React.createClass({
             // write 128 remaining bytes
             .then(() => {
                 // @todo combine
-                if (is_simonk) {
+                if (isSimonK) {
                     return _4way.write(0, flashImage.subarray(0, 0x40))
                     .then(message => {
-                        update_progress(message.params.byteLength)
+                        updateProgress(message.params.byteLength)
                     })
                     .then(_4way.write.bind(_4way, 0xFFFF, flashImage.subarray(0x40, 0x80)))
                     .then(_4way.read.bind(_4way, 0, 0x80))
@@ -920,12 +817,12 @@ var Configurator = React.createClass({
                             throw new Error('Failed to verify write at address 0x' + message.address.toString(0x10))
                         }
 
-                        update_progress(message.params.byteLength)
+                        updateProgress(message.params.byteLength)
                     })
                 } else {
                     return _4way.write(0, flashImage.subarray(0, 0x80))
                     .then(message => {
-                        update_progress(message.params.byteLength)
+                        updateProgress(message.params.byteLength)
                     })
                     .then(_4way.read.bind(_4way, 0, 0x80))
                     .then(message => {
@@ -933,7 +830,7 @@ var Configurator = React.createClass({
                             throw new Error('Failed to verify write at address 0x' + message.address.toString(0x10))
                         }
 
-                        update_progress(message.params.byteLength)
+                        updateProgress(message.params.byteLength)
                     })
                 }
             })
@@ -946,14 +843,14 @@ var Configurator = React.createClass({
                 .then(message => {
                     eeprom.set(message.params, 0)
                 })
-                .then(_4way.readEEprom.bind(_4way, is_simonk ? 0xFFFF : 0x100, 0x100))
+                .then(_4way.readEEprom.bind(_4way, isSimonK ? 0xFFFF : 0x100, 0x100))
                 .then(message => {
                     eeprom.set(message.params, 0x100)
                 })
                 // write differing bytes
                 .then(() => {
                     var promise = Q(),
-                        max_bytes_per_write = is_simonk ? 0x40 : 0x100
+                        max_bytes_per_write = isSimonK ? 0x40 : 0x100
 
                     // write only changed bytes for Atmel
                     for (var pos = 0; pos < eeprom.byteLength; ++pos) {
@@ -981,7 +878,7 @@ var Configurator = React.createClass({
 
         var escSettingArrayTmp;
 
-        function check_esc_and_mcu(message) {
+        function checkESCAndMCU(message) {
             escSettingArrayTmp = message.params;
 
             // @todo ask user if he wishes to continue
@@ -1026,7 +923,7 @@ var Configurator = React.createClass({
             // @todo check NAME for **FLASH*FAILED**
         }
 
-        function write_eeprom_safeguard() {
+        function writeEEpromSafeguard() {
             escSettingArrayTmp.set(ascii2buf('**FLASH*FAILED**'), BLHELI_LAYOUT.NAME.offset)
 
             var promise = _4way.write(BLHELI_SILABS_EEPROM_OFFSET, escSettingArrayTmp)
@@ -1042,7 +939,7 @@ var Configurator = React.createClass({
             return promise
         }
 
-        function write_bootloader_failsafe() {
+        function writeBootloaderFailsafe() {
             var ljmp_reset = new Uint8Array([ 0x02, 0x19, 0xFD ]),
                 ljmp_bootloader = new Uint8Array([ 0x02, 0x1C, 0x00 ])
 
@@ -1050,11 +947,11 @@ var Configurator = React.createClass({
             // verify LJMP reset
             .then(function(message) {
                 if (!compare(ljmp_reset, message.params)) {
-                    self.print('ESC ' + (escIndex + 1) + ' has a different instruction at start of address space, previous flashing has probably failed')
+                    GUI.log('ESC ' + (escIndex + 1) + ' has a different instruction at start of address space, previous flashing has probably failed')
                 }
             })
             // erase second page
-            .then(erase_page.bind(undefined, 1))
+            .then(erasePage.bind(undefined, 1))
             // write LJMP bootloader
             .then(function() {
                 return _4way.write(0x200, ljmp_bootloader)
@@ -1070,7 +967,7 @@ var Configurator = React.createClass({
                 }
             })
             // erase first page
-            .then(erase_page.bind(undefined, 0))
+            .then(erasePage.bind(undefined, 0))
             // ensure page erased to 0xFF
             .then(_4way.read.bind(_4way, 0, 0x100))
             .then(function(message) {
@@ -1091,24 +988,24 @@ var Configurator = React.createClass({
             return promise
         }
 
-        function erase_pages(from_page, max_page) {
+        function erasePages(from_page, max_page) {
             var promise = Q()
 
             for (var page = from_page; page < max_page; ++page) {
                 promise = promise.then(_4way.pageErase.bind(_4way, page))
                 .then(function() {
-                    update_progress(BLHELI_SILABS_PAGE_SIZE)
+                    updateProgress(BLHELI_SILABS_PAGE_SIZE)
                 })
             }
 
             return promise;
         }
 
-        function erase_page(page) {
-            return erase_pages(page, page + 1);
+        function erasePage(page) {
+            return erasePages(page, page + 1);
         }
 
-        function write_pages(begin, end) {
+        function writePages(begin, end) {
             var begin_address   = begin * BLHELI_SILABS_PAGE_SIZE,
                 end_address     = end * BLHELI_SILABS_PAGE_SIZE,
                 step            = 0x100,
@@ -1117,22 +1014,22 @@ var Configurator = React.createClass({
             for (var address = begin_address; address < end_address; address += step) {
                 promise = promise.then(_4way.write.bind(_4way, address, flashImage.subarray(address, address + step)))
                 .then(function() {
-                    update_progress(step)
+                    updateProgress(step)
                 })
             }
 
             promise = promise.then(function() {
-                return verify_pages(begin, end)
+                return verifyPages(begin, end)
             })
             
             return promise
         }
 
-        function write_page(page) {
-            return write_pages(page, page + 1)
+        function writePage(page) {
+            return writePages(page, page + 1)
         }
 
-        function verify_pages(begin, end) {
+        function verifyPages(begin, end) {
             var begin_address   = begin * BLHELI_SILABS_PAGE_SIZE,
                 end_address     = end * BLHELI_SILABS_PAGE_SIZE,
                 step            = 0x100,
@@ -1145,15 +1042,36 @@ var Configurator = React.createClass({
                         throw new Error('Failed to verify write at address 0x' + message.address.toString(0x10))
                     }
 
-                    update_progress(message.params.byteLength)
+                    updateProgress(message.params.byteLength)
                 })
             }
 
             return promise
         }
     },
-    flashAll: function() {
+    flashAll: async function() {
+        this.setState({ isFlashing: true });
+        
+        const availableSettings = this.state.escSettings.filter((i, idx) => this.state.escMetainfo[idx].available),
+              isAtmel = [ _4way_modes.AtmBLB, _4way_modes.AtmSK ].includes(availableSettings[0].interface_mode);
 
+        var images = await getLocalFirmware(isAtmel);
+
+        // @todo perform some sanity checks on size of flash
+        for (let escIndex = 0; escIndex < this.props.escCount; ++escIndex) {
+            if (!this.state.escMetainfo[escIndex].available) {
+                continue;
+            }
+
+            GUI.log("Starting flash of ESC " + (escIndex + 1));
+            var escSettings = this.state.escSettings[escIndex],
+                escMetainfo = this.state.escMetainfo[escIndex];
+
+            await this.flashFirmwareImpl(escIndex, escSettings, escMetainfo, images.flash, images.eeprom, function notifyStart() {}, function notifyProgress(progress) {}, function notifyEnd() {});
+            GUI.log("Finished flashing ESC " + (escIndex + 1));
+        }
+
+        this.setState({ isFlashing: false });
     },
     handleIgnoreMCULayout: function(e) {
         this.setState({
@@ -1176,7 +1094,7 @@ var Configurator = React.createClass({
                     <div className="btn">
                         <a
                             href="#"
-                            className={this.state.canRead ? "read" : "read disabled"}
+                            className={!this.state.isFlashing && this.state.canRead ? "read" : "read disabled"}
                             onClick={this.readSetup}
                         >
                             {chrome.i18n.getMessage('escButtonRead')}
@@ -1185,7 +1103,7 @@ var Configurator = React.createClass({
                     <div className="btn">
                         <a
                             href="#"
-                            className={this.state.canWrite ? "write" : "write disabled"}
+                            className={!this.state.isFlashing && this.state.canWrite ? "write" : "write disabled"}
                             onClick={this.writeSetup}
                         >
                             {chrome.i18n.getMessage('escButtonWrite')}
@@ -1194,7 +1112,7 @@ var Configurator = React.createClass({
                     <div className="btn">
                         <a
                             href="#"
-                            className={this.state.canFlashAll ? "flash" : "flash disabled"}
+                            className={!this.state.isFlashing && this.state.canFlash ? "flash" : "flash disabled"}
                             onClick={this.flashAll}
                         >
                             {'escButtonFlashAll'}
@@ -1260,13 +1178,7 @@ var Configurator = React.createClass({
 
 TABS.esc = {};
 
-TABS.esc.print = function (str) {
-    GUI.log(str);
-};
-
 TABS.esc.initialize = function (callback) {
-    var self = this;
-
     if (GUI.active_tab != 'esc') {
         GUI.active_tab = 'esc';
         googleAnalytics.sendAppView('ESC');
