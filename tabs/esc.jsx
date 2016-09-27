@@ -272,8 +272,8 @@ var IndividualSettings = React.createClass({
             <div className="half">
                 <div className="default_btn half flash_btn">
                     <progress
-                        className={this.state.isFlashing ? "progress" : "hidden"}
-                        value={this.state.progress}
+                        className={this.state.isFlashing || this.props.isFlashing ? "progress" : "hidden"}
+                        value={this.state.isFlashing ? this.state.progress : this.props.progress}
                         min="0"
                         max="100"
                     />
@@ -382,6 +382,9 @@ var Configurator = React.createClass({
             escMetainfo: [],
 
             ignoreMCULayout: false,
+
+            flashingEscIndex: undefined,
+            flashingEscProgress: 0
         };
     },
     componentDidMount: function() {
@@ -1085,7 +1088,22 @@ var Configurator = React.createClass({
                 var escSettings = this.state.escSettings[escIndex],
                     escMetainfo = this.state.escMetainfo[escIndex];
 
-                await this.flashFirmwareImpl(escIndex, escSettings, escMetainfo, images.flash, images.eeprom, function notifyStart() {}, function notifyProgress(progress) {}, function notifyEnd() {});
+                await this.flashFirmwareImpl(escIndex, escSettings, escMetainfo, images.flash, images.eeprom,
+                    () => {
+                        this.setState({
+                            flashingEscIndex: escIndex,
+                            flashingEscProgress: 0
+                        })
+                    },
+                    progres => {
+                        this.setState({ flashingEscProgress: progress })
+                    },
+                    () => {
+                        this.setState({
+                            flashingEscIndex: undefined,
+                            flashingEscProgress: 0
+                        })
+                    });
                 GUI.log("Finished flashing ESC " + (escIndex + 1));
             }
         } catch (error) {
@@ -1193,6 +1211,8 @@ var Configurator = React.createClass({
                     escMetainfo={this.state.escMetainfo}
                     onUserInput={this.onUserInput}
                     canFlash={!this.state.isFlashing}
+                    isFlashing={this.state.flashingEscIndex === idx}
+                    progress={this.state.flashingEscProgress}
                     flashFirmware={this.flashFirmware}
                 />
             );
