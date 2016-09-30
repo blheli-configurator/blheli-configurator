@@ -156,6 +156,12 @@ var CommonSettings = React.createClass({
               layoutRevision = masterSettings.LAYOUT_REVISION,
               revision = masterSettings.MAIN_REVISION + '.' + masterSettings.SUB_REVISION;
 
+        var overrides = BLHELI_SETTINGS_DESCRIPTIONS_DESCRIPTIONS[layoutRevision].MULTI.overrides;
+
+        if (overrides) {
+            overrides = overrides[revision];
+        }
+
         return BLHELI_SETTINGS_DESCRIPTIONS[layoutRevision].MULTI.base.map(setting => {
             // @todo move elsewhere
             if (setting.visibleIf && !setting.visibleIf(masterSettings)) {
@@ -163,7 +169,6 @@ var CommonSettings = React.createClass({
             }
 
             const notInSync = availableSettings.reduce((x, y) => x[setting.name] === y[setting.name] ? x : -1) === -1,
-                  overrides = BLHELI_SETTINGS_DESCRIPTIONS[layoutRevision].MULTI.overrides[revision],
                   override = overrides ? overrides.find(override => override.name === setting.name) : null;
 
             return this.renderSetting(masterSettings, notInSync, override ? override : setting);
