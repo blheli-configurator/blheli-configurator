@@ -265,13 +265,18 @@ var IndividualSettings = React.createClass({
     renderControls: function() {
         const escSettings = this.props.escSettings[this.props.escIndex];
 
-        var rows = BLHELI_INDIVIDUAL_SETTINGS_DESCRIPTIONS[escSettings.LAYOUT_REVISION].base.map(setting => {
-            if (setting.visibleIf && !setting.visibleIf(escSettings)) {
-                return null;
-            }
+        var rows = [];
 
-            return this.renderSetting(escSettings, setting);
-        });
+        // Check that the layout revision is valid
+        if (BLHELI_INDIVIDUAL_SETTINGS_DESCRIPTIONS.hasOwnProperty(escSettings.LAYOUT_REVISION)) {
+            rows = BLHELI_INDIVIDUAL_SETTINGS_DESCRIPTIONS[escSettings.LAYOUT_REVISION].base.map(setting => {
+                if (setting.visibleIf && !setting.visibleIf(escSettings)) {
+                    return null;
+                }
+
+                return this.renderSetting(escSettings, setting);
+            });
+        }
 
         rows.push(
             <div className="half">
