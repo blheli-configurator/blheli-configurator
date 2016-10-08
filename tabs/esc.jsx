@@ -1093,22 +1093,26 @@ var Configurator = React.createClass({
                 var escSettings = this.state.escSettings[escIndex],
                     escMetainfo = this.state.escMetainfo[escIndex];
 
-                await this.flashFirmwareImpl(escIndex, escSettings, escMetainfo, images.flash, images.eeprom,
-                    () => {
-                        this.setState({
-                            flashingEscIndex: escIndex,
-                            flashingEscProgress: 0
-                        })
-                    },
-                    progres => {
-                        this.setState({ flashingEscProgress: progress })
-                    },
-                    () => {
-                        this.setState({
-                            flashingEscIndex: undefined,
-                            flashingEscProgress: 0
-                        })
-                    });
+                this.setState({
+                    flashingEscIndex: escIndex,
+                    flashingEscProgress: 0
+                });
+
+                try {
+                    await this.flashFirmwareImpl(escIndex, escSettings, escMetainfo, images.flash, images.eeprom,
+                        progress => {
+                            console.log('progress', progress);
+                            this.setState({ flashingEscProgress: progress })
+                        });
+                } catch (error) {
+                    GUI.log("Error flashing ESC " + (escIndex + 1) + error.message);
+                }
+
+                this.setState({
+                    flashingEscIndex: undefined,
+                    flashingEscProgress: 0
+                })
+
                 GUI.log("Finished flashing ESC " + (escIndex + 1));
             }
         } catch (error) {
