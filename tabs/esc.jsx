@@ -156,7 +156,7 @@ var CommonSettings = React.createClass({
               layoutRevision = masterSettings.LAYOUT_REVISION,
               revision = masterSettings.MAIN_REVISION + '.' + masterSettings.SUB_REVISION;
 
-        var overrides = BLHELI_SETTINGS_DESCRIPTIONS_DESCRIPTIONS[layoutRevision].MULTI.overrides;
+        var overrides = BLHELI_SETTINGS_DESCRIPTIONS[layoutRevision].MULTI.overrides;
 
         if (overrides) {
             overrides = overrides[revision];
