@@ -400,6 +400,7 @@ var Configurator = React.createClass({
             escSettings: newSettings
         });
     },
+    saveLog: () => saveFile(_4way.log),
     readSetup: async function() {
         GUI.log('reading ESC setup');
         $('a.connect').addClass('disabled');
@@ -1141,6 +1142,14 @@ var Configurator = React.createClass({
                     {this.renderContent()}
                 </div>
                 <div className="content_toolbar">
+                    <div className="btn log_btn">
+                        <a
+                            href="#"
+                            onClick={this.saveLog}
+                        >
+                            {chrome.i18n.getMessage('escButtonSaveLog')}
+                        </a>
+                    </div>
                     <div className="btn">
                         <a
                             href="#"
@@ -1237,20 +1246,12 @@ TABS.esc.initialize = function (callback) {
         googleAnalytics.sendAppView('ESC');
     }
 
-    function render_html() {
-        // set flag to allow messages redirect to 4way-if handler
-        CONFIGURATOR.escActive = true;
+    ReactDOM.render(
+        <Configurator escCount={ESC_CONFIG.connectedESCs} />,
+        document.getElementById('content')
+    );
 
-        ReactDOM.render(
-            <Configurator escCount={ESC_CONFIG.connectedESCs} />,
-            document.getElementById('content')
-        );
-
-        GUI.content_ready(callback);
-    }
-
-    // ask the FC to switch into 4way interface mode
-    MSP.send_message(MSP_codes.MSP_SET_4WAY_IF, null, null, render_html);
+    GUI.content_ready(callback);
 };
 
 TABS.esc.cleanup = function (callback) {

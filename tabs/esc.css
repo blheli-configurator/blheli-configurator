@@ -188,6 +188,11 @@
     margin-bottom: 20px;
 }
 
+.tab-esc .log_btn {
+    float: left;
+    margin-left: 15px;
+}
+
 .tab-esc .flash_btn .progress {
     position: absolute;
     width: 100%;

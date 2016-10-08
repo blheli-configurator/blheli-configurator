@@ -70,6 +70,7 @@ var _4way = {
     // Storage for partially-received messages
     backlog_view:   null,
     verbose: true,
+    log: '',
 
     crc16_xmodem_update: function(crc, byte) {
         crc = crc ^ (byte << 8);
@@ -182,30 +183,43 @@ var _4way = {
 
         var self = this,
             message = self.createMessage(command, params, address),
-            deferred = Q.defer()
+            deferred = Q.defer(),
+            retry = 0;
+
+        const maxRetries = 2;
+        
+        function recvCallback(msg) {
+            if (msg.ack === _4way_ack.ACK_OK) {
+                deferred.resolve(msg)
+            } else {
+                if (++retry < maxRetries) {
+                    serial.send(message, sendCallback);
+                } else {
+                    deferred.reject(new Error(JSON.stringify(msg)));
+                }
+            }
+        }
+
+        function sendCallback(sendInfo) {
+            if (sendInfo.bytesSent == message.byteLength) {
+                self.callbacks.push({
+                    command: command,
+                    callback: recvCallback
+                })
+            } else {
+                deferred.reject(new Error('serial.send(): ' + JSON.stringify(sendInfo)))
+            }
+        }
 
         if (self.verbose) {
             console.log('sending', _4way_command_to_string(command), address.toString(0x10), params)
         }
 
-        serial.send(message, function(sendInfo) {
-            if (sendInfo.bytesSent == message.byteLength) {
-                self.callbacks.push({
-                    command: command,
-                    callback: function(msg) {
-                        if (msg.ack === _4way_ack.ACK_OK) {
-                            deferred.resolve(msg)
-                        } else {
-                            deferred.reject(new Error(JSON.stringify(msg)))
-                        }
-                    }
-                })
-            } else {
-                deferred.reject(new Error('serial.send(): ' + JSON.stringify(sendInfo)))
-            }
-        });
+        self.log += 'sending ' + _4way_command_to_string(command) + ' ' + address.toString(0x10) + ' ' + JSON.stringify(params) + '\n';
 
-        return deferred.promise
+        serial.send(message, sendCallback);
+
+        return deferred.promise;
     },
 
     send: function(obj) {
@@ -252,6 +266,8 @@ var _4way = {
             if (self.verbose) {
                 console.log('received', _4way_command_to_string(message.command), _4way_ack_to_string(message.ack), message.address.toString(0x10), message.params)
             }
+            self.log += 'received ' + _4way_command_to_string(message.command) + ' ' + _4way_ack_to_string(message.ack) + ' ' + message.address.toString(0x10) + ' ' + JSON.stringify(message.params) + '\n';
+
             for (var i = self.callbacks.length - 1; i >= 0; --i) {
                 if (i < self.callbacks.length) {
                     if (self.callbacks[i].command == message.command) {

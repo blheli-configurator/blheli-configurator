@@ -75,6 +75,10 @@
         "message": "This firmware version is <span style=\"color: red\">not supported</span>. Please upgrade to firmware that supports api version <strong>$1</strong> or higher. Use CLI for backup before flashing.  CLI backup/restore procedure is in the documention."
     },
 
+    "blheliPassthroughNotSupported": {
+        "message": "This firmware version does <span style=\"color: red\">not support BLHeli passthrough</span>. Please upgrade to a newer version using a FC Configurator specific to your firmware."
+    },
+
     "tabSwitchConnectionRequired": {
         "message": "You need to <strong>connect</strong> before you can view any of the tabs."
     },
@@ -205,6 +209,9 @@
     },
     "escButtonFlashAll": {
         "message": "Flash All"
+    },
+    "escButtonSaveLog": {
+        "message": "Save Log"
     },
     "escIgnoreInappropriateMCULayout": {
         "message": "Ignore inappropriate MCU and Layout?"

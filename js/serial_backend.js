@@ -164,13 +164,17 @@ function onOpen(openInfo) {
                                 MSP.send_message(MSP_codes.MSP_UID, false, false, function () {
                                     GUI.log(chrome.i18n.getMessage('uniqueDeviceIdReceived', [CONFIG.uid[0].toString(16) + CONFIG.uid[1].toString(16) + CONFIG.uid[2].toString(16)]));
 
-                                    // continue as usually
-                                    CONFIGURATOR.connectionValid = true;
-                                    GUI.allowedTabs = GUI.defaultAllowedTabsWhenConnected.slice();
+                                    MSP.send_message(MSP_codes.MSP_SET_4WAY_IF, false, false, function () {
+                                        // continue as usually
+                                        CONFIGURATOR.connectionValid = true;
+                                        // set flag to allow messages redirect to 4way-if handler
+                                        CONFIGURATOR.escActive = true;
+                                        GUI.allowedTabs = GUI.defaultAllowedTabsWhenConnected.slice();
 
-                                    onConnect();
+                                        onConnect();
 
-                                    $('#tabs ul.mode-connected .tab_esc a').click();
+                                        $('#tabs ul.mode-connected .tab_esc a').click();
+                                    })
                                 });
                             });
                         });
@@ -178,10 +182,6 @@ function onOpen(openInfo) {
                 });
             } else {
                 GUI.log(chrome.i18n.getMessage('firmwareVersionNotSupported', [CONFIGURATOR.apiVersionAccepted]));
-                CONFIGURATOR.connectionValid = true; // making it possible to open the CLI tab
-                GUI.allowedTabs = [ 'esc' ];
-                onConnect();
-                $('#tabs .tab_esc a').click();
             }
         });
     } else {

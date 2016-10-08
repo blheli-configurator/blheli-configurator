@@ -97,6 +97,24 @@ function selectFile(ext) {
     return deferred.promise
 }
 
+function saveFile(str) {
+    // Save file dialog
+    chrome.fileSystem.chooseEntry({
+        type: 'saveFile',
+        suggestedName: 'Log',
+        accepts: [ { extensions: [ 'txt' ] } ]
+    }, fileEntry => {
+        if (chrome.runtime.lastError) {
+            return;
+        }
+
+        fileEntry.createWriter(writer => {
+            writer.onwriteend = () => GUI.log('Log file written');
+            writer.write(new Blob([ str ], { type: 'text/plain' }));
+        })
+    })
+}
+
 // Fills a memory image of ESC MCU's address space with target firmware
 function fillImage(data, size) {
     var image = new Uint8Array(size).fill(0xFF)

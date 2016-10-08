@@ -220,7 +220,11 @@ var MSP = {
             default:
                 console.log('Unknown code detected: ' + code);
         } else {
-            console.log('FC reports unsupported message error: ' + code);
+            if (code === MSP_codes.MSP_SET_4WAY_IF) {
+                GUI.log(chrome.i18n.getMessage('blheliPassthroughNotSupported'));
+            } else {
+                console.log('FC reports unsupported message error: ' + code);
+            }
         }
 
         this.timeouts_in_a_row = 0;
