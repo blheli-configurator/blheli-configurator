@@ -69,6 +69,8 @@ var _4way = {
     callbacks:      [],
     // Storage for partially-received messages
     backlog_view:   null,
+    verbose: true,
+    log: '',
 
     crc16_xmodem_update: function(crc, byte) {
         crc = crc ^ (byte << 8);
@@ -175,55 +177,49 @@ var _4way = {
         return messages;
     },
 
-    sendMessage: function(command, params, address, callback) {
-        if (params == undefined) params = [ 0 ];
-        if (address == undefined) address = 0;
-
-        var self = this,
-            message = self.createMessage(command, params, address);
-
-        console.log('sending', _4way_command_to_string(command), address.toString(0x10), params)
-        serial.send(message, function(sendInfo) {
-            if (sendInfo.bytesSent == message.byteLength) {
-                if (callback) {
-                    self.callbacks.push({
-                        command: command,
-                        callback: callback
-                    });
-                }
-            } else {
-                console.log('send failed: ', sendInfo);
-            }
-        });
-    },
-
     sendMessagePromised: function(command, params, address) {
         if (params == undefined) params = [ 0 ];
         if (address == undefined) address = 0;
 
         var self = this,
             message = self.createMessage(command, params, address),
-            deferred = Q.defer()
+            deferred = Q.defer(),
+            retry = 0;
 
-        console.log('sending', _4way_command_to_string(command), address.toString(0x10), params)
-        serial.send(message, function(sendInfo) {
+        const maxRetries = 2;
+        
+        function recvCallback(msg) {
+            if (msg.ack === _4way_ack.ACK_OK) {
+                deferred.resolve(msg)
+            } else {
+                if (++retry < maxRetries) {
+                    serial.send(message, sendCallback);
+                } else {
+                    deferred.reject(new Error(JSON.stringify(msg)));
+                }
+            }
+        }
+
+        function sendCallback(sendInfo) {
             if (sendInfo.bytesSent == message.byteLength) {
                 self.callbacks.push({
                     command: command,
-                    callback: function(msg) {
-                        if (msg.ack === _4way_ack.ACK_OK) {
-                            deferred.resolve(msg)
-                        } else {
-                            deferred.reject(new Error(msg))
-                        }
-                    }
+                    callback: recvCallback
                 })
             } else {
-                deferred.reject(new Error('serial.send(): ' + sendInfo))
+                deferred.reject(new Error('serial.send(): ' + JSON.stringify(sendInfo)))
             }
-        });
+        }
 
-        return deferred.promise
+        if (self.verbose) {
+            console.log('sending', _4way_command_to_string(command), address.toString(0x10), params)
+        }
+
+        self.log += 'sending ' + _4way_command_to_string(command) + ' ' + address.toString(0x10) + ' ' + JSON.stringify(params) + '\n';
+
+        serial.send(message, sendCallback);
+
+        return deferred.promise;
     },
 
     send: function(obj) {
@@ -242,12 +238,24 @@ var _4way = {
         return this.sendMessagePromised(_4way_commands.cmd_DeviceRead, [ bytes === 256 ? 0 : bytes ], address)
     },
 
+    readEEprom: function(address, bytes) {
+        return this.sendMessagePromised(_4way_commands.cmd_DeviceReadEEprom, [ bytes === 256 ? 0 : bytes ], address)  
+    },
+
     write: function(address, data) {
         return this.sendMessagePromised(_4way_commands.cmd_DeviceWrite, data, address)
     },
 
+    writeEEprom: function(address, data) {
+        return this.sendMessagePromised(_4way_commands.cmd_DeviceWriteEEprom, data, address)
+    },
+
     reset: function(target) {
         return this.sendMessagePromised(_4way_commands.cmd_DeviceReset, [ target ], 0)
+    },
+
+    exit: function() {
+        return this.sendMessagePromised(_4way_commands.cmd_InterfaceExit)
     },
 
     onread: function(readInfo) {
@@ -255,7 +263,11 @@ var _4way = {
         var messages = self.parseMessages(readInfo.data);
 
         messages.forEach(function (message) {
-            console.log('received', _4way_command_to_string(message.command), _4way_ack_to_string(message.ack), message.address.toString(0x10), message.params)
+            if (self.verbose) {
+                console.log('received', _4way_command_to_string(message.command), _4way_ack_to_string(message.ack), message.address.toString(0x10), message.params)
+            }
+            self.log += 'received ' + _4way_command_to_string(message.command) + ' ' + _4way_ack_to_string(message.ack) + ' ' + message.address.toString(0x10) + ' ' + JSON.stringify(message.params) + '\n';
+
             for (var i = self.callbacks.length - 1; i >= 0; --i) {
                 if (i < self.callbacks.length) {
                     if (self.callbacks[i].command == message.command) {
@@ -273,5 +285,11 @@ var _4way = {
                 }
             }
         });
+    },
+
+    disconnect_cleanup: function() {
+        console.log('disc cleanup')
+        this.callbacks = [],
+        this.backlog_view = null
     }
 };

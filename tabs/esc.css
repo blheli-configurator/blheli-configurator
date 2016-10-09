@@ -14,14 +14,14 @@
     margin: 0 0 0 20px;
 }
 
-.tab-esc .quarterLeft {
+/*.tab-esc .individual-config .gui_box:nth-child(odd) {
     width: calc(50% - 10px);
 }
 
-.tab-esc .quarterRight {
+.tab-esc .individual-config .gui_box:nth-child(even) {
     width: calc(50% - 5px);
     margin-left: 10px;
-}
+}*/
 
 .tab-esc .backdrop {
     border: 1px solid silver;
@@ -65,17 +65,30 @@
     white-space: pre-wrap;
 }
 
-.tab-esc .number input {
-    width: 95px;
+.tab-esc .number .InputRange {
+    width: 195px;
     padding-left: 3px;
     height: 20px;
     line-height: 20px;
     text-align: left;
-    border: 1px solid silver;
-    border-radius: 3px;
-    margin: 0 11px 5px 0;
+    margin: 0 14px 5px 0;
     font-size: 12px;
     font-weight: normal;
+    display: inline-block;
+    float: left;
+}
+
+.tab-esc .number .InputRange .InputRange-label--min,
+.tab-esc .number .InputRange .InputRange-label--max {
+    display: none;
+}
+
+.tab-esc .number .InputRange .InputRange-label--value {
+    margin-left: 1rem;
+}
+
+.tab-esc .number {
+    margin-top: 5px;
 }
 
 .tab-esc .number .disabled {
@@ -84,8 +97,9 @@
     background-color: #ececec;
 }
 
-.tab-esc .number span {
-    margin-left: 0px;
+.tab-esc .number span.label {
+    margin-left: 3px;
+    float: left;
 }
 
 .tab-esc .spacer_box {
@@ -104,6 +118,12 @@
 /*    border-bottom: 1px solid #ddd;*/
     width: 100%;
     float: left;
+}
+
+.tab-esc .not-in-sync::before {
+    content: '*';
+    color: red;
+    font-weight: bold;
 }
 
 .tab-esc .number:last-child,
@@ -143,7 +163,7 @@
 
 .tab-esc .select select {
     float: left;
-    width: 100px;
+    width: 200px;
     height: 20px;
     margin: 0 14px 5px 0;
     border: 1px solid silver;
@@ -164,18 +184,33 @@
 }
 
 .tab-esc .checkbox span:last-child {
-    margin-left: 64px;
+    margin-left: 16px;
+}
+.tab-esc .gui_box .checkbox span:last-child {
+    margin-left: 202px;
 }
 
 .tab-esc .escInfo {
     float: right;
 }
 
+.hidden {
+    display: none;
+}
+
+.tab-esc .note {
+    margin-bottom: 20px;
+}
+
+.tab-esc .log_btn {
+    float: left;
+    margin-left: 15px;
+}
+
 .tab-esc .flash_btn .progress {
     position: absolute;
     width: 100%;
     height: 100%;
-    display: none;
     border: 1px solid #5929aa;
     border-radius: 5px;
 }
@@ -188,4 +223,8 @@
 .tab-esc .flash_btn .progress::-webkit-progress-value {
     background: #5929aa;
     /*border-radius: 5px;*/
+}
+
+.tab-esc .red {
+    color: red;
 }

@@ -75,6 +75,10 @@
         "message": "This firmware version is <span style=\"color: red\">not supported</span>. Please upgrade to firmware that supports api version <strong>$1</strong> or higher. Use CLI for backup before flashing.  CLI backup/restore procedure is in the documention."
     },
 
+    "blheliPassthroughNotSupported": {
+        "message": "This firmware version does <span style=\"color: red\">not support BLHeli passthrough</span>. Please upgrade to a newer version using a FC Configurator specific to your firmware."
+    },
+
     "tabSwitchConnectionRequired": {
         "message": "You need to <strong>connect</strong> before you can view any of the tabs."
     },
@@ -122,7 +126,7 @@
     },
 
     "defaultWelcomeIntro": {
-        "message": "Welcome to <strong>BLHeli - Configurator</strong>, a utility designed to simplify updating and configuring of your flight ESCs."
+        "message": "Welcome to <strong>BLHeli - Configurator</strong>, a utility designed to simplify updating and configuring of your ESCs."
     },
 
     "escFeaturesHelp": {
@@ -164,7 +168,7 @@
     "escPWMOutputDither": {
         "message": "PWM Output Dither"
     },
-    "escLowRPMPowerPortection": {
+    "escLowRPMPowerProtection": {
         "message": "Low RPM Power Protection"
     },
     "escBrakeOnStop": {
@@ -203,7 +207,16 @@
     "escButtonFlash": {
         "message": "FLASH FIRMWARE"
     },
+    "escButtonFlashAll": {
+        "message": "Flash All"
+    },
+    "escButtonSaveLog": {
+        "message": "Save Log"
+    },
     "escIgnoreInappropriateMCULayout": {
         "message": "Ignore inappropriate MCU and Layout?"
+    },
+    "escIgnoreInappropriateMCULayoutWarning": {
+        "message": "(Flashing inappropriate firmware may damage your ESC, do so at your own risk)"
     }
 }

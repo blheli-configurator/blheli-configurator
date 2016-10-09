@@ -107,67 +107,6 @@ $(document).ready(function () {
                     case 'landing':
                         TABS.landing.initialize(content_ready);
                         break;
-                    case 'firmware_flasher':
-                        TABS.firmware_flasher.initialize(content_ready);
-                        break;
-                    case 'help':
-                        TABS.help.initialize(content_ready);
-                        break;
-
-                    case 'auxiliary':
-                        TABS.auxiliary.initialize(content_ready);
-                        break;
-                    case 'adjustments':
-                        TABS.adjustments.initialize(content_ready);
-                        break;
-                    case 'ports':
-                        TABS.ports.initialize(content_ready);
-                        break;
-                    case 'led_strip':
-                        TABS.led_strip.initialize(content_ready);
-                        break;
-                    case 'failsafe':
-                        TABS.failsafe.initialize(content_ready);
-                        break;
-                    case 'transponder':
-                        TABS.transponder.initialize(content_ready);
-                        break;
-                    case 'setup':
-                        TABS.setup.initialize(content_ready);
-                        break;
-                    case 'configuration':
-                        TABS.configuration.initialize(content_ready);
-                        break;
-                    case 'pid_tuning':
-                        TABS.pid_tuning.initialize(content_ready);
-                        break;
-                    case 'receiver':
-                        TABS.receiver.initialize(content_ready);
-                        break;
-                    case 'modes':
-                        TABS.modes.initialize(content_ready);
-                        break;
-                    case 'servos':
-                        TABS.servos.initialize(content_ready);
-                        break;
-                    case 'gps':
-                        TABS.gps.initialize(content_ready);
-                        break;
-                    case 'motors':
-                        TABS.motors.initialize(content_ready);
-                        break;
-                    case 'sensors':
-                        TABS.sensors.initialize(content_ready);
-                        break;
-                    case 'logging':
-                        TABS.logging.initialize(content_ready);
-                        break;
-                    case 'onboard_logging':
-                        TABS.onboard_logging.initialize(content_ready);
-                        break;
-                    case 'cli':
-                        TABS.cli.initialize(content_ready);
-                        break;
                     case 'esc':
                         TABS.esc.initialize(content_ready);
                         break;
