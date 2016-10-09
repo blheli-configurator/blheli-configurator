@@ -65,17 +65,30 @@
     white-space: pre-wrap;
 }
 
-.tab-esc .number input {
-    width: 95px;
+.tab-esc .number .InputRange {
+    width: 195px;
     padding-left: 3px;
     height: 20px;
     line-height: 20px;
     text-align: left;
-    border: 1px solid silver;
-    border-radius: 3px;
-    margin: 0 11px 5px 0;
+    margin: 0 14px 5px 0;
     font-size: 12px;
     font-weight: normal;
+    display: inline-block;
+    float: left;
+}
+
+.tab-esc .number .InputRange .InputRange-label--min,
+.tab-esc .number .InputRange .InputRange-label--max {
+    display: none;
+}
+
+.tab-esc .number .InputRange .InputRange-label--value {
+    margin-left: 1rem;
+}
+
+.tab-esc .number {
+    margin-top: 5px;
 }
 
 .tab-esc .number .disabled {
@@ -84,8 +97,9 @@
     background-color: #ececec;
 }
 
-.tab-esc .number span {
+.tab-esc .number span.label {
     margin-left: 3px;
+    float: left;
 }
 
 .tab-esc .spacer_box {
@@ -149,7 +163,7 @@
 
 .tab-esc .select select {
     float: left;
-    width: 100px;
+    width: 200px;
     height: 20px;
     margin: 0 14px 5px 0;
     border: 1px solid silver;
@@ -173,7 +187,7 @@
     margin-left: 16px;
 }
 .tab-esc .gui_box .checkbox span:last-child {
-    margin-left: 102px;
+    margin-left: 202px;
 }
 
 .tab-esc .escInfo {
@@ -209,4 +223,8 @@
 .tab-esc .flash_btn .progress::-webkit-progress-value {
     background: #5929aa;
     /*border-radius: 5px;*/
+}
+
+.tab-esc .red {
+    color: red;
 }

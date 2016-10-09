@@ -575,13 +575,16 @@ var BLHELI_S_INDIVIDUAL_SETTINGS = [
         ]
     },
     {
-        name: 'PPM_MIN_THROTTLE', type: 'number', min: 1, max: 125, step: 1, label: 'escPPMMinThrottle'
+        name: 'PPM_MIN_THROTTLE', type: 'number', min: 1000, max: 1500, step: 1, label: 'escPPMMinThrottle',
+        offset: 1000, factor: 4, suffix: ' μs'
     },
     {
-        name: 'PPM_MAX_THROTTLE', type: 'number', min: 126, max: 255, step: 1, label: 'escPPMMaxThrottle'
+        name: 'PPM_MAX_THROTTLE', type: 'number', min: 1504, max: 2020, step: 1, label: 'escPPMMaxThrottle',
+        offset: 1000, factor: 4, suffix: ' μs'
     },
     {
-        name: 'PPM_CENTER_THROTTLE', type: 'number', min: 126, max: 255, step: 1, label: 'escPPMCenterThrottle',
+        name: 'PPM_CENTER_THROTTLE', type: 'number', min: 1504, max: 2020, step: 1, label: 'escPPMCenterThrottle',
+        offset: 1000, factor: 4, suffix: ' μs',
         visibleIf: settings => [ 3, 4 ].includes(settings.MOTOR_DIRECTION)
     }
 ];
@@ -595,13 +598,16 @@ var BLHELI_INDIVIDUAL_SETTINGS = [
         ]
     },
     {
-        name: 'PPM_MIN_THROTTLE', type: 'number', min: 1, max: 125, step: 1, label: 'escPPMMinThrottle'
+        name: 'PPM_MIN_THROTTLE', type: 'number', min: 1000, max: 1500, step: 4, label: 'escPPMMinThrottle',
+        offset: 1000, factor: 4, suffix: ' μs'
     },
     {
-        name: 'PPM_MAX_THROTTLE', type: 'number', min: 126, max: 255, step: 1, label: 'escPPMMaxThrottle'
+        name: 'PPM_MAX_THROTTLE', type: 'number', min: 1504, max: 2020, step: 1, label: 'escPPMMaxThrottle',
+        offset: 1000, factor: 4, suffix: ' μs'
     },
     {
-        name: 'PPM_CENTER_THROTTLE', type: 'number', min: 126, max: 255, step: 1, label: 'escPPMCenterThrottle',
+        name: 'PPM_CENTER_THROTTLE', type: 'number', min: 1504, max: 2020, step: 1, label: 'escPPMCenterThrottle',
+        offset: 1000, factor: 4, suffix: ' μs',
         visibleIf: settings => settings.MOTOR_DIRECTION === 3
     }
 ];

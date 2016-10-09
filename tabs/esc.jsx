@@ -80,28 +80,34 @@ var Number = React.createClass({
         return (
             <div className="number">
                 <label>
-                    <input
-                        type="number"
+                    <InputRange
                         name={this.props.name}
                         step={this.props.step}
-                        min={this.props.min}
-                        max={this.props.max}
-                        value={this.props.notInSync ? null : this.props.value}
+                        minValue={this.props.min}
+                        maxValue={this.props.max}
+                        value={this.props.notInSync ? null : this.getDisplayValue()}
+                        labelSuffix={this.props.suffix}
                         onChange={this.handleChange}
-                        onBlur={this.handleBlur}
                     />
-                    <span className={this.props.notInSync ? "not-in-sync" : ""}>{chrome.i18n.getMessage(this.props.label)}</span>
+                    <span className={this.props.notInSync ? "not-in-sync label" : "label"}>{chrome.i18n.getMessage(this.props.label)}</span>
                 </label>
             </div>
         );
     },
-    handleChange: function(e) {
-        const el = e.target;
-        this.props.onChange(el.name, parseInt(el.value));
+    handleChange: function(component, value) {
+        var value = parseInt(value);
+        if (this.props.offset && this.props.factor) {
+            value = Math.floor((value - this.props.offset) / this.props.factor);
+        }
+
+        this.props.onChange(component.props.name, value);
     },
-    handleBlur: function(e) {
-        const el = e.target;
-        this.props.onChange(el.name, Math.max(Math.min(parseInt(el.value), el.max), el.min));
+    getDisplayValue: function() {
+        if (this.props.offset && this.props.factor) {
+            return this.props.factor * this.props.value + this.props.offset;
+        }
+
+        return this.props.value;
     }
 });
 
@@ -330,8 +336,11 @@ var IndividualSettings = React.createClass({
                         step={desc.step}
                         min={desc.min}
                         max={desc.max}
+                        offset={desc.offset}
+                        factor={desc.factor}
                         value={settings[desc.name]}
                         label={desc.label}
+                        suffix={desc.suffix}
                         onChange={this.handleChange}
                     />
                 );
@@ -1200,7 +1209,14 @@ var Configurator = React.createClass({
                             type="checkbox"
                             onChange={this.handleIgnoreMCULayout}
                         />
-                        <span>{chrome.i18n.getMessage('escIgnoreInappropriateMCULayout')}</span>
+                        <span>
+                            {chrome.i18n.getMessage('escIgnoreInappropriateMCULayout')}
+                            <span
+                                className={this.state.ignoreMCULayout ? 'red' : 'hidden'}
+                            >
+                                {chrome.i18n.getMessage('escIgnoreInappropriateMCULayoutWarning')}
+                            </span>
+                        </span>
                     </label>
                 </div>
                 <div className="leftWrapper common-config">

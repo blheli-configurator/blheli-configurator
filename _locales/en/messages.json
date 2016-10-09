@@ -215,5 +215,8 @@
     },
     "escIgnoreInappropriateMCULayout": {
         "message": "Ignore inappropriate MCU and Layout?"
+    },
+    "escIgnoreInappropriateMCULayoutWarning": {
+        "message": "(Flashing inappropriate firmware may damage your ESC, do so at your own risk)"
     }
 }
