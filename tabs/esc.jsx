@@ -1,33 +1,5 @@
 'use strict';
 
-function compare(lhs_array, rhs_array) {
-    if (lhs_array.byteLength != rhs_array.byteLength) {
-        return false;
-    }
-
-    for (var i = 0; i < lhs_array.byteLength; ++i) {
-        if (lhs_array[i] !== rhs_array[i]) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-function ascii2buf(str) {
-    var view = new Uint8Array(str.length)
-
-    for (var i = 0; i < str.length; ++i) {
-        view[i] = str.charCodeAt(i)
-    }
-
-    return view;
-}
-
-function buf2ascii(buf) {
-    return String.fromCharCode.apply(null, buf)
-}
-
 var Checkbox = React.createClass({
     render: function() {
         return (
@@ -389,6 +361,155 @@ var IndividualSettings = React.createClass({
     }
 });
 
+var FirmwareSelector = React.createClass({
+    getInitialState: function() {
+        return {
+            selectedEsc: null,
+            selectedMode: null,
+            selectedVersion: null
+        };
+    },
+    render: function() {
+        return (
+            <div className="centerWrapper">
+                {this.renderHardwareList()}
+            </div>
+        );
+
+        // https://raw.githubusercontent.com/bitdump/BLHeli/1d0a8c489ccf09738f3ce895850694b352565af0/SiLabs/Hex%20files/DYS_XM20A_MULTI_REV14_8.HEX
+    },
+    renderHardwareList: function() {
+        var escs = [
+            <option className="hidden" disabled selected>Select ESC</option>
+        ];
+
+        for (const layout in BLHELI_SILABS_ESCS) {
+            if (BLHELI_SILABS_ESCS.hasOwnProperty(layout)) {
+                const ESC = BLHELI_SILABS_ESCS[layout];
+                escs.push(
+                    <option value={ESC.name}>{ESC.name}</option>
+                );
+            }
+        }
+
+        var modes = [
+            <option className="hidden" disabled selected>Select Mode</option>
+        ];
+
+        for (const mode in BLHELI_MODES) {
+            if (BLHELI_MODES.hasOwnProperty(mode)) {
+                modes.push(
+                    <option value={mode}>{mode}</option>
+                );
+            }
+        }
+
+        return (
+            <div className="gui_box grey">
+                <div className="gui_box_titlebar">
+                    <div className="spacer_box_title">Select Target</div>
+                </div>
+                <div className="spacer_box">
+                    <div className="select">
+                        <label>
+                            <select onChange={this.escSelected}>
+                                {escs}
+                            </select>
+                            <span>ESC</span>
+                        </label>
+                    </div>
+                    <div className="select">
+                        <label>
+                            <select onChange={this.modeSelected}>
+                                {modes}
+                            </select>
+                            <span>Mode</span>
+                        </label>
+                    </div>
+                    <div className="select">
+                        <label>
+                            <select onChange={this.versionSelected}>
+                                <option className="hidden" disabled selected>Select Version</option>
+                                {BLHELI_SILABS_VERSIONS.map(
+                                    version => <option value={version.version}>{version.version}</option>)
+                                }
+                            </select>
+                            <span>Version</span>
+                        </label>
+                    </div>
+                    <div className="default_btn">
+                        <a
+                            href="#"
+                            className={
+                                this.state.selectedEsc &&
+                                this.state.selectedMode &&
+                                this.state.selectedVersion ? "" : "disabled"
+                            }
+                            onClick={this.onlineFirmwareSelected}
+                        >
+                            {chrome.i18n.getMessage('escButtonSelect')}
+                        </a>
+                    </div>
+                    <div className="default_btn">
+                        <a
+                            href="#"
+                            onClick={this.localFirmwareSelected}
+                        >
+                            {chrome.i18n.getMessage('escButtonSelectLocally')}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        );
+    },
+    escSelected: function(e) {
+        this.setState({
+            selectedEsc: e.target.value
+        });
+    },
+    modeSelected: function(e) {
+        this.setState({
+            selectedMode: e.target.value
+        });
+    },
+    versionSelected: function(e) {
+        this.setState({
+            selectedVersion: e.target.value
+        });
+    },
+    onlineFirmwareSelected: async function() {
+        const url = BLHELI_SILABS_BASE_URL.format(
+            BLHELI_SILABS_VERSIONS.find(version => version.version === this.state.selectedVersion).commit,
+            this.state.selectedEsc.replace(/\s/g, '_').toUpperCase(),
+            this.state.selectedMode,
+            this.state.selectedVersion.replace(/\./g, '_')
+        );
+
+        try {
+            const hex = await getFileFromCache(url);
+            // @todo also EEP for Atmel
+            this.props.onFirmwareLoaded(hex);
+        } catch (error) {
+            GUI.log('Could not load firmware for {0} {1} {2}: {3}'.format(
+                this.state.selectedEsc,
+                this.state.selectedMode,
+                this.state.selectedVersion,
+                error.message
+            ));
+        }
+    },
+    localFirmwareSelected: async function() {
+        try {
+            const isAtmel = false;
+            const images = await getLocalFirmware(isAtmel);
+
+            this.props.onFirmwareLoaded(images.flash, images.eeprom);
+        } catch (error) {
+            GUI.log('Could not load local firmware: ' + error.message);
+        }
+    }
+});
+
 var Configurator = React.createClass({
     getInitialState: () => {
         return {
@@ -396,6 +517,7 @@ var Configurator = React.createClass({
             canWrite: false,
             canFlash: false,
             isFlashing: false,
+            selectingFirmware: false,
 
             escSettings: [],
             escMetainfo: [],
@@ -405,9 +527,6 @@ var Configurator = React.createClass({
             flashingEscIndex: undefined,
             flashingEscProgress: 0
         };
-    },
-    componentDidMount: function() {
-
     },
     onUserInput: function(newSettings) {
         this.setState({
@@ -1088,6 +1207,9 @@ var Configurator = React.createClass({
         }
     },
     flashAll: async function() {
+        this.setState({ selectingFirmware: true });
+        return;
+
         $('a.connect').addClass('disabled');
 
         this.setState({ isFlashing: true });
@@ -1116,7 +1238,6 @@ var Configurator = React.createClass({
                 try {
                     await this.flashFirmwareImpl(escIndex, escSettings, escMetainfo, images.flash, images.eeprom,
                         progress => {
-                            console.log('progress', progress);
                             this.setState({ flashingEscProgress: progress })
                         });
                 } catch (error) {
@@ -1196,6 +1317,14 @@ var Configurator = React.createClass({
         );
     },
     renderContent: function() {
+        if (this.state.selectingFirmware) {
+            return (
+                <FirmwareSelector
+                    onFirmwareLoaded={this.onFirmwareLoaded}
+                />
+            );
+        }
+
         const noneAvailable = !this.state.escMetainfo.some(info => info.available);
         if (noneAvailable) {
             return null;
@@ -1256,38 +1385,46 @@ var Configurator = React.createClass({
                 />
             );
         });
+    },
+    onFirmwareLoaded: function(hex, eep) {
+        console.log('loaded hex of length', hex.length);
+        this.setState({
+            selectingFirmware: false
+        });
+
+        // @todo now flash! how to distinguish between flash all and flash one?
     }
 });
 
-TABS.esc = {};
+TABS.esc = {
+    initialize: function (callback) {
+        if (GUI.active_tab != 'esc') {
+            GUI.active_tab = 'esc';
+            googleAnalytics.sendAppView('ESC');
+        }
 
-TABS.esc.initialize = function (callback) {
-    if (GUI.active_tab != 'esc') {
-        GUI.active_tab = 'esc';
-        googleAnalytics.sendAppView('ESC');
-    }
+        ReactDOM.render(
+            <Configurator escCount={ESC_CONFIG.connectedESCs} />,
+            document.getElementById('content')
+        );
 
-    ReactDOM.render(
-        <Configurator escCount={ESC_CONFIG.connectedESCs} />,
-        document.getElementById('content')
-    );
+        GUI.content_ready(callback);
+    },
 
-    GUI.content_ready(callback);
-};
+    cleanup: function (callback) {
+        if (!CONFIGURATOR.connectionValid || !CONFIGURATOR.escActive) {
+            if (callback) callback();
+            return;
+        }
 
-TABS.esc.cleanup = function (callback) {
-    if (!CONFIGURATOR.connectionValid || !CONFIGURATOR.escActive) {
-        if (callback) callback();
-        return;
-    }
+        // tell 4-way interface to return control to MSP server
+        _4way.exit()
+        // now we can return control to MSP or CLI handlers
+        .then(() => CONFIGURATOR.escActive = false)
+        .done()
 
-    // tell 4-way interface to return control to MSP server
-    _4way.exit()
-    // now we can return control to MSP or CLI handlers
-    .then(() => CONFIGURATOR.escActive = false)
-    .done()
-
-    if (callback) {
-        GUI.timeout_add('waiting_4way_if_exit', callback, 100);
+        if (callback) {
+            GUI.timeout_add('waiting_4way_if_exit', callback, 100);
+        }
     }
 };

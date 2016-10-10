@@ -1,5 +1,33 @@
 'use strict';
 
+function compare(lhs_array, rhs_array) {
+    if (lhs_array.byteLength != rhs_array.byteLength) {
+        return false;
+    }
+
+    for (var i = 0; i < lhs_array.byteLength; ++i) {
+        if (lhs_array[i] !== rhs_array[i]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function ascii2buf(str) {
+    var view = new Uint8Array(str.length)
+
+    for (var i = 0; i < str.length; ++i) {
+        view[i] = str.charCodeAt(i)
+    }
+
+    return view;
+}
+
+function buf2ascii(buf) {
+    return String.fromCharCode.apply(null, buf)
+}
+
 async function getLocalFirmware(isAtmel) {
     var result = {};
 
@@ -141,4 +169,13 @@ function fillImage(data, size) {
     })
 
     return image
+}
+
+function getFileFromCache(url) {
+    var deferred = Q.defer();
+
+    $.get(url, str => deferred.resolve(str))
+    .fail(() => deferred.reject(new Error('File is unavailable')));
+
+    return deferred.promise;
 }

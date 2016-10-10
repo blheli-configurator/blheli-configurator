@@ -210,6 +210,12 @@
     "escButtonFlashAll": {
         "message": "Flash All"
     },
+    "escButtonSelect": {
+        "message": "Select"
+    },
+    "escButtonSelectLocally": {
+        "message": "Select Locally"
+    },
     "escButtonSaveLog": {
         "message": "Save Log"
     },
