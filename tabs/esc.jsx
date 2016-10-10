@@ -364,8 +364,8 @@ var IndividualSettings = React.createClass({
 var FirmwareSelector = React.createClass({
     getInitialState: function() {
         return {
-            selectedEsc: null,
-            selectedMode: null,
+            selectedEsc: this.props.escHint,
+            selectedMode: this.props.modeHint,
             selectedVersion: null
         };
     },
