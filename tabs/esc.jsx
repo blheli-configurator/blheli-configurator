@@ -375,8 +375,6 @@ var FirmwareSelector = React.createClass({
                 {this.renderHardwareList()}
             </div>
         );
-
-        // https://raw.githubusercontent.com/bitdump/BLHeli/1d0a8c489ccf09738f3ce895850694b352565af0/SiLabs/Hex%20files/DYS_XM20A_MULTI_REV14_8.HEX
     },
     renderHardwareList: function() {
         var escs = [
@@ -387,7 +385,7 @@ var FirmwareSelector = React.createClass({
             if (BLHELI_SILABS_ESCS.hasOwnProperty(layout)) {
                 const ESC = BLHELI_SILABS_ESCS[layout];
                 escs.push(
-                    <option value={ESC.name}>{ESC.name}</option>
+                    <option value={layout}>{ESC.name}</option>
                 );
             }
         }
@@ -412,7 +410,7 @@ var FirmwareSelector = React.createClass({
                 <div className="spacer_box">
                     <div className="select">
                         <label>
-                            <select onChange={this.escSelected}>
+                            <select onChange={this.escSelected} value={this.props.escHint}>
                                 {escs}
                             </select>
                             <span>ESC</span>
@@ -420,7 +418,7 @@ var FirmwareSelector = React.createClass({
                     </div>
                     <div className="select">
                         <label>
-                            <select onChange={this.modeSelected}>
+                            <select onChange={this.modeSelected} value={this.props.modeHint}>
                                 {modes}
                             </select>
                             <span>Mode</span>
@@ -480,7 +478,7 @@ var FirmwareSelector = React.createClass({
     onlineFirmwareSelected: async function() {
         const url = BLHELI_SILABS_BASE_URL.format(
             BLHELI_SILABS_VERSIONS.find(version => version.version === this.state.selectedVersion).commit,
-            this.state.selectedEsc.replace(/\s/g, '_').toUpperCase(),
+            BLHELI_SILABS_ESCS[this.state.selectedEsc].name.replace(/\s/g, '_').toUpperCase(),
             this.state.selectedMode,
             this.state.selectedVersion.replace(/\./g, '_')
         );
@@ -491,7 +489,7 @@ var FirmwareSelector = React.createClass({
             this.props.onFirmwareLoaded(hex);
         } catch (error) {
             GUI.log('Could not load firmware for {0} {1} {2}: {3}'.format(
-                this.state.selectedEsc,
+                BLHELI_SILABS_ESCS[this.state.selectedEsc].name,
                 this.state.selectedMode,
                 this.state.selectedVersion,
                 error.message
@@ -500,10 +498,13 @@ var FirmwareSelector = React.createClass({
     },
     localFirmwareSelected: async function() {
         try {
-            const isAtmel = false;
-            const images = await getLocalFirmware(isAtmel);
+            const hex = await selectFile('hex');
+            var eep;
+            if (false) {
+                eep = await selectFile('eep');
+            }
 
-            this.props.onFirmwareLoaded(images.flash, images.eeprom);
+            this.props.onFirmwareLoaded(hex, eep);
         } catch (error) {
             GUI.log('Could not load local firmware: ' + error.message);
         }
@@ -1320,6 +1321,8 @@ var Configurator = React.createClass({
         if (this.state.selectingFirmware) {
             return (
                 <FirmwareSelector
+                    escHint={"#DYS_XM20A#"}
+                    modeHint={"MULTI"}
                     onFirmwareLoaded={this.onFirmwareLoaded}
                 />
             );
