@@ -69,7 +69,7 @@ var _4way = {
     callbacks:      [],
     // Storage for partially-received messages
     backlog_view:   null,
-    verbose: false,
+    verbose: true,
     log: '',
 
     crc16_xmodem_update: function(crc, byte) {
