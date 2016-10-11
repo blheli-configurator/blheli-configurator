@@ -68,6 +68,8 @@ var Configurator = React.createClass({
 
                 // remember interface mode for ESC
                 escMetainfo[esc].interfaceMode = interfaceMode
+                // @todo C2 will require redesign here
+                escMetainfo[esc].signature = (message.params[1] << 8) | message.params[0];
 
                 // read everything in one big chunk
                 // SiLabs has no separate EEPROM, but Atmel has and therefore requires a different read command
@@ -123,12 +125,6 @@ var Configurator = React.createClass({
                 const message = await _4way.initFlash(esc);
                 // Remember interface mode and read settings
                 var interfaceMode = message.params[3]
-
-                // remember interface mode for ESC
-                // this.setState(state => {
-                //     state.escMetainfo[esc].interfaceMode = interfaceMode;
-                //     return state;
-                // })
 
                 // read everything in one big chunk to check if any settings have changed
                 // SiLabs has no separate EEPROM, but Atmel has and therefore requires a different read command
@@ -676,6 +672,7 @@ var Configurator = React.createClass({
         }
     },
     selectFirmwareForFlashAll: function() {
+        // Get indices of all available ESCs
         const escsToFlash = this.state.escMetainfo.map((info, idx) => info.available ? idx : undefined).map(_ => _);
 
         this.setState({
@@ -688,8 +685,8 @@ var Configurator = React.createClass({
 
         this.setState({ isFlashing: true });
         
-        const availableSettings = this.state.escSettings.filter((i, idx) => this.state.escMetainfo[idx].available),
-              isAtmel = [ _4way_modes.AtmBLB, _4way_modes.AtmSK ].includes(availableSettings[0].interfaceMode);
+        const interfaceMode = this.state.escMetainfo.find(info => info.available).interfaceMode,
+              isAtmel = [ _4way_modes.AtmBLB, _4way_modes.AtmSK ].includes(interfaceMode);
 
         const maxFlashSize = isAtmel ? BLHELI_ATMEL_BLB_ADDRESS_8 : BLHELI_SILABS_ADDRESS_SPACE_SIZE;
 
@@ -781,7 +778,7 @@ var Configurator = React.createClass({
                     <div className="btn">
                         <a
                             href="#"
-                            className={!this.state.isFlashing && this.state.canRead ? "" : "disabled"}
+                            className={!this.state.selectingFirmware && !this.state.isFlashing && this.state.canRead ? "" : "disabled"}
                             onClick={this.readSetup}
                         >
                             {chrome.i18n.getMessage('escButtonRead')}
@@ -790,7 +787,7 @@ var Configurator = React.createClass({
                     <div className="btn">
                         <a
                             href="#"
-                            className={!this.state.isFlashing && this.state.canWrite ? "" : "disabled"}
+                            className={!this.state.selectingFirmware && !this.state.isFlashing && this.state.canWrite ? "" : "disabled"}
                             onClick={this.writeSetup}
                         >
                             {chrome.i18n.getMessage('escButtonWrite')}
@@ -799,7 +796,7 @@ var Configurator = React.createClass({
                     <div className="btn">
                         <a
                             href="#"
-                            className={!this.state.isFlashing && this.state.canFlash ? "" : "disabled"}
+                            className={!this.state.selectingFirmware && !this.state.isFlashing && this.state.canFlash ? "" : "disabled"}
                             onClick={this.selectFirmwareForFlashAll}
                         >
                             {chrome.i18n.getMessage('escButtonFlashAll')}
@@ -810,22 +807,6 @@ var Configurator = React.createClass({
         );
     },
     renderContent: function() {
-        if (this.state.selectingFirmware) {
-            const firstAvailableIndex = this.state.escsToFlash[0];
-            const firstAvailableMetainfo = this.state.escMetainfo[firstAvailableIndex];
-            const firstAvailableEsc = this.state.escSettings[firstAvailableIndex];
-
-            return (
-                <FirmwareSelector
-                    type={"BLHeli SiLabs"}
-                    escHint={firstAvailableEsc.LAYOUT}
-                    modeHint={blheliModeToString(firstAvailableEsc.MODE)}
-                    onFirmwareLoaded={this.onFirmwareLoaded}
-                    onCancel={this.onFirmwareSelectorCancel}
-                />
-            );
-        }
-
         const noneAvailable = !this.state.escMetainfo.some(info => info.available);
         if (noneAvailable) {
             return null;
@@ -838,6 +819,7 @@ var Configurator = React.createClass({
                         <input
                             type="checkbox"
                             onChange={this.handleIgnoreMCULayout}
+                            checked={this.state.ignoreMCULayout}
                         />
                         <span>
                             {chrome.i18n.getMessage('escIgnoreInappropriateMCULayout')}
@@ -849,6 +831,29 @@ var Configurator = React.createClass({
                         </span>
                     </label>
                 </div>
+                {this.renderWrappers()}
+            </div>
+        );
+    },
+    renderWrappers: function() {
+        if (this.state.selectingFirmware) {
+            const firstAvailableIndex = this.state.escsToFlash[0];
+            const firstAvailableMetainfo = this.state.escMetainfo[firstAvailableIndex];
+            const firstAvailableEsc = this.state.escSettings[firstAvailableIndex];
+
+            return (
+                <FirmwareSelector
+                    signatureHint={firstAvailableMetainfo.signature}
+                    escHint={firstAvailableEsc.LAYOUT}
+                    modeHint={blheliModeToString(firstAvailableEsc.MODE)}
+                    onFirmwareLoaded={this.onFirmwareLoaded}
+                    onCancel={this.onFirmwareSelectorCancel}
+                />
+            );
+        }
+
+        return (
+            <div>
                 <div className="leftWrapper common-config">
                     {this.renderCommonSettings()}
                 </div>
