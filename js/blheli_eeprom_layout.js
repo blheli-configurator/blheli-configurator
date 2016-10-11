@@ -70,6 +70,16 @@ var BLHELI_LAYOUT = {
     NAME:                       {   offset: 0x60, size: 16   }
 };
 
+function blheliModeToString(mode) {
+    for (var property in BLHELI_MODES) {
+        if (BLHELI_MODES.hasOwnProperty(property)) {
+            if (BLHELI_MODES[property] === mode) {
+                return property;
+            }
+        }
+    }
+}
+
 function blheliSettingsObject(settingsUint8Array) {
     var object = {};
 
@@ -82,7 +92,7 @@ function blheliSettingsObject(settingsUint8Array) {
             } else if (setting.size === 2) {
                 object[prop] = (settingsUint8Array[setting.offset] << 8) | settingsUint8Array[setting.offset + 1];
             } else if (setting.size === 16) {
-                object[prop] = String.fromCharCode.apply(undefined, settingsUint8Array.subarray(setting.offset).subarray(0, 16));
+                object[prop] = String.fromCharCode.apply(undefined, settingsUint8Array.subarray(setting.offset).subarray(0, 16)).trim();
             } else {
                 throw new Error('Logic error')
             }

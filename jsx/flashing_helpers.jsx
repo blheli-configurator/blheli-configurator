@@ -40,10 +40,12 @@ async function getLocalFirmware(isAtmel) {
         GUI.log('Loaded local firmware: ' + parsedHex.bytes_total + ' bytes');
         result.flash = fillImage(parsedHex, maxFlashSize);
 
-        // sanity check
-        const MCU = buf2ascii(result.flash.subarray(BLHELI_SILABS_EEPROM_OFFSET).subarray(BLHELI_LAYOUT.MCU.offset).subarray(0, BLHELI_LAYOUT.MCU.size));
-        if (!MCU.includes('#BLHELI#')) {
-            throw new Error('HEX does not look like a valid SiLabs BLHeli flash file')
+        if (!isAtmel) {
+            // sanity check
+            const MCU = buf2ascii(result.flash.subarray(BLHELI_SILABS_EEPROM_OFFSET).subarray(BLHELI_LAYOUT.MCU.offset).subarray(0, BLHELI_LAYOUT.MCU.size));
+            if (!MCU.includes('#BLHELI#')) {
+                throw new Error('HEX does not look like a valid SiLabs BLHeli flash file')
+            }
         }
     } else {
         throw new Error('HEX file corrupt')
