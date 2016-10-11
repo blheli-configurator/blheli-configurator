@@ -4,7 +4,7 @@ Google Chrome application for BLHeli firmware flashing and configuration.
 
 ## Disclaimer
 
-This software is in development, use it at your own risk. Always take the **propellers off** and power your ESCs via a **current-limiting** device or a power supply. If you're not willing to take these precautions seriously and not ready to use Arduino for recovery in case your ESC gets "bricked" - **DO NOT USE THIS SOFTWARE**.
+This software is in development, use it at your own risk. **ALWAYS REMOVE THE PROPELLERS** and power your ESCs via a **current-limiting** device or a power supply. If you're not willing to take these precautions seriously and not ready to use Arduino for recovery in case your ESC gets "bricked" - **DO NOT USE THIS SOFTWARE**.
 
 ## Features
 
@@ -33,7 +33,7 @@ npm run build
 
 ## Usage
 
-Having enabled Developer's Mode in Chrome, navigate to chrome://extensions/ and use **Load unpacked extension...**, providing path to the root directory of your working copy.
+Having enabled Developer Mode in Chrome, navigate to chrome://extensions/ and use **Load unpacked extension...**, providing path to the root directory of your working copy.
 
 Launch the application, plug your flight controller into a USB port, press **Connect**.
 If you run into problems while working with the program, make sure to copy Developer's Console output as well as save log using the **Save Log** button.
