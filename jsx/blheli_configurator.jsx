@@ -670,7 +670,7 @@ var Configurator = React.createClass({
     },
     selectFirmwareForFlashAll: function() {
         // Get indices of all available ESCs
-        const escsToFlash = this.state.escMetainfo.map((info, idx) => info.available ? idx : undefined).filter(_ => _);
+        const escsToFlash = this.state.escMetainfo.map((info, idx) => info.available ? idx : undefined).filter(_ => _ !== undefined);
 
         this.setState({
             selectingFirmware: true,
