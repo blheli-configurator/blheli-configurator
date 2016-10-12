@@ -210,6 +210,12 @@
     "escButtonFlashAll": {
         "message": "Flash All"
     },
+    "escButtonSelect": {
+        "message": "Select"
+    },
+    "escButtonSelectLocally": {
+        "message": "Select Locally"
+    },
     "escButtonSaveLog": {
         "message": "Save Log"
     },
@@ -218,5 +224,11 @@
     },
     "escIgnoreInappropriateMCULayoutWarning": {
         "message": "(Flashing inappropriate firmware may damage your ESC, do so at your own risk)"
+    },
+    "buttonCancel": {
+        "message": "Cancel"
+    },
+    "hexInvalidSiLabs": {
+        "message": "HEX does not look like a valid SiLabs BLHeli flash file"
     }
 }
