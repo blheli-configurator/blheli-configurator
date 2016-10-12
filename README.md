@@ -35,5 +35,5 @@ npm run build
 
 Having enabled Developer Mode in Chrome, navigate to chrome://extensions/ and use **Load unpacked extension...**, providing path to the root directory of your working copy.
 
-Launch the application, plug your flight controller into a USB port, press **Connect**.
+Launch the application, plug your flight controller into a USB port, press **Connect**, power your ESCs.
 If you run into problems while working with the program, make sure to copy Developer's Console output as well as save log using the **Save Log** button.
