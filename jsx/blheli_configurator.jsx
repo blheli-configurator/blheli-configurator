@@ -84,7 +84,6 @@ var Configurator = React.createClass({
 
                 const settings = blheliSettingsObject(settingsArray);
 
-                // Ensure MULTI mode and correct BLHeli version
                 // Check whether revision is supported
                 if (settings.LAYOUT_REVISION < BLHELI_MIN_SUPPORTED_LAYOUT_REVISION) {
                     GUI.log('ESC ' + (esc + 1) + ' has LAYOUT_REVISION ' + layout_revision + ', oldest supported is ' + BLHELI_MIN_SUPPORTED_LAYOUT_REVISION)
@@ -503,8 +502,6 @@ var Configurator = React.createClass({
         function checkESCAndMCU(message) {
             escSettingArrayTmp = message.params;
 
-            // @todo ask user if he wishes to continue
-
             const settings_image = isAtmel ? flashImage : flashImage.subarray(BLHELI_SILABS_EEPROM_OFFSET);
 
             // check LAYOUT
@@ -698,10 +695,14 @@ var Configurator = React.createClass({
             }
 
             if (!isAtmel) {
-                // sanity check
+                // Check pseudo-eeprom page for BLHELI signature
                 const MCU = buf2ascii(flash.subarray(BLHELI_SILABS_EEPROM_OFFSET).subarray(BLHELI_LAYOUT.MCU.offset).subarray(0, BLHELI_LAYOUT.MCU.size));
-                if (!MCU.includes('#BLHELI#')) {
-                    throw new Error('HEX does not look like a valid SiLabs BLHeli flash file')
+                // Check instruction at the start of address space
+                const firstBytes = flash.subarray(0, 3);
+                const ljmpReset = new Uint8Array([ 0x02, 0x19, 0xFD ]);
+
+                if (!MCU.includes('#BLHELI#') || !compare(firstBytes, ljmpReset)) {
+                    throw new Error(chrome.i18n.getMessage('hexInvalidSiLabs'));
                 }
             } else {
                 // @todo check first 2 bytes of flash as well

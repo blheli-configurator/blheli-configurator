@@ -227,5 +227,8 @@
     },
     "buttonCancel": {
         "message": "Cancel"
+    },
+    "hexInvalidSiLabs": {
+        "message": "HEX does not look like a valid SiLabs BLHeli flash file"
     }
 }

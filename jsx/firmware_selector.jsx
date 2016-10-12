@@ -52,7 +52,7 @@ var FirmwareSelector = React.createClass({
                                 href="#"
                                 className={
                                     this.state.selectedEsc &&
-                                    this.state.selectedMode &&
+                                    (this.state.type === BLHELI_TYPES.BLHELI_S_SILABS || this.state.selectedMode) &&
                                     this.state.selectedVersion !== -1 ? "" : "disabled"
                                 }
                                 onClick={this.onlineFirmwareSelected}
@@ -115,8 +115,7 @@ var FirmwareSelector = React.createClass({
     },
     renderModeSelect: function() {
         // Display only for BLHeli
-        if (BLHELI_SILABS_ESCS.hasOwnProperty(this.state.selectedEsc) ||
-            BLHELI_ATMEL_ESCS.hasOwnProperty(this.state.selectedEsc)) {
+        if (this.state.type !== BLHELI_MODES.BLHELI_S_SILABS) {
             var modes = [
                 <option className="hidden" disabled selected>Select Mode</option>
             ];
@@ -208,15 +207,15 @@ var FirmwareSelector = React.createClass({
         );
 
         try {
-            const hex = await getFileFromCache(url);
+            const hex = await getFromCache(version.key, url);
             var eep;
             if (this.state.type === BLHELI_TYPES.ATMEL) {
-                eep = await getFileFromCache(url.replace('Hex files', 'Eeprom files').replace('.HEX', '.EEP'));
+                eep = await getFromCache(version.key + 'EEP', url.replace('Hex files', 'Eeprom files').replace('.HEX', '.EEP'));
             }
 
             this.props.onFirmwareLoaded(hex, eep);
         } catch (error) {
-            GUI.log('Could not load firmware for {0} {1} {2}: {3}'.format(
+            GUI.log('Could not load firmware for {0} {1} {2}: <span style="color: red">{3}</span>'.format(
                 escs[this.state.selectedEsc].name,
                 this.state.selectedMode,
                 version.version,
