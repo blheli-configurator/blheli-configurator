@@ -1,45 +1,31 @@
 'use strict';
 
-async function getLocalFirmware(isAtmel) {
-    var result = {};
-
-    const maxFlashSize = isAtmel ? BLHELI_ATMEL_BLB_ADDRESS_8 : BLHELI_SILABS_ADDRESS_SPACE_SIZE;
-
-    // Ask user to select HEX
-    const hexContent = await selectFile('hex');
-    const parsedHex = await parseHex(hexContent);
-    if (parsedHex) {
-        GUI.log('Loaded local firmware: ' + parsedHex.bytes_total + ' bytes');
-        result.flash = fillImage(parsedHex, maxFlashSize);
-
-        // sanity check
-        const MCU = buf2ascii(result.flash.subarray(BLHELI_SILABS_EEPROM_OFFSET).subarray(BLHELI_LAYOUT.MCU.offset).subarray(0, BLHELI_LAYOUT.MCU.size));
-        if (!MCU.includes('#BLHELI#')) {
-            throw new Error('HEX does not look like a valid SiLabs BLHeli flash file')
-        }
-    } else {
-        throw new Error('HEX file corrupt')
+function compare(lhs_array, rhs_array) {
+    if (lhs_array.byteLength != rhs_array.byteLength) {
+        return false;
     }
 
-    // Ask EEP on Atmel
-    if (isAtmel) {
-        const eepContent = await selectFile('eep');
-        const parsedEep = await parseHex(eepContent);
-        if (parsedEep) {
-            GUI.log('Loaded local EEprom: ' + parsedEep.bytes_total + 'bytes');
-            result.eeprom = fillImage(parsedEep, BLHELI_ATMEL_EEPROM_SIZE);
-
-            // sanity check
-            const MCU = buf2ascii(result.eeprom.subarray(BLHELI_LAYOUT.MCU.offset).subarray(0, BLHELI_LAYOUT.MCU.size));
-            if (!MCU.includes('#BLHELI#')) {
-                throw new Error('EEP does not look like a valid Atmel BLHeli EEprom file');
-            }
-        } else {
-            throw new Error('EEP file corrupt')
+    for (var i = 0; i < lhs_array.byteLength; ++i) {
+        if (lhs_array[i] !== rhs_array[i]) {
+            return false;
         }
     }
 
-    return result;
+    return true;
+}
+
+function ascii2buf(str) {
+    var view = new Uint8Array(str.length)
+
+    for (var i = 0; i < str.length; ++i) {
+        view[i] = str.charCodeAt(i)
+    }
+
+    return view;
+}
+
+function buf2ascii(buf) {
+    return String.fromCharCode.apply(null, buf)
 }
 
 function parseHex(data) {
@@ -141,4 +127,31 @@ function fillImage(data, size) {
     })
 
     return image
+}
+
+// @todo add Local Storage quota management?
+// @todo think of a scheme for keying files, url is not the best option
+function getFromCache(key, url) {
+    var deferred = Q.defer();
+
+    // Look into Local Storage first
+    chrome.storage.local.get(key, result => {
+        const content = result[key];
+        if (content) {
+            deferred.resolve(content);
+        } else {
+            // File is not present in Local Storage, try GET it
+            $.get(url, content => {
+                // Cache file for further use
+                var cacheEntry = {};
+                cacheEntry[key] = content;
+                chrome.storage.local.set(cacheEntry, () => {});
+
+                deferred.resolve(content)
+            })
+            .fail(() => deferred.reject(new Error('File is unavailable')));
+        }
+    });
+
+    return deferred.promise;
 }
