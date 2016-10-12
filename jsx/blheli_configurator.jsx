@@ -701,7 +701,9 @@ var Configurator = React.createClass({
                 const firstBytes = flash.subarray(0, 3);
                 const ljmpReset = new Uint8Array([ 0x02, 0x19, 0xFD ]);
 
-                if (!MCU.includes('#BLHELI#') || !compare(firstBytes, ljmpReset)) {
+                // BLHeli_S uses #BLHELI$.
+                // @todo add additional sanitize here to prevent user from flashing BLHeli_S on BLHeli ESC and vice versa
+                if (!(MCU.includes('#BLHELI#') || MCU.includes('#BLHELI$')) || !compare(firstBytes, ljmpReset)) {
                     throw new Error(chrome.i18n.getMessage('hexInvalidSiLabs'));
                 }
             } else {
