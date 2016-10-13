@@ -108,6 +108,11 @@ $(document).ready(function () {
                         TABS.landing.initialize(content_ready);
                         break;
                     case 'esc':
+                        if (!TABS.esc) {
+                            $('#content').html('<h1 style="margin: 100px 50%">RTFM</h1>');
+                            GUI.content_ready(content_ready);
+                            break;
+                        }
                         TABS.esc.initialize(content_ready);
                         break;
 
