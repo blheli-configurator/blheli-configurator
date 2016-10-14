@@ -22,11 +22,6 @@ var CommonSettings = React.createClass({
     renderControls: function() {
         // filter escSettings to sieve unavailable ones
         const availableSettings = this.props.escSettings.filter((i, idx) => this.props.escMetainfo[idx].available);
-        if (availableSettings.length === 0) {
-            return (
-                <h3>Read Settings first</h3>
-            );
-        }
 
         // ensure all ESCs have supported firmware version
         for (let i = 0; i < availableSettings.length; ++i) {
@@ -34,30 +29,33 @@ var CommonSettings = React.createClass({
 
             if (!(layoutRevision in BLHELI_SETTINGS_DESCRIPTIONS)) {
                 return (
-                    <h3>Version {availableSettings[i].MAIN_REVISION + '.' + availableSettings[i].SUB_REVISION} is unsupported, please update</h3>
+                    <h3>Version {availableSettings[i].MAIN_REVISION + '.' + availableSettings[i].SUB_REVISION} is unsupported</h3>
                 );
             }
         }
 
-        // ensure all ESCs are MULTI        
+        // ensure all ESCs are MULTI
         const allMulti = availableSettings.every(settings => settings.MODE === BLHELI_MODES.MULTI);
         if (!allMulti) {
             return (
-                <h3>Only MULTI mode currently supported, please update</h3>
+                <h3>Only MULTI mode currently supported</h3>
             );
         }
 
+        // @todo ensure valid MODE
+
         const masterSettings = availableSettings[0],
               layoutRevision = masterSettings.LAYOUT_REVISION,
-              revision = masterSettings.MAIN_REVISION + '.' + masterSettings.SUB_REVISION;
+              revision = masterSettings.MAIN_REVISION + '.' + masterSettings.SUB_REVISION,
+              mode = blheliModeToString(masterSettings.MODE);
 
-        var overrides = BLHELI_SETTINGS_DESCRIPTIONS[layoutRevision].MULTI.overrides;
-
+        // find specific UI overrides for this version
+        var overrides = BLHELI_SETTINGS_DESCRIPTIONS[layoutRevision][mode].overrides;
         if (overrides) {
             overrides = overrides[revision];
         }
 
-        return BLHELI_SETTINGS_DESCRIPTIONS[layoutRevision].MULTI.base.map(setting => {
+        return BLHELI_SETTINGS_DESCRIPTIONS[layoutRevision][mode].base.map(setting => {
             // @todo move elsewhere
             if (setting.visibleIf && !setting.visibleIf(masterSettings)) {
                 return null;
@@ -83,11 +81,18 @@ var CommonSettings = React.createClass({
                 );
             }
             case 'enum': {
+                // @todo redesign
+                // Remove DampedLight option for ESCs that do not support it
+                var options = desc.options;
+                if (desc.name === 'PWM_FREQUENCY' && !BLHELI_SILABS_ESCS[settings.LAYOUT].damped_enabled &&
+                    !BLHELI_ATMEL_ESCS[settings.LAYOUT].damped_enabled) {
+                    options = options.slice(0, -1);
+                }
                 return (
                     <Select
                         name={desc.name}
                         value={settings[desc.name]}
-                        options={desc.options}
+                        options={options}
                         label={desc.label}
                         notInSync={notInSync}
                         onChange={this.handleChange}

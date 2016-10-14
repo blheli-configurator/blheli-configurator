@@ -40,7 +40,10 @@ var Configurator = React.createClass({
 
         // Enable `Flash All` if all ESCs are identical
         const availableSettings = this.state.escSettings.filter((i, idx) => this.state.escMetainfo[idx].available);
-        const canFlash = availableSettings.every(settings => settings.MCU === availableSettings[0].MCU);
+        // @todo remove when Atmel flashing has been checked
+        const availableMetainfos = this.state.escMetainfo.filter(info => info.available);
+        const canFlash = availableSettings.every(settings => settings.MCU === availableSettings[0].MCU) &&
+            availableMetainfos.every(info => info.interfaceMode === _4way_modes.SiLBLB);
 
         this.setState({
             canRead: true,
@@ -96,6 +99,15 @@ var Configurator = React.createClass({
 
                 escSettings[esc] = settings;
                 escMetainfo[esc].available = true;
+
+                googleAnalytics.sendEvent('ESC', 'Setup', 'VERSION', settings.MAIN_REVISION + '.' + settings.SUB_REVISION);
+                googleAnalytics.sendEvent('ESC', 'Setup', 'LAYOUT', settings.LAYOUT.replace(/#/g, ''));
+                googleAnalytics.sendEvent('ESC', 'Setup', 'MODE', blheliModeToString(settings.MODE));
+                googleAnalytics.sendEvent('ESC', 'Setup', 'COMMUTATION_TIMING', settings.COMMUTATION_TIMING);
+                googleAnalytics.sendEvent('ESC', 'Setup', 'DEMAG_COMPENSATION', settings.DEMAG_COMPENSATION);
+                googleAnalytics.sendEvent('ESC', 'Setup', 'STARTUP_POWER', settings.STARTUP_POWER);
+                googleAnalytics.sendEvent('ESC', 'Setup', 'PPM_MIN_THROTTLE', settings.PPM_MIN_THROTTLE);
+                googleAnalytics.sendEvent('ESC', 'Setup', 'PPM_MAX_THROTTLE', settings.PPM_MAX_THROTTLE);
 
                 if (isSiLabs) {
                     await _4way.reset(esc);
@@ -242,6 +254,8 @@ var Configurator = React.createClass({
             const elapsedSec = (Date.now() - startTimestamp) * 1.0e-3
             GUI.log('Flashing firmware to ESC ' + (escIndex + 1) + ' finished in ' + elapsedSec + ' seconds');
 
+            googleAnalytics.sendEvent('ESC', 'FlashingFinished', 'After', elapsedSec.toString());
+
             // ensure mode match
             if (newSettings.MODE === escSettings.MODE) {
                 GUI.log('Writing settings back\n');
@@ -268,6 +282,7 @@ var Configurator = React.createClass({
         } catch (error) {
             const elapsedSec = (Date.now() - startTimestamp) * 1.0e-3;
             GUI.log('Firmware flashing failed ' + (error ? ': ' + error.stack : ' ') + ' after ' + elapsedSec + ' seconds');
+            googleAnalytics.sendEvent('ESC', 'FlashingFailed', 'After', elapsedSec.toString());
         }
 
         function updateProgress(bytes) {
@@ -281,8 +296,8 @@ var Configurator = React.createClass({
 
             switch (interfaceMode) {
                 case _4way_modes.SiLBLB: return flashSiLabsBLB(message)
-                case _4way_modes.AtmBLB:
-                case _4way_modes.AtmSK:  return flashAtmel(message)
+                // case _4way_modes.AtmBLB:
+                // case _4way_modes.AtmSK:  return flashAtmel(message)
                 default: throw new Error('Flashing with interface mode ' + interfaceMode + ' is not yet implemented')
             }
         }
@@ -735,6 +750,7 @@ var Configurator = React.createClass({
                         });
                 } catch (error) {
                     GUI.log("Error flashing ESC " + (escIndex + 1) + error.message);
+                    googleAnalytics.sendEvent('ESC', 'FlashingFailed', 'Error', error.message);
                 }
 
                 this.setState({
@@ -746,6 +762,7 @@ var Configurator = React.createClass({
             }
         } catch (error) {
             GUI.log('Flashing failed: ' + error.message);
+            googleAnalytics.sendEvent('ESC', 'FirmwareValidationFailed', 'Error', error.message);
         }
 
         this.setState({ isFlashing: false });
