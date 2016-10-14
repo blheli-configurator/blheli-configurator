@@ -111,6 +111,7 @@ $(document).ready(function () {
                         if (!TABS.esc) {
                             $('#content').html('<h1 style="margin: 100px 50%">RTFM</h1>');
                             GUI.content_ready(content_ready);
+                            googleAnalytics.sendEvent('GitHub', 'Build', 'RTFM');
                             break;
                         }
                         TABS.esc.initialize(content_ready);

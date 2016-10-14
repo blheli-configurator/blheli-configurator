@@ -213,6 +213,8 @@ var FirmwareSelector = React.createClass({
                 eep = await getFromCache(version.key + 'EEP', url.replace('Hex files', 'Eeprom files').replace('.HEX', '.EEP'));
             }
 
+            googleAnalytics.sendEvent('ESC', 'RemoteFirmwareLoaded', 'VersionKey', version.key);
+
             this.props.onFirmwareLoaded(hex, eep);
         } catch (error) {
             GUI.log('Could not load firmware for {0} {1} {2}: <span style="color: red">{3}</span>'.format(
@@ -221,6 +223,8 @@ var FirmwareSelector = React.createClass({
                 version.version,
                 error.message
             ));
+
+            googleAnalytics.sendEvent('ESC', 'RemoteFirmwareLoadFailed', 'VersionKey', version.key);
         }
     },
     localFirmwareSelected: async function() {
@@ -230,6 +234,8 @@ var FirmwareSelector = React.createClass({
             if (this.state.type === BLHELI_TYPES.ATMEL) {
                 eep = await selectFile('eep');
             }
+
+            googleAnalytics.sendEvent('ESC', 'LocalFirmwareLoaded');
 
             this.props.onFirmwareLoaded(hex, eep);
         } catch (error) {
