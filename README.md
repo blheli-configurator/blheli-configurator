@@ -8,7 +8,7 @@ This software is in development, use it at your own risk. **ALWAYS REMOVE THE PR
 
 ## Features
 
-* Only BLHeli passthrough supported at the moment, hence only **CleanFlight** and **BetaFlight**
+* Only BLHeli passthrough supported at the moment, hence only **CleanFlight**,  **BetaFlight**, **INAV** and **TriFlight**
 * Changing settings for any BLHeli_S, BLHeli SiLabs and BLHeli Atmel ESCs with bootloader
 * Flashing BLHeli and BLHeli_S to SiLabs ESCs
 
