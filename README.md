@@ -2,6 +2,8 @@
 
 Google Chrome application for BLHeli firmware flashing and configuration.
 
+[![available in the Chrome web store](https://developer.chrome.com/webstore/images/ChromeWebStore_Badge_v2_206x58.png)](https://chrome.google.com/webstore/detail/blheli-configurator/mejfjggmbnocnfibbibmoogocnjbcjnk)
+
 ## Disclaimer
 
 This software is in development, use it at your own risk. **ALWAYS REMOVE THE PROPELLERS** and power your ESCs via a **current-limiting** device or a power supply. If you're not willing to take these precautions seriously and not ready to use Arduino for recovery in case your ESC gets "bricked" - **DO NOT USE THIS SOFTWARE**.
