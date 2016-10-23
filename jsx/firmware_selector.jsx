@@ -115,7 +115,7 @@ var FirmwareSelector = React.createClass({
     },
     renderModeSelect: function() {
         // Display only for BLHeli
-        if (this.state.type !== BLHELI_MODES.BLHELI_S_SILABS) {
+        if (this.state.type !== BLHELI_TYPES.BLHELI_S_SILABS) {
             var modes = [
                 <option className="hidden" disabled selected>Select Mode</option>
             ];
