@@ -211,10 +211,10 @@
         "message": "Flash All"
     },
     "escButtonSelect": {
-        "message": "Select"
+        "message": "Flash"
     },
     "escButtonSelectLocally": {
-        "message": "Select Locally"
+        "message": "Select File Manually"
     },
     "escButtonSaveLog": {
         "message": "Save Log"
