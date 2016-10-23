@@ -213,7 +213,7 @@ var FirmwareSelector = React.createClass({
                 eep = await getFromCache(version.key + 'EEP', url.replace('Hex files', 'Eeprom files').replace('.HEX', '.EEP'));
             }
 
-            googleAnalytics.sendEvent('ESC', 'RemoteFirmwareLoaded', 'VersionKey', version.key);
+            googleAnalytics.sendEvent('ESC', 'RemoteFirmwareLoaded', version.key);
 
             this.props.onFirmwareLoaded(hex, eep);
         } catch (error) {
@@ -224,7 +224,7 @@ var FirmwareSelector = React.createClass({
                 error.message
             ));
 
-            googleAnalytics.sendEvent('ESC', 'RemoteFirmwareLoadFailed', 'VersionKey', version.key);
+            googleAnalytics.sendEvent('ESC', 'RemoteFirmwareLoadFailed', version.key);
         }
     },
     localFirmwareSelected: async function() {

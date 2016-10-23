@@ -100,14 +100,14 @@ var Configurator = React.createClass({
                 escSettings[esc] = settings;
                 escMetainfo[esc].available = true;
 
-                googleAnalytics.sendEvent('ESC', 'Setup', 'VERSION', settings.MAIN_REVISION + '.' + settings.SUB_REVISION);
-                googleAnalytics.sendEvent('ESC', 'Setup', 'LAYOUT', settings.LAYOUT.replace(/#/g, ''));
-                googleAnalytics.sendEvent('ESC', 'Setup', 'MODE', blheliModeToString(settings.MODE));
-                googleAnalytics.sendEvent('ESC', 'Setup', 'COMMUTATION_TIMING', settings.COMMUTATION_TIMING);
-                googleAnalytics.sendEvent('ESC', 'Setup', 'DEMAG_COMPENSATION', settings.DEMAG_COMPENSATION);
-                googleAnalytics.sendEvent('ESC', 'Setup', 'STARTUP_POWER', settings.STARTUP_POWER);
-                googleAnalytics.sendEvent('ESC', 'Setup', 'PPM_MIN_THROTTLE', settings.PPM_MIN_THROTTLE);
-                googleAnalytics.sendEvent('ESC', 'Setup', 'PPM_MAX_THROTTLE', settings.PPM_MAX_THROTTLE);
+                googleAnalytics.sendEvent('ESC', 'VERSION', settings.MAIN_REVISION + '.' + settings.SUB_REVISION);
+                googleAnalytics.sendEvent('ESC', 'LAYOUT', settings.LAYOUT.replace(/#/g, ''));
+                googleAnalytics.sendEvent('ESC', 'MODE', blheliModeToString(settings.MODE));
+                googleAnalytics.sendEvent('ESC', 'COMMUTATION_TIMING', settings.COMMUTATION_TIMING);
+                googleAnalytics.sendEvent('ESC', 'DEMAG_COMPENSATION', settings.DEMAG_COMPENSATION);
+                googleAnalytics.sendEvent('ESC', 'STARTUP_POWER', settings.STARTUP_POWER);
+                googleAnalytics.sendEvent('ESC', 'PPM_MIN_THROTTLE', settings.PPM_MIN_THROTTLE);
+                googleAnalytics.sendEvent('ESC', 'PPM_MAX_THROTTLE', settings.PPM_MAX_THROTTLE);
 
                 if (isSiLabs) {
                     await _4way.reset(esc);
