@@ -100,14 +100,14 @@ var Configurator = React.createClass({
                 escSettings[esc] = settings;
                 escMetainfo[esc].available = true;
 
-                googleAnalytics.sendEvent('ESC', 'Setup', 'VERSION', settings.MAIN_REVISION + '.' + settings.SUB_REVISION);
-                googleAnalytics.sendEvent('ESC', 'Setup', 'LAYOUT', settings.LAYOUT.replace(/#/g, ''));
-                googleAnalytics.sendEvent('ESC', 'Setup', 'MODE', blheliModeToString(settings.MODE));
-                googleAnalytics.sendEvent('ESC', 'Setup', 'COMMUTATION_TIMING', settings.COMMUTATION_TIMING);
-                googleAnalytics.sendEvent('ESC', 'Setup', 'DEMAG_COMPENSATION', settings.DEMAG_COMPENSATION);
-                googleAnalytics.sendEvent('ESC', 'Setup', 'STARTUP_POWER', settings.STARTUP_POWER);
-                googleAnalytics.sendEvent('ESC', 'Setup', 'PPM_MIN_THROTTLE', settings.PPM_MIN_THROTTLE);
-                googleAnalytics.sendEvent('ESC', 'Setup', 'PPM_MAX_THROTTLE', settings.PPM_MAX_THROTTLE);
+                googleAnalytics.sendEvent('ESC', 'VERSION', settings.MAIN_REVISION + '.' + settings.SUB_REVISION);
+                googleAnalytics.sendEvent('ESC', 'LAYOUT', settings.LAYOUT.replace(/#/g, ''));
+                googleAnalytics.sendEvent('ESC', 'MODE', blheliModeToString(settings.MODE));
+                googleAnalytics.sendEvent('ESC', 'COMMUTATION_TIMING', settings.COMMUTATION_TIMING);
+                googleAnalytics.sendEvent('ESC', 'DEMAG_COMPENSATION', settings.DEMAG_COMPENSATION);
+                googleAnalytics.sendEvent('ESC', 'STARTUP_POWER', settings.STARTUP_POWER);
+                googleAnalytics.sendEvent('ESC', 'PPM_MIN_THROTTLE', settings.PPM_MIN_THROTTLE);
+                googleAnalytics.sendEvent('ESC', 'PPM_MAX_THROTTLE', settings.PPM_MAX_THROTTLE);
 
                 if (isSiLabs) {
                     await _4way.reset(esc);
@@ -232,57 +232,44 @@ var Configurator = React.createClass({
         });
     },
     flashFirmwareImpl: async function(escIndex, escSettings, escMetainfo, flashImage, eepromImage, notifyProgress) {
-        try {
-            var startTimestamp = Date.now(),
-                isAtmel = [ _4way_modes.AtmBLB, _4way_modes.AtmSK ].includes(escMetainfo.interfaceMode),
-                self = this;
+        var isAtmel = [ _4way_modes.AtmBLB, _4way_modes.AtmSK ].includes(escMetainfo.interfaceMode),
+            self = this;
 
-            // rough estimate, each location gets erased, written and verified at least once
-            var max_flash_size = isAtmel ? BLHELI_ATMEL_BLB_ADDRESS_8 : BLHELI_SILABS_ADDRESS_SPACE_SIZE,
-                bytes_to_process = max_flash_size * 3,
-                bytes_processed = 0;
+        // rough estimate, each location gets erased, written and verified at least once
+        var max_flash_size = isAtmel ? BLHELI_ATMEL_BLB_ADDRESS_8 : BLHELI_SILABS_ADDRESS_SPACE_SIZE,
+            bytes_to_process = max_flash_size * 3,
+            bytes_processed = 0;
 
-            // start the actual flashing process
-            const initFlashResponse = await _4way.initFlash(escIndex);
-            // select flashing algorithm given interface mode
-            await selectInterfaceAndFlash(initFlashResponse);
+        // start the actual flashing process
+        const initFlashResponse = await _4way.initFlash(escIndex);
+        // select flashing algorithm given interface mode
+        await selectInterfaceAndFlash(initFlashResponse);
 
-            // migrate settings from previous version if asked to
-            const newSettings = blheliSettingsObject((await _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE)).params);
+        // migrate settings from previous version if asked to
+        const newSettings = blheliSettingsObject((await _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE)).params);
 
-            // @todo move elsewhere
-            const elapsedSec = (Date.now() - startTimestamp) * 1.0e-3
-            GUI.log('Flashing firmware to ESC ' + (escIndex + 1) + ' finished in ' + elapsedSec + ' seconds');
+        // ensure mode match
+        if (newSettings.MODE === escSettings.MODE) {
+            GUI.log('Writing settings back\n');
 
-            googleAnalytics.sendEvent('ESC', 'FlashingFinished', 'After', elapsedSec.toString());
-
-            // ensure mode match
-            if (newSettings.MODE === escSettings.MODE) {
-                GUI.log('Writing settings back\n');
-
-                // find intersection between newSettings and escSettings with respect to their versions
-                for (var prop in newSettings) {
-                    if (newSettings.hasOwnProperty(prop) && escSettings.hasOwnProperty(prop) &&
-                        blheliCanMigrate(prop, escSettings, newSettings)) {
-                        newSettings[prop] = escSettings[prop];                        
-                    }
+            // find intersection between newSettings and escSettings with respect to their versions
+            for (var prop in newSettings) {
+                if (newSettings.hasOwnProperty(prop) && escSettings.hasOwnProperty(prop) &&
+                    blheliCanMigrate(prop, escSettings, newSettings)) {
+                    newSettings[prop] = escSettings[prop];                        
                 }
-
-                var allSettings = self.state.escSettings.slice();
-                allSettings[escIndex] = newSettings;
-                self.onUserInput(allSettings);
-
-                await self.writeSetup();
-            } else {
-                GUI.log('Will not write settings back due to different MODE\n');
-
-                // read settings back
-                await self.readSetup();
             }
-        } catch (error) {
-            const elapsedSec = (Date.now() - startTimestamp) * 1.0e-3;
-            GUI.log('Firmware flashing failed ' + (error ? ': ' + error.stack : ' ') + ' after ' + elapsedSec + ' seconds');
-            googleAnalytics.sendEvent('ESC', 'FlashingFailed', 'After', elapsedSec.toString());
+
+            var allSettings = self.state.escSettings.slice();
+            allSettings[escIndex] = newSettings;
+            self.onUserInput(allSettings);
+
+            await self.writeSetup();
+        } else {
+            GUI.log('Will not write settings back due to different MODE\n');
+
+            // read settings back
+            await self.readSetup();
         }
 
         function updateProgress(bytes) {
@@ -744,12 +731,18 @@ var Configurator = React.createClass({
                 });
 
                 try {
+                    const startTimestamp = Date.now()
+                    
                     await this.flashFirmwareImpl(escIndex, escSettings, escMetainfo, flash, eeprom,
                         progress => {
                             this.setState({ flashingEscProgress: progress })
                         });
+
+                    const elapsedSec = (Date.now() - startTimestamp) * 1.0e-3;
+                    GUI.log('Flashing firmware to ESC ' + (escIndex + 1) + ' finished in ' + elapsedSec + ' seconds');
+                    googleAnalytics.sendEvent('ESC', 'FlashingFinished', 'After', elapsedSec.toString());
                 } catch (error) {
-                    GUI.log("Error flashing ESC " + (escIndex + 1) + error.message);
+                    GUI.log("Error flashing ESC " + (escIndex + 1) + ': ' + error.message);
                     googleAnalytics.sendEvent('ESC', 'FlashingFailed', 'Error', error.message);
                 }
 
@@ -757,8 +750,6 @@ var Configurator = React.createClass({
                     flashingEscIndex: undefined,
                     flashingEscProgress: 0
                 })
-
-                GUI.log("Finished flashing ESC " + (escIndex + 1));
             }
         } catch (error) {
             GUI.log('Flashing failed: ' + error.message);
@@ -917,7 +908,6 @@ var Configurator = React.createClass({
             selectingFirmware: false
         });
 
-        // @todo now flash! how to distinguish between flash all and flash one?
         this.flashAll(hex, eep);
     },
     onFirmwareSelectorCancel: function() {

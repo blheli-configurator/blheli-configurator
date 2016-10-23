@@ -115,7 +115,7 @@ var FirmwareSelector = React.createClass({
     },
     renderModeSelect: function() {
         // Display only for BLHeli
-        if (this.state.type !== BLHELI_MODES.BLHELI_S_SILABS) {
+        if (this.state.type !== BLHELI_TYPES.BLHELI_S_SILABS) {
             var modes = [
                 <option className="hidden" disabled selected>Select Mode</option>
             ];
@@ -206,14 +206,16 @@ var FirmwareSelector = React.createClass({
             version.version.replace(/\./g, '_')
         );
 
+        const cacheKey = version.key + '_' + this.state.selectedEsc + '_' + this.state.selectedMode;
+
         try {
-            const hex = await getFromCache(version.key, url);
+            const hex = await getFromCache(cacheKey, url);
             var eep;
             if (this.state.type === BLHELI_TYPES.ATMEL) {
-                eep = await getFromCache(version.key + 'EEP', url.replace('Hex files', 'Eeprom files').replace('.HEX', '.EEP'));
+                eep = await getFromCache(cacheKey + 'EEP', url.replace('Hex files', 'Eeprom files').replace('.HEX', '.EEP'));
             }
 
-            googleAnalytics.sendEvent('ESC', 'RemoteFirmwareLoaded', 'VersionKey', version.key);
+            googleAnalytics.sendEvent('ESC', 'RemoteFirmwareLoaded', cacheKey);
 
             this.props.onFirmwareLoaded(hex, eep);
         } catch (error) {
@@ -224,7 +226,7 @@ var FirmwareSelector = React.createClass({
                 error.message
             ));
 
-            googleAnalytics.sendEvent('ESC', 'RemoteFirmwareLoadFailed', 'VersionKey', version.key);
+            googleAnalytics.sendEvent('ESC', 'RemoteFirmwareLoadFailed', version.key);
         }
     },
     localFirmwareSelected: async function() {
