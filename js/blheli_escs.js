@@ -136,7 +136,7 @@ var BLHELI_ATMEL_ESCS = {
     '#ZTWSpLite18Av2#': { name: 'ZTW Spider Lite 18Av2',      damped_enabled: 1 }
 }
 
-var BLHELI_S_SILABS_LAYOUTS = [ 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N' ]
+var BLHELI_S_SILABS_LAYOUTS = [ 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O' ]
 var BLHELI_S_SILABS_CHIPS =   [ 'L', 'H' ]
 var BLHELI_S_SILABS_DELAYS =  [ '00', '05', '15', '20', '25', '30', '40', '50', '70', '90' ]
 
@@ -449,6 +449,28 @@ var BLHELI_S_SILABS_ESCS = {
     '#N_H_50#': { name: 'N_H_50' },
     '#N_H_70#': { name: 'N_H_70' },
     '#N_H_90#': { name: 'N_H_90' },
+    '#O_L_00#': { name: 'O_L_0' },
+    '#O_L_05#': { name: 'O_L_5' },
+    '#O_L_10#': { name: 'O_L_10' },
+    '#O_L_15#': { name: 'O_L_15' },
+    '#O_L_20#': { name: 'O_L_20' },
+    '#O_L_25#': { name: 'O_L_25' },
+    '#O_L_30#': { name: 'O_L_30' },
+    '#O_L_40#': { name: 'O_L_40' },
+    '#O_L_50#': { name: 'O_L_50' },
+    '#O_L_70#': { name: 'O_L_70' },
+    '#O_L_90#': { name: 'O_L_90' },
+    '#O_H_00#': { name: 'O_H_0' },
+    '#O_H_05#': { name: 'O_H_5' },
+    '#O_H_10#': { name: 'O_H_10' },
+    '#O_H_15#': { name: 'O_H_15' },
+    '#O_H_20#': { name: 'O_H_20' },
+    '#O_H_25#': { name: 'O_H_25' },
+    '#O_H_30#': { name: 'O_H_30' },
+    '#O_H_40#': { name: 'O_H_40' },
+    '#O_H_50#': { name: 'O_H_50' },
+    '#O_H_70#': { name: 'O_H_70' },
+    '#O_H_90#': { name: 'O_H_90' },
 };
 
 var BLHELI_S_SILABS_MCUS = [
