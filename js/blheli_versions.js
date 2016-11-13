@@ -3,6 +3,11 @@
 var BLHELI_S_SILABS_BASE_URL = 'https://raw.githubusercontent.com/bitdump/BLHeli/{0}/BLHeli_S SiLabs/Hex files/{1}_REV{3}.HEX';
 var BLHELI_S_SILABS_VERSIONS = [
 	{
+		version: '16.43', name: '16.43 Dshot', commit: 'debbd71c899e88eb4692de1ac98cd0f309f99ed7',
+		url: 'https://raw.githubusercontent.com/bitdump/BLHeli/{0}/BLHeli_S SiLabs/Dshot test code hex files/{1}_REV{3}.HEX',
+		key: '16.43DS'
+	},
+	{
 		version: '16.45', name: '16.45', commit: 'e8b56843a95bc2ba217680df341a716250730c74',
 		url: 'https://raw.githubusercontent.com/cleanflight/blheli-multishot/{0}/BLHeli_S SiLabs/Hex files/{1}_REV{3}.HEX',
 		key: '16.45'
