@@ -52,5 +52,6 @@ Special thanks to everyone who helped me with development, testing, collecting o
 * *Steven R. Lilly*
 * *Tuomas Kuosmanen*
 * *Robyn Bachofer*
+* *ByeJon* from the IntoFPV forum for drawing an icon :-)
 
 This list is extended as the development goes on and I remember all the names :)
