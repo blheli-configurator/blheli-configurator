@@ -89,7 +89,7 @@ var Configurator = React.createClass({
 
                 // Check whether revision is supported
                 if (settings.LAYOUT_REVISION < BLHELI_MIN_SUPPORTED_LAYOUT_REVISION) {
-                    GUI.log('ESC ' + (esc + 1) + ' has LAYOUT_REVISION ' + layout_revision + ', oldest supported is ' + BLHELI_MIN_SUPPORTED_LAYOUT_REVISION)
+                    GUI.log('ESC ' + (esc + 1) + ' has LAYOUT_REVISION ' + settings.LAYOUT_REVISION + ', oldest supported is ' + BLHELI_MIN_SUPPORTED_LAYOUT_REVISION)
                 }
 
                 // Check for MULTI mode
