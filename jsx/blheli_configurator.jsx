@@ -23,7 +23,7 @@ var Configurator = React.createClass({
             escSettings: newSettings
         });
     },
-    saveLog: () => saveFile(_4way.log),
+    saveLog: () => saveFile(console.dump().join('\n')),
     readSetup: async function() {
         GUI.log('reading ESC setup');
         $('a.connect').addClass('disabled');

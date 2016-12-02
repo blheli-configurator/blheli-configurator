@@ -70,7 +70,6 @@ var _4way = {
     // Storage for partially-received messages
     backlog_view:   null,
     verbose: true,
-    log: '',
 
     crc16_xmodem_update: function(crc, byte) {
         crc = crc ^ (byte << 8);
@@ -215,8 +214,6 @@ var _4way = {
             console.log('sending', _4way_command_to_string(command), address.toString(0x10), params)
         }
 
-        self.log += 'sending ' + _4way_command_to_string(command) + ' ' + address.toString(0x10) + ' ' + JSON.stringify(params) + '\n';
-
         serial.send(message, sendCallback);
 
         return deferred.promise;
@@ -266,7 +263,6 @@ var _4way = {
             if (self.verbose) {
                 console.log('received', _4way_command_to_string(message.command), _4way_ack_to_string(message.ack), message.address.toString(0x10), message.params)
             }
-            self.log += 'received ' + _4way_command_to_string(message.command) + ' ' + _4way_ack_to_string(message.ack) + ' ' + message.address.toString(0x10) + ' ' + JSON.stringify(message.params) + '\n';
 
             for (var i = self.callbacks.length - 1; i >= 0; --i) {
                 if (i < self.callbacks.length) {
