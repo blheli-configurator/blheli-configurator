@@ -206,7 +206,9 @@ var FirmwareSelector = React.createClass({
             version.version.replace(/\./g, '_')
         );
 
-        const cacheKey = version.key + '_' + this.state.selectedEsc + '_' + this.state.selectedMode;
+        const cacheKey = this.state.type === BLHELI_TYPES.BLHELI_S_SILABS ?
+            version.key + '_' + this.state.selectedEsc :
+            version.key + '_' + this.state.selectedEsc + '_' + this.state.selectedMode;
 
         try {
             const hex = await getFromCache(cacheKey, url);
