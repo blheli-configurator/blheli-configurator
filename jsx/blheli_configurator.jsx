@@ -794,7 +794,6 @@ var Configurator = React.createClass({
         return (
             <div className="tab-esc toolbar_fixed_bottom">
                 <div className="content_wrapper">
-                    <div className="tab_title">ESC Programming</div>
                     <div className="note">
                         <div className="note_spacer">
                             <p dangerouslySetInnerHTML={{ __html: chrome.i18n.getMessage('escFeaturesHelp') }} />
