@@ -283,8 +283,7 @@ var _4way = {
         });
     },
 
-    disconnect_cleanup: function() {
-        console.log('disc cleanup')
+    cleanup: function() {
         this.callbacks = [],
         this.backlog_view = null
     }

@@ -312,7 +312,7 @@ var MSP = {
                 // try exiting 4-way interface just in case
                 if (++MSP.timeouts_in_a_row > 1) {
                     MSP.timeouts_in_a_row = 0;
-                    _4way.exit()
+                    _4way.exit().done();
                 }
 
                 serial.send(bufferOut, false);
