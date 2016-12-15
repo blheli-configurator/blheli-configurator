@@ -26,7 +26,7 @@
         "message": "Device - <span style=\"color: red\">Rebooting</span>"
     },
     "deviceReady": {
-        "message": "Device - <span style=\"color: #5739e9\">Ready</span>"
+        "message": "Device - <span style=\"color: green\">Ready</span>"
     },
 
     "tabFirmwareFlasher": {
@@ -40,26 +40,26 @@
     },
 
     "serialPortOpened": {
-        "message": "Serial port <span style=\"color: #5739e9\">successfully</span> opened with ID: $1"
+        "message": "Serial port <span style=\"color: green\">successfully</span> opened with ID: $1"
     },
     "serialPortOpenFail": {
         "message": "<span style=\"color: red\">Failed</span> to open serial port"
     },
     "serialPortClosedOk": {
-        "message": "Serial port <span style=\"color: #5739e9\">successfully</span> closed"
+        "message": "Serial port <span style=\"color: green\">successfully</span> closed"
     },
     "serialPortClosedFail": {
         "message": "<span style=\"color: red\">Failed</span> to close serial port"
     },
 
     "usbDeviceOpened": {
-        "message": "USB device <span style=\"color: #5739e9\">successfully</span> opened with ID: $1"
+        "message": "USB device <span style=\"color: green\">successfully</span> opened with ID: $1"
     },
     "usbDeviceOpenFail": {
         "message": "<span style=\"color: red\">Failed</span> to open USB device!"
     },
     "usbDeviceClosed": {
-        "message": "USB device <span style=\"color: #5739e9\">successfully</span> closed"
+        "message": "USB device <span style=\"color: green\">successfully</span> closed"
     },
     "usbDeviceCloseFail": {
         "message": "<span style=\"color: red\">Failed</span> to close USB device"
@@ -69,7 +69,7 @@
     },
 
     "noConfigurationReceived": {
-        "message": "No configuration received within <span style=\"color: red\">10 seconds</span>, communication <span style=\"color: red\">failed</span>"
+        "message": "Connection <span style=\"color: red\">failed</span>, ensure that you have selected the <span style=\"color: yellow\">correct port</span> or <span style=\"color: yellow\">restart</span> your device."
     },
     "firmwareVersionNotSupported": {
         "message": "This firmware version is <span style=\"color: red\">not supported</span>. Please upgrade to firmware that supports api version <strong>$1</strong> or higher. Use CLI for backup before flashing.  CLI backup/restore procedure is in the documention."
@@ -93,10 +93,10 @@
         "message": "Firmware Version: <strong>$1</strong>"
     },
     "apiVersionReceived": {
-        "message": "MultiWii API version <span style=\"color: #5739e9\">received</span> - <strong>$1</strong>"
+        "message": "MultiWii API version <span style=\"color: green\">received</span> - <strong>$1</strong>"
     },
     "uniqueDeviceIdReceived": {
-        "message": "Unique device ID <span style=\"color: #5739e9\">received</span> - <strong>0x$1</strong>"
+        "message": "Unique device ID <span style=\"color: green\">received</span> - <strong>0x$1</strong>"
     },
     "boardInfoReceived": {
         "message": "Board: <strong>$1</strong>, version: <strong>$2</strong>"
@@ -122,7 +122,7 @@
     },
 
     "eeprom_saved_ok": {
-        "message": "EEPROM <span style=\"color: #5739e9\">saved</span>"
+        "message": "EEPROM <span style=\"color: green\">saved</span>"
     },
 
     "defaultWelcomeIntro": {
@@ -199,10 +199,10 @@
         "message": "Beacon Delay"
     },
     "escButtonRead": {
-        "message": "Read Settings"
+        "message": "Read Setup"
     },
     "escButtonWrite": {
-        "message": "Write Settings"
+        "message": "Write Setup"
     },
     "escButtonFlash": {
         "message": "FLASH FIRMWARE"
@@ -217,7 +217,7 @@
         "message": "Select File Manually"
     },
     "escButtonSaveLog": {
-        "message": "Save Log"
+        "message": "Save Debug Log"
     },
     "escIgnoreInappropriateMCULayout": {
         "message": "Ignore inappropriate MCU and Layout?"
@@ -230,5 +230,52 @@
     },
     "hexInvalidSiLabs": {
         "message": "HEX does not look like a valid SiLabs BLHeli flash file"
+    },
+
+    "readSetupStarted": {
+        "message": "Reading setup"
+    },
+    "readSetupFinished": {
+        "message": "Reading setup <span style=\"color: green\">finished</span>"
+    },
+    "readSetupFailed": {
+        "message": "Reading setup <span style=\"color: red\">failed</span>: <strong>$1</strong>"
+    },
+
+    "writeSetupStarted": {
+        "message": "Writing setup"
+    },
+    "writeSetupFinished": {
+        "message": "Writing setup <span style=\"color: green\">finished</span>"
+    },
+    "writeSetupFailedOne": {
+        "message": "ESC $1: writing setup <span style=\"color: red\">failed</span>: <strong>$2</strong>"
+    },
+    "writeSetupFailed": {
+        "message": "Writing setup <span style=\"color: red\">failed</span>: <strong>$1</strong>"
+    },
+
+    "layoutMismatch": {
+        "message": "LAYOUT found <span style=\"color: red\">$1</span>, <strong>$2</strong> expected"
+    },
+    "mcuMismatch": {
+        "message": "MCU found <span style=\"color: red\">$1</span>, <strong>$2</strong> expected"
+    },
+
+    "escFlashingStarted": {
+        "message": "ESC $1: flashing started"
+    },
+    "escFlashingFinished": {
+        "message": "ESC $1: flashing <span style=\"color: green\">finished</span> in <strong>$2</strong> seconds"
+    },
+    "escFlashingFailed": {
+        "message": "ESC $1: flashing <span style=\"color: red\">failed</span> - <strong>$2</strong>"
+    },
+    "flashingFailedGeneral": {
+        "message": "Flashing <span style=\"color: red\">failed</span>: <strong>$1</strong>"
+    },
+
+    "resetDefaults": {
+        "message": "Defaults"
     }
 }

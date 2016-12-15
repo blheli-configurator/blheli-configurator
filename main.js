@@ -1,5 +1,47 @@
 'use strict';
 
+// Fast way to log possible errors and uncaught exceptions
+window.console = (function (origConsole) {
+    var data = [],
+        isDebug = false;
+
+    return {
+        log: function() {
+            data.push(Array.prototype.slice.call(arguments).join(' '));
+            origConsole.log.apply(origConsole, arguments);
+        },
+        warn: function() {
+            data.push(Array.prototype.slice.call(arguments).join(' '));
+            origConsole.warn.apply(origConsole, arguments);
+        },
+        error: function() {
+            data.push(Array.prototype.slice.call(arguments).join(' '));
+            origConsole.error.apply(origConsole, arguments);
+        },
+        info: function() {
+            data.push(Array.prototype.slice.call(arguments).join(' '));
+            origConsole.info.apply(origConsole, arguments);
+        },
+        debug: function() {
+            data.push(Array.prototype.slice.call(arguments).join(' '));
+            isDebug && origConsole.debug.apply(origConsole, arguments);
+        },
+        setDebug: function(b) { isDebug = b },
+        dump: function() {
+          return data;
+        }
+    };
+}(window.console));
+
+window.onerror = function(msg, url, lineNo, columnNo, error) {
+    console.error(msg, url, lineNo, columnNo, error.stack);
+
+    // Report unexpected exceptions to GA
+    if (googleAnalytics) {
+        googleAnalytics.sendException(msg + ' ' + url + ':' + lineNo + ':' + columnNo, false);
+    }
+};
+
 // Google Analytics
 var googleAnalyticsService = analytics.getService('ice_cream_app');
 var googleAnalytics = googleAnalyticsService.getTracker(atob('VUEtODI2MzQzMzUtMQ=='));

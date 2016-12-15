@@ -23,12 +23,12 @@ TABS.esc = {
 
         // tell 4-way interface to return control to MSP server
         _4way.exit()
+        .catch(() => {})
         // now we can return control to MSP or CLI handlers
-        .then(() => CONFIGURATOR.escActive = false)
-        .done()
-
-        if (callback) {
-            GUI.timeout_add('waiting_4way_if_exit', callback, 100);
-        }
+        .finally(() => {
+            CONFIGURATOR.escActive = false;
+            if (callback) callback();
+        })
+        .done();
     }
 };

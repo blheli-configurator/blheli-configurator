@@ -54,44 +54,42 @@ $(document).ready(function () {
 
 
                     serial.connect(selected_port, {bitrate: selected_baud}, onOpen);
+
+                    $(this).data("clicks", !clicks);
                 } else {
                     GUI.timeout_kill_all();
                     GUI.interval_kill_all();
-                    GUI.tab_switch_cleanup();
-                    GUI.tab_switch_in_progress = false;
+                    GUI.tab_switch_cleanup(() => {
+                        GUI.tab_switch_in_progress = false;
 
-                    serial.disconnect(onClosed);
+                        serial.disconnect(onClosed);
 
-                    var wasConnected = CONFIGURATOR.connectionValid;
+                        var wasConnected = CONFIGURATOR.connectionValid;
 
-                    GUI.connected_to = false;
-                    CONFIGURATOR.connectionValid = false;
-                    GUI.allowedTabs = GUI.defaultAllowedTabsWhenDisconnected.slice();
-                    MSP.disconnect_cleanup();
-                    PortUsage.reset();
-                    if (CONFIGURATOR.escActive) {
-                        GUI.timeout_add('4w-if-cleanup', () => {
-                            CONFIGURATOR.escActive = false
-                            _4way.disconnect_cleanup()    
-                        }, 0)
-                    }
+                        GUI.connected_to = false;
+                        CONFIGURATOR.connectionValid = false;
+                        GUI.allowedTabs = GUI.defaultAllowedTabsWhenDisconnected.slice();
+                        MSP.disconnect_cleanup();
+                        PortUsage.reset();
+                        _4way.cleanup();
 
-                    // unlock port select & baud
-                    $('div#port-picker #port, div#port-picker #baud, div#port-picker #interface').prop('disabled', false);
+                        // unlock port select & baud
+                        $('div#port-picker #port, div#port-picker #baud, div#port-picker #interface').prop('disabled', false);
 
-                    // reset connect / disconnect button
-                    $('div.connect_controls a.connect').removeClass('active');
-                    $('div.connect_controls a.connect_state').text(chrome.i18n.getMessage('connect'));
-                   
-                    if (wasConnected) {
-                        // detach listeners and remove element data
-                        $('#content').empty();
-                    }
+                        // reset connect / disconnect button
+                        $('div.connect_controls a.connect').removeClass('active');
+                        $('div.connect_controls a.connect_state').text(chrome.i18n.getMessage('connect'));
+                       
+                        if (wasConnected) {
+                            // detach listeners and remove element data
+                            $('#content').empty();
+                        }
 
-                    $('#tabs .tab_landing a').click();
+                        $('#tabs .tab_landing a').click();
+
+                        $(this).data("clicks", !clicks);
+                    });
                 }
-
-                $(this).data("clicks", !clicks);
             }
         }
     });
@@ -169,6 +167,8 @@ function onOpen(openInfo) {
                                         CONFIGURATOR.connectionValid = true;
                                         // set flag to allow messages redirect to 4way-if handler
                                         CONFIGURATOR.escActive = true;
+                                        _4way.cleanup();
+
                                         GUI.allowedTabs = GUI.defaultAllowedTabsWhenConnected.slice();
 
                                         onConnect();
@@ -211,12 +211,6 @@ function onConnect() {
 }
 
 function onClosed(result) {
-    if (result) { // All went as expected
-        GUI.log(chrome.i18n.getMessage('serialPortClosedOk'));
-    } else { // Something went wrong
-        GUI.log(chrome.i18n.getMessage('serialPortClosedFail'));
-    }
-
     $('#tabs ul.mode-connected').hide();
     $('#tabs ul.mode-disconnected').show();
     

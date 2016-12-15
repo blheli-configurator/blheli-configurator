@@ -84,9 +84,12 @@ var CommonSettings = React.createClass({
                 // @todo redesign
                 // Remove DampedLight option for ESCs that do not support it
                 var options = desc.options;
-                if (desc.name === 'PWM_FREQUENCY' && !BLHELI_SILABS_ESCS[settings.LAYOUT].damped_enabled &&
-                    !BLHELI_ATMEL_ESCS[settings.LAYOUT].damped_enabled) {
-                    options = options.slice(0, -1);
+                if (desc.name === 'PWM_FREQUENCY') {
+                    const layout = settings.LAYOUT;
+                    if (BLHELI_SILABS_ESCS.hasOwnProperty(layout) && !BLHELI_SILABS_ESCS[layout].damped_enabled ||
+                        BLHELI_ATMEL_ESCS.hasOwnProperty(layout) && !BLHELI_ATMEL_ESCS[layout].damped_enabled) {
+                        options = options.slice(0, -1);
+                    }
                 }
                 return (
                     <Select
