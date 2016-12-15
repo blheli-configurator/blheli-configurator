@@ -211,12 +211,6 @@ function onConnect() {
 }
 
 function onClosed(result) {
-    if (result) { // All went as expected
-        GUI.log(chrome.i18n.getMessage('serialPortClosedOk'));
-    } else { // Something went wrong
-        GUI.log(chrome.i18n.getMessage('serialPortClosedFail'));
-    }
-
     $('#tabs ul.mode-connected').hide();
     $('#tabs ul.mode-disconnected').show();
     

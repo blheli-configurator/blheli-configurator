@@ -108,17 +108,17 @@ function fillImage(data, size) {
     data.data.forEach(function(block) {
         // Check preconditions
         if (block.address >= image.byteLength) {
-            if (block.address == BLHELI_SILABS_BOOTLOADER_ADDRESS) {
-                GUI.log('Block at 0x' + block.address.toString(0x10) + ' of 0x' + block.bytes.toString(0x10) + ' bytes contains bootloader, skipping\n');
-            } else {
-                GUI.log('Block at 0x' + block.address.toString(0x10) + ' is outside of target address space\n');
-            }
+            // if (block.address == BLHELI_SILABS_BOOTLOADER_ADDRESS) {
+            //     GUI.log('Block at 0x' + block.address.toString(0x10) + ' of 0x' + block.bytes.toString(0x10) + ' bytes contains bootloader, skipping\n');
+            // } else {
+            //     GUI.log('Block at 0x' + block.address.toString(0x10) + ' is outside of target address space\n');
+            // }
 
             return;
         }
 
         if (block.address + block.bytes >= image.byteLength) {
-            GUI.log('Block at 0x' + block.address.toString(0x10) + ' spans past the end of target address space\n');
+            // GUI.log('Block at 0x' + block.address.toString(0x10) + ' spans past the end of target address space\n');
         }
 
         // block.data may be too large, select maximum allowed size

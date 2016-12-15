@@ -25,7 +25,7 @@ var Configurator = React.createClass({
     },
     saveLog: () => saveFile(console.dump().join('\n')),
     readSetup: async function() {
-        GUI.log('reading ESC setup');
+        GUI.log(chrome.i18n.getMessage('readSetupStarted'));
         $('a.connect').addClass('disabled');
 
         // disallow further requests until we're finished
@@ -36,7 +36,12 @@ var Configurator = React.createClass({
             canFlash: false
         });
 
-        await this.readSetupImpl();
+        try {
+            await this.readSetupImpl();
+            GUI.log(chrome.i18n.getMessage('readSetupFinished'));
+        } catch (error) {
+            GUI.log(chrome.i18n.getMessage('readSetupFailed', [ error.message ]));
+        }
 
         // Enable `Flash All` if all ESCs are identical
         const availableSettings = this.state.escSettings.filter((i, idx) => this.state.escMetainfo[idx].available);
@@ -52,7 +57,6 @@ var Configurator = React.createClass({
         });
 
         $('a.connect').removeClass('disabled');
-        GUI.log('ESC setup read');   
     },
     readSetupImpl: async function() {
         var escSettings = [],
@@ -86,16 +90,6 @@ var Configurator = React.createClass({
                 }
 
                 const settings = blheliSettingsObject(settingsArray);
-
-                // Check whether revision is supported
-                if (settings.LAYOUT_REVISION < BLHELI_MIN_SUPPORTED_LAYOUT_REVISION) {
-                    GUI.log('ESC ' + (esc + 1) + ' has LAYOUT_REVISION ' + settings.LAYOUT_REVISION + ', oldest supported is ' + BLHELI_MIN_SUPPORTED_LAYOUT_REVISION)
-                }
-
-                // Check for MULTI mode
-                if (settings.MODE != BLHELI_MODES.MULTI) {
-                    GUI.log('ESC ' + (esc + 1) + ' has MODE different from MULTI: ' + settings.MODE.toString(0x10))
-                }
 
                 escSettings[esc] = settings;
                 escMetainfo[esc].available = true;
@@ -158,7 +152,6 @@ var Configurator = React.createClass({
 
                 // check for actual changes, maybe we should not write to this ESC at all
                 if (compare(escSettings, readbackSettings)) {
-                    GUI.log('ESC ' + (esc + 1) + ': no changes');
                     continue;
                 }
 
@@ -201,12 +194,12 @@ var Configurator = React.createClass({
                     await _4way.reset(esc);
                 }
             } catch (error) {
-                GUI.log('ESC ' + (esc + 1) + ', failed to write settings: ' + error.stack);
+                GUI.log(chrome.i18n.getMessage('writeSetupFailedOne', [ esc + 1, error.message ]));
             }
         }
     },
     writeSetup: async function() {
-        GUI.log('writing ESC setup');
+        GUI.log(chrome.i18n.getMessage('writeSetupStarted'));
         $('a.connect').addClass('disabled');
 
         // disallow further requests until we're finished
@@ -217,9 +210,13 @@ var Configurator = React.createClass({
             canFlash: false
         });
 
-        await this.writeSetupImpl();
+        try {
+            await this.writeSetupImpl();
+            GUI.log(chrome.i18n.getMessage('writeSetupFinished'));
+        } catch (error) {
+            GUI.log(chrome.i18n.getMessage('writeSetupFailed', [ error.message ]));
+        }
 
-        GUI.log('ESC setup written');
 
         await this.readSetup();
 
@@ -250,8 +247,6 @@ var Configurator = React.createClass({
 
         // ensure mode match
         if (newSettings.MODE === escSettings.MODE) {
-            GUI.log('Writing settings back\n');
-
             // find intersection between newSettings and escSettings with respect to their versions
             for (var prop in newSettings) {
                 if (newSettings.hasOwnProperty(prop) && escSettings.hasOwnProperty(prop) &&
@@ -520,11 +515,8 @@ var Configurator = React.createClass({
                     target_layout_str = 'EMPTY'
                 }
 
-                var msg = 'Target LAYOUT ' + target_layout_str + ' is different from HEX ' + buf2ascii(fw_layout).trim()
-                if (self.state.ignoreMCULayout) {
-                    GUI.log(msg)
-                } else {
-                    throw new Error(msg)
+                if (!self.state.ignoreMCULayout) {
+                    throw new Error(chrome.i18n.getMessage('layoutMismatch', [ target_layout_str, buf2ascii(fw_layout).trim() ]));
                 }
             }
 
@@ -537,11 +529,8 @@ var Configurator = React.createClass({
                     target_mcu_str = 'EMPTY'
                 }
 
-                var msg = 'Target MCU ' + target_mcu_str + ' is different from HEX ' + buf2ascii(fw_mcu).trim()
-                if (self.state.ignoreMCULayout) {
-                    GUI.log(msg)
-                } else {
-                    throw new Error(msg)
+                if (!self.state.ignoreMCULayout) {
+                    throw new Error(chrome.i18n.getMessage('mcuMismatch', [ target_mcu_str, buf2ascii(fw_mcu).trim() ]));
                 }
             }
 
@@ -557,7 +546,7 @@ var Configurator = React.createClass({
             })
             .then(function(message) {
                 if (!compare(escSettingArrayTmp, message.params)) {
-                    throw new Error('Failed to verify write **FLASH*FAILED**')
+                    throw new Error('failed to verify write **FLASH*FAILED**')
                 }
             })
 
@@ -572,23 +561,19 @@ var Configurator = React.createClass({
             // verify LJMP reset
             .then(function(message) {
                 if (!compare(ljmp_reset, message.params)) {
-                    GUI.log('ESC ' + (escIndex + 1) + ' has a different instruction at start of address space, previous flashing has probably failed')
+                    // @todo LJMP bootloader is probably already there and we could skip some steps
                 }
             })
             // erase second page
             .then(erasePage.bind(undefined, 1))
             // write LJMP bootloader
-            .then(function() {
-                return _4way.write(0x200, ljmp_bootloader)
-            })
+            .then(_4way.write.bind(_4way, 0x200, ljmp_bootloader))
             // read LJMP bootloader
-            .then(function() {
-                return _4way.read(0x200, ljmp_bootloader.byteLength)
-            })
+            .then(_4way.read.bind(_4way, 0x200, ljmp_bootloader.byteLength))
             // verify LJMP bootloader
             .then(function(message) {
                 if (!compare(ljmp_bootloader, message.params)) {
-                    throw new Error('Failed to verify `LJMP bootloader` write')
+                    throw new Error('failed to verify `LJMP bootloader` write')
                 }
             })
             // erase first page
@@ -606,7 +591,7 @@ var Configurator = React.createClass({
                     .then(function(message) {
                         const erased = message.params.every(x => x == 0xFF);
                         if (!erased) {
-                            throw new Error('Failed to verify erasure of the first page');
+                            throw new Error('failed to verify erasure of the first page');
                         }
 
                         updateProgress(message.params.byteLength);
@@ -670,7 +655,7 @@ var Configurator = React.createClass({
                 promise = promise.then(_4way.read.bind(_4way, address, step))
                 .then(function(message) {
                     if (!compare(message.params, flashImage.subarray(message.address, message.address + message.params.byteLength))) {
-                        throw new Error('Failed to verify write at address 0x' + message.address.toString(0x10))
+                        throw new Error('failed to verify write at address 0x' + message.address.toString(0x10))
                     }
 
                     updateProgress(message.params.byteLength)
@@ -731,7 +716,7 @@ var Configurator = React.createClass({
             for (let i = 0; i < this.state.escsToFlash.length; ++i) {
                 const escIndex = this.state.escsToFlash[i];
 
-                GUI.log("Starting flashing of ESC " + (escIndex + 1));
+                GUI.log(chrome.i18n.getMessage('escFlashingStarted', [ escIndex + 1 ]));
                 var escSettings = this.state.escSettings[escIndex],
                     escMetainfo = this.state.escMetainfo[escIndex];
 
@@ -749,10 +734,10 @@ var Configurator = React.createClass({
                         });
 
                     const elapsedSec = (Date.now() - startTimestamp) * 1.0e-3;
-                    GUI.log('Flashing firmware to ESC ' + (escIndex + 1) + ' finished in ' + elapsedSec + ' seconds');
+                    GUI.log(chrome.i18n.getMessage('escFlashingFinished', [ escIndex + 1, elapsedSec ]));
                     googleAnalytics.sendEvent('ESC', 'FlashingFinished', 'After', elapsedSec.toString());
                 } catch (error) {
-                    GUI.log("Error flashing ESC " + (escIndex + 1) + ': ' + error.message);
+                    GUI.log(chrome.i18n.getMessage('escFlashingFailed', [ escIndex + 1, error.message ]));
                     googleAnalytics.sendEvent('ESC', 'FlashingFailed', 'Error', error.message);
                 }
 
@@ -762,7 +747,7 @@ var Configurator = React.createClass({
                 })
             }
         } catch (error) {
-            GUI.log('Flashing failed: ' + error.message);
+            GUI.log(chrome.i18n.getMessage('flashingFailedGeneral', [ error.message ]));
             googleAnalytics.sendEvent('ESC', 'FirmwareValidationFailed', 'Error', error.message);
         }
 
