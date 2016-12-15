@@ -2,7 +2,8 @@
 
 // Fast way to log possible errors and uncaught exceptions
 window.console = (function (origConsole) {
-    var data = [];
+    var data = [],
+        isDebug = false;
 
     return {
         log: function() {
@@ -23,8 +24,9 @@ window.console = (function (origConsole) {
         },
         debug: function() {
             data.push(Array.prototype.slice.call(arguments).join(' '));
-            origConsole.debug.apply(origConsole, argumets);
+            isDebug && origConsole.debug.apply(origConsole, arguments);
         },
+        setDebug: function(b) { isDebug = b },
         dump: function() {
           return data;
         }

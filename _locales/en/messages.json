@@ -199,10 +199,10 @@
         "message": "Beacon Delay"
     },
     "escButtonRead": {
-        "message": "Read Settings"
+        "message": "Read Setup"
     },
     "escButtonWrite": {
-        "message": "Write Settings"
+        "message": "Write Setup"
     },
     "escButtonFlash": {
         "message": "FLASH FIRMWARE"
@@ -217,7 +217,7 @@
         "message": "Select File Manually"
     },
     "escButtonSaveLog": {
-        "message": "Save Log"
+        "message": "Save Debug Log"
     },
     "escIgnoreInappropriateMCULayout": {
         "message": "Ignore inappropriate MCU and Layout?"

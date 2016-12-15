@@ -69,7 +69,6 @@ var _4way = {
     callbacks:      [],
     // Storage for partially-received messages
     backlog_view:   null,
-    verbose: true,
 
     crc16_xmodem_update: function(crc, byte) {
         crc = crc ^ (byte << 8);
@@ -130,7 +129,7 @@ var _4way = {
 
         while (view.length > 0) {
             if (view[0] != _4way_if) {
-                console.log('invalid message start: ', view[0]);
+                console.debug('invalid message start: ', view[0]);
                 break;
             }
 
@@ -163,7 +162,7 @@ var _4way = {
             var checksum = msgWithoutChecksum.reduce(this.crc16_xmodem_update, 0);
 
             if (checksum != message.checksum) {
-                console.log('checksum mismatch, received: ', message.checksum, ', calculated: ', checksum);
+                console.debug('checksum mismatch, received: ', message.checksum, ', calculated: ', checksum);
                 break;
             }
 
@@ -201,26 +200,34 @@ var _4way = {
 
         function sendCallback(sendInfo) {
             if (sendInfo.bytesSent == message.byteLength) {
+                var timer = setTimeout(() => {
+                    deferred.reject(new Error("Timeout while waiting for reply to " + _4way_command_to_string(command)));
+
+                    // remove callback
+                    for (var i = 0; i < self.callbacks.length; ++i) {
+                        if (self.callbacks[i].command === command) {
+                            self.callbacks.splice(i, 1);
+
+                            break;
+                        }
+                    }
+                }, 1000);
+
                 self.callbacks.push({
                     command: command,
-                    callback: recvCallback
+                    callback: recvCallback,
+                    timer: timer
                 })
             } else {
                 deferred.reject(new Error('serial.send(): ' + JSON.stringify(sendInfo)))
             }
         }
 
-        if (self.verbose) {
-            console.log('sending', _4way_command_to_string(command), address.toString(0x10), params)
-        }
+        console.debug('sending', _4way_command_to_string(command), address.toString(0x10), params)
 
         serial.send(message, sendCallback);
 
         return deferred.promise;
-    },
-
-    send: function(obj) {
-        this.sendMessage(obj.command, obj.params, obj.address, obj.callback)
     },
 
     initFlash: function(target) {
@@ -260,13 +267,13 @@ var _4way = {
         var messages = self.parseMessages(readInfo.data);
 
         messages.forEach(function (message) {
-            if (self.verbose) {
-                console.log('received', _4way_command_to_string(message.command), _4way_ack_to_string(message.ack), message.address.toString(0x10), message.params)
-            }
+            console.debug('received', _4way_command_to_string(message.command), _4way_ack_to_string(message.ack), message.address.toString(0x10), message.params)
 
             for (var i = self.callbacks.length - 1; i >= 0; --i) {
                 if (i < self.callbacks.length) {
                     if (self.callbacks[i].command == message.command) {
+                        clearTimeout(self.callbacks[i].timer);
+
                         // save callback reference
                         var callback = self.callbacks[i].callback;
         

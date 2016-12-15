@@ -23,6 +23,7 @@ TABS.esc = {
 
         // tell 4-way interface to return control to MSP server
         _4way.exit()
+        .catch(() => {})
         // now we can return control to MSP or CLI handlers
         .finally(() => {
             CONFIGURATOR.escActive = false;
