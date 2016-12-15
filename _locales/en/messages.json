@@ -273,5 +273,9 @@
     },
     "flashingFailedGeneral": {
         "message": "Flashing <span style=\"color: red\">failed</span>: <strong>$1</strong>"
+    },
+
+    "resetDefaults": {
+        "message": "Defaults"
     }
 }

@@ -49,11 +49,13 @@ var Configurator = React.createClass({
         const availableMetainfos = this.state.escMetainfo.filter(info => info.available);
         const canFlash = availableSettings.every(settings => settings.MCU === availableSettings[0].MCU) &&
             availableMetainfos.every(info => info.interfaceMode === _4way_modes.SiLBLB);
+        const canResetDefaults = availableSettings.every(settings => settings.LAYOUT_REVISION > BLHELI_S_MIN_LAYOUT_REVISION);
 
         this.setState({
             canRead: true,
             canWrite: availableSettings.length > 0,
-            canFlash: availableSettings.length > 0 && canFlash
+            canFlash: availableSettings.length > 0 && canFlash,
+            canResetDefaults: canResetDefaults
         });
 
         $('a.connect').removeClass('disabled');
@@ -221,6 +223,34 @@ var Configurator = React.createClass({
         await this.readSetup();
 
         $('a.connect').removeClass('disabled');
+    },
+    resetDefaults: function() {
+        var newSettings = [];
+
+        this.state.escSettings.forEach((settings, index) => {
+            if (!this.state.escMetainfo[index].available) {
+                newSettings.push({})
+                return;
+            }
+
+            const defaults = BLHELI_S_DEFAULTS[settings.LAYOUT_REVISION];
+            if (defaults) {
+                for (var settingName in defaults) {
+                    if (defaults.hasOwnProperty(settingName)) {
+                        settings[settingName] = defaults[settingName];
+                    }
+                }
+            }
+
+            newSettings.push(settings);
+        })
+
+        this.setState({
+            escSettings: newSettings
+        });
+
+        this.writeSetup()
+        .catch(error => console.log("Unexpected error while writing default setup", error))
     },
     flashOne: async function(escIndex) {
         this.setState({
@@ -806,6 +836,15 @@ var Configurator = React.createClass({
                             onClick={this.selectFirmwareForFlashAll}
                         >
                             {chrome.i18n.getMessage('escButtonFlashAll')}
+                        </a>
+                    </div>
+                    <div className={this.state.canResetDefaults ? "btn" : "hidden"}>
+                        <a
+                            href="#"
+                            className={!this.state.selectingFirmware && !this.state.IsFlashing && this.state.canWrite ? "" : "disabled"}
+                            onClick={this.resetDefaults}
+                        >
+                            {chrome.i18n.getMessage('resetDefaults')}
                         </a>
                     </div>
                 </div>
