@@ -374,7 +374,7 @@ var Configurator = React.createClass({
                 var begin_address = 0x80,
                     end_address = BLHELI_ATMEL_BLB_ADDRESS_8
                     write_step = isSimonK ? 0x40 : 0x100,
-                    verify_step = 0x100,
+                    verify_step = 0x80,
                     promise = Q()
 
                 // write
@@ -405,6 +405,7 @@ var Configurator = React.createClass({
 
                     if (isSimonK) {
                         if (address === begin_address) {
+                            // Word addressing for flash with SimonK bootloader
                             read_address /= 2
                         } else {
                             // SimonK bootloader will continue from the last address where we left off
@@ -459,19 +460,22 @@ var Configurator = React.createClass({
             })
             // write EEprom changes
             .then(() => {
-                var eeprom = new Uint8Array(BLHELI_ATMEL_EEPROM_SIZE)
+                var eeprom = new Uint8Array(BLHELI_ATMEL_EEPROM_SIZE),
+                    beginAddress = 0,
+                    endAddress = 0x200,
+                    step = 0x80,
+                    promise = Q();
 
                 // read whole EEprom
-                var promise = _4way.readEEprom(0, 0x100)
-                .then(message => {
-                    eeprom.set(message.params, 0)
-                })
-                .then(_4way.readEEprom.bind(_4way, isSimonK ? 0xFFFF : 0x100, 0x100))
-                .then(message => {
-                    eeprom.set(message.params, 0x100)
-                })
+                for (let address = beginAddress; address < endAddress; address += step) {
+                    const cmdAddress = address === beginAddress || !SimonK ? address : 0xFFFF;
+
+                    promise = promise.then(_4way.readEEprom.bind(_4way, cmdAddress, step))
+                    .then(message => eeprom.set(message.params, address));
+                }
+
                 // write differing bytes
-                .then(() => {
+                return promise.then(() => {
                     var promise = Q(),
                         max_bytes_per_write = isSimonK ? 0x40 : 0x100
 
@@ -590,21 +594,27 @@ var Configurator = React.createClass({
             // erase first page
             .then(erasePage.bind(undefined, 0))
             // ensure page erased to 0xFF
-            .then(_4way.read.bind(_4way, 0, 0x100))
-            .then(function(message) {
-                var erased = message.params.every(x => x == 0xFF)
-                if (!erased) {
-                    throw new Error('Failed to verify erasure of the first page')
+            // @todo it could be beneficial to reattempt erasing first page in case of failure
+            .then(() => {
+                var begin_address   = 0,
+                    end_address     = 0x200,
+                    step            = 0x80,
+                    promise         = Q();
+
+                for (var address = begin_address; address < end_address; address += step) {
+                    promise = promise.then(_4way.read.bind(_4way, address, step))
+                    .then(function(message) {
+                        const erased = message.params.every(x => x == 0xFF);
+                        if (!erased) {
+                            throw new Error('Failed to verify erasure of the first page');
+                        }
+
+                        updateProgress(message.params.byteLength);
+                    })
                 }
 
-                return _4way.read(0x100, 0x100)
-            })
-            .then(function(message) {
-                var erased = message.params.every(x => x == 0xFF)
-                if (!erased) {
-                    throw new Error('Failed to verify erasure of the first page')
-                }
-            })
+                return promise
+            });
 
             return promise
         }
@@ -653,7 +663,7 @@ var Configurator = React.createClass({
         function verifyPages(begin, end) {
             var begin_address   = begin * BLHELI_SILABS_PAGE_SIZE,
                 end_address     = end * BLHELI_SILABS_PAGE_SIZE,
-                step            = 0x100,
+                step            = 0x80,
                 promise         = Q()
 
             for (var address = begin_address; address < end_address; address += step) {
