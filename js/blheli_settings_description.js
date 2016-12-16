@@ -403,7 +403,7 @@ var BLHELI_MULTI_SETTINGS_LAYOUT_19 = [
         name: 'LOW_VOLTAGE_LIMIT', type: 'enum', options: [
             { value: '1', label: 'Off' }, { value: '2', label: '3.0V/c' },
             { value: '3', label: '3.1V/c' }, { value: '4', label: '3.2V/c' },
-            { value: '5', label: '3.3/c' }, { value: '6', label: '3.4V/c' }
+            { value: '5', label: '3.3V/c' }, { value: '6', label: '3.4V/c' }
         ],
         label: 'escLowVoltageLimit'
     },
@@ -429,14 +429,6 @@ var BLHELI_MULTI_SETTINGS_LAYOUT_19 = [
     },
     {
         name: 'TEMPERATURE_PROTECTION', type: 'bool', label: 'escTemperatureProtection'
-    },
-    {
-        name: 'PWM_DITHER', type: 'enum', label: 'escPWMOutputDither',
-        options: [
-            { value: '1', label: '1' }, { value: '2', label: '3' },
-            { value: '3', label: '7' }, { value: '4', label: '15' },
-            { value: '5', label: '31' }
-        ]
     },
     {
         name: 'DEMAG_COMPENSATION', type: 'enum', label: 'escDemagCompensation',

@@ -156,6 +156,9 @@
     "escClosedLoopIGain": {
         "message": "Closed Loop I-Gain"
     },
+    "escLowVoltageLimit": {
+        "message": "Low Voltage Limit"
+    },
     "escMotorGain": {
         "message": "Motor Gain"
     },
