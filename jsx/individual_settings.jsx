@@ -39,7 +39,6 @@ var IndividualSettings = React.createClass({
     },
     renderControls: function() {
         const escSettings = this.props.escSettings[this.props.escIndex];
-        const isSiLabs = this.props.escMetainfo[this.props.escIndex].interfaceMode === _4way_modes.SiLBLB;
 
         var rows = [];
 
@@ -65,7 +64,7 @@ var IndividualSettings = React.createClass({
                     />
                     <a
                         href="#"
-                        className={this.props.canFlash && isSiLabs ? "" : "disabled"}
+                        className={this.props.canFlash ? "" : "disabled"}
                         onClick={this.flashFirmware}
                     >
                         {chrome.i18n.getMessage('escButtonFlash')}
