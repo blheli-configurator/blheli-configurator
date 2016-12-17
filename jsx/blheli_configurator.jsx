@@ -264,12 +264,11 @@ var Configurator = React.createClass({
     },
     flashFirmwareImpl: async function(escIndex, escSettings, escMetainfo, flashImage, eepromImage, notifyProgress) {
         var isAtmel = [ _4way_modes.AtmBLB, _4way_modes.AtmSK ].includes(escMetainfo.interfaceMode),
-            isSimonK = _4way_modes.AtmSK === escMetainfo.interfaceMode,
             self = this;
 
         // rough estimate, each location gets erased, written and verified at least once
         // SimonK does not erase pages, hence the factor of 2
-        var bytes_to_process = flashImage.byteLength * (isSimonK ? 2 : 3),
+        var bytes_to_process = flashImage.byteLength * (isAtmel ? 2 : 3),
             bytes_processed = 0;
 
         // start the actual flashing process
