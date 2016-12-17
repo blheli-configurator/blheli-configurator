@@ -122,7 +122,7 @@ var Configurator = React.createClass({
     // @todo add validation of each setting via BLHELI_SETTINGS_DESCRIPTION
     writeSetupAll: async function() {
         for (var esc = 0; esc < this.state.escSettings.length; ++esc) {
-            writeSetupImpl(esc);
+            await this.writeSetupImpl(esc);
         }
     },
     writeSetupImpl: async function(esc) {
