@@ -514,3 +514,7 @@ var BLHELI_ATMEL_MCUS = [
     { name: 'ATmega88P(A)', signature: 0x930F, page_size: 0x20, flash_size: 0x2000, eeprom_size: 0x200 },
     { name: 'ATmega168P(A)', signature: 0x940B, page_size: 0x40, flash_size: 0x4000, eeprom_size: 0x200 }
 ];
+
+function findMCU(signature, MCUList) {
+    return MCUList.find(MCU => MCU.signature === signature);
+}

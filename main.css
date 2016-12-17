@@ -118,16 +118,17 @@ input[type="number"]::-webkit-inner-spin-button {
 
 
 #logo {
+    background: url('./images/icon_128.png');
     position: relative;
     float: left;
-    height: 70px;
+    height: 90px;
     z-index: 0;
     background-repeat: no-repeat;
     width: 340px;
     background-position: left center;
     background-size: contain;
-    margin-left: 15px;
-    margin-top: 15px;
+    margin-left: 23px;
+    margin-top: 10px;
 }
 
 .logo_text {

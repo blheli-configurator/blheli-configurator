@@ -156,6 +156,9 @@
     "escClosedLoopIGain": {
         "message": "Closed Loop I-Gain"
     },
+    "escLowVoltageLimit": {
+        "message": "Low Voltage Limit"
+    },
     "escMotorGain": {
         "message": "Motor Gain"
     },
@@ -245,6 +248,12 @@
     "writeSetupStarted": {
         "message": "Writing setup"
     },
+    "writeSetupNoChanges": {
+        "message": "ESC $1: <strong>no changes</strong>"
+    },
+    "writeSetupBytesWritten": {
+        "message": "ESC $1: <strong>$2 byte(s)</strong> written"
+    },
     "writeSetupFinished": {
         "message": "Writing setup <span style=\"color: green\">finished</span>"
     },
@@ -263,7 +272,7 @@
     },
 
     "escFlashingStarted": {
-        "message": "ESC $1: flashing started"
+        "message": "ESC $1: flashing <strong>started</strong>"
     },
     "escFlashingFinished": {
         "message": "ESC $1: flashing <span style=\"color: green\">finished</span> in <strong>$2</strong> seconds"

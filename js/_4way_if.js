@@ -175,9 +175,10 @@ var _4way = {
         return messages;
     },
 
-    sendMessagePromised: function(command, params, address) {
+    sendMessagePromised: function(command, params, address, timeout) {
         if (params == undefined) params = [ 0 ];
         if (address == undefined) address = 0;
+        if (timeout == undefined) timeout = 2000;
 
         var self = this,
             message = self.createMessage(command, params, address),
@@ -193,7 +194,7 @@ var _4way = {
                 if (++retry < maxRetries) {
                     serial.send(message, sendCallback);
                 } else {
-                    deferred.reject(new Error(JSON.stringify(msg)));
+                    deferred.reject(new Error(_4way_command_to_string(msg.command) + ' ' + _4way_ack_to_string(msg.ack)));
                 }
             }
         }
@@ -211,7 +212,7 @@ var _4way = {
                             break;
                         }
                     }
-                }, 1000);
+                }, timeout);
 
                 self.callbacks.push({
                     command: command,
@@ -251,7 +252,8 @@ var _4way = {
     },
 
     writeEEprom: function(address, data) {
-        return this.sendMessagePromised(_4way_commands.cmd_DeviceWriteEEprom, data, address)
+        // writing EEprom is real slow on Atmel, hence increased timeout
+        return this.sendMessagePromised(_4way_commands.cmd_DeviceWriteEEprom, data, address, 10000)
     },
 
     reset: function(target) {

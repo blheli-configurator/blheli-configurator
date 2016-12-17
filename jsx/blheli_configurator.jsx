@@ -37,18 +37,17 @@ var Configurator = React.createClass({
         });
 
         try {
-            await this.readSetupImpl();
+            await this.readSetupAll();
             GUI.log(chrome.i18n.getMessage('readSetupFinished'));
         } catch (error) {
-            GUI.log(chrome.i18n.getMessage('readSetupFailed', [ error.message ]));
+            GUI.log(chrome.i18n.getMessage('readSetupFailed', [ error.stack ]));
         }
 
         // Enable `Flash All` if all ESCs are identical
         const availableSettings = this.state.escSettings.filter((i, idx) => this.state.escMetainfo[idx].available);
         // @todo remove when Atmel flashing has been checked
         const availableMetainfos = this.state.escMetainfo.filter(info => info.available);
-        const canFlash = availableSettings.every(settings => settings.MCU === availableSettings[0].MCU) &&
-            availableMetainfos.every(info => info.interfaceMode === _4way_modes.SiLBLB);
+        const canFlash = availableSettings.every(settings => settings.LAYOUT === availableSettings[0].LAYOUT);
         const canResetDefaults = availableSettings.every(settings => settings.LAYOUT_REVISION > BLHELI_S_MIN_LAYOUT_REVISION);
 
         this.setState({
@@ -60,7 +59,7 @@ var Configurator = React.createClass({
 
         $('a.connect').removeClass('disabled');
     },
-    readSetupImpl: async function() {
+    readSetupAll: async function() {
         var escSettings = [],
             escMetainfo = [];
 
@@ -109,7 +108,7 @@ var Configurator = React.createClass({
                     await _4way.reset(esc);
                 }
             } catch (error) {
-                console.log('ESC', esc + 1, 'read settings failed', error);
+                console.log('ESC', esc + 1, 'read settings failed', error.message);
                 escMetainfo[esc].available = false;
             }
         }
@@ -121,83 +120,89 @@ var Configurator = React.createClass({
         });
     },
     // @todo add validation of each setting via BLHELI_SETTINGS_DESCRIPTION
-    writeSetupImpl: async function() {
-        for (let esc = 0; esc < this.state.escSettings.length; ++esc) {
-            try {
-                if (!this.state.escMetainfo[esc].available) {
-                   continue;
-                }
-
-                // Ask 4way interface to initialize target ESC for flashing
-                const message = await _4way.initFlash(esc);
-                // Remember interface mode and read settings
-                var interfaceMode = message.params[3]
-
-                // read everything in one big chunk to check if any settings have changed
-                // SiLabs has no separate EEPROM, but Atmel has and therefore requires a different read command
-                var isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interfaceMode),
-                    readbackSettings = null;
-
-                if (isSiLabs) {
-                    readbackSettings = (await _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE)).params;
-                } else {
-                    readbackSettings = (await _4way.readEEprom(0, BLHELI_LAYOUT_SIZE)).params;
-                }
-
-                // Check for changes and perform write
-                var escSettings = blheliSettingsArray(this.state.escSettings[esc]);
-
-                // check for unexpected size mismatch
-                if (escSettings.byteLength != readbackSettings.byteLength) {
-                    throw new Error('byteLength of buffers do not match')
-                }
-
-                // check for actual changes, maybe we should not write to this ESC at all
-                if (compare(escSettings, readbackSettings)) {
-                    continue;
-                }
-
-                // should erase page to 0xFF on SiLabs before writing
-                if (isSiLabs) {
-                    await _4way.pageErase(BLHELI_SILABS_EEPROM_OFFSET / BLHELI_SILABS_PAGE_SIZE);
-                    // actual write
-                    await _4way.write(BLHELI_SILABS_EEPROM_OFFSET, escSettings);
-                } else {
-                    // write only changed bytes for Atmel
-                    for (var pos = 0; pos < escSettings.byteLength; ++pos) {
-                        var offset = pos
-
-                        // find the longest span of modified bytes
-                        while (escSettings[pos] != readbackSettings[pos]) {
-                            ++pos
-                        }
-
-                        // byte unchanged, continue
-                        if (offset == pos) {
-                            continue
-                        }
-
-                        // write span
-                        await _4way.writeEEprom(offset, escSettings.subarray(offset, pos));
-                    }
-                }
-
-                if (isSiLabs) {
-                    readbackSettings = (await _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE)).params;
-                } else {
-                    readbackSettings = (await _4way.readEEprom(0, BLHELI_LAYOUT_SIZE)).params;
-                }
-
-                if (!compare(escSettings, readbackSettings)) {
-                    throw new Error('Failed to verify settings')
-                }
-
-                if (isSiLabs) {
-                    await _4way.reset(esc);
-                }
-            } catch (error) {
-                GUI.log(chrome.i18n.getMessage('writeSetupFailedOne', [ esc + 1, error.message ]));
+    writeSetupAll: async function() {
+        for (var esc = 0; esc < this.state.escSettings.length; ++esc) {
+            writeSetupImpl(esc);
+        }
+    },
+    writeSetupImpl: async function(esc) {
+        try {
+            if (!this.state.escMetainfo[esc].available) {
+               return;
             }
+
+            // Ask 4way interface to initialize target ESC for flashing
+            const message = await _4way.initFlash(esc);
+            // Remember interface mode and read settings
+            var interfaceMode = message.params[3]
+
+            // read everything in one big chunk to check if any settings have changed
+            // SiLabs has no separate EEPROM, but Atmel has and therefore requires a different read command
+            var isSiLabs = [ _4way_modes.SiLC2, _4way_modes.SiLBLB ].includes(interfaceMode),
+                readbackSettings = null;
+
+            if (isSiLabs) {
+                readbackSettings = (await _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE)).params;
+            } else {
+                readbackSettings = (await _4way.readEEprom(0, BLHELI_LAYOUT_SIZE)).params;
+            }
+
+            // Check for changes and perform write
+            var escSettings = blheliSettingsArray(this.state.escSettings[esc]);
+
+            // check for unexpected size mismatch
+            if (escSettings.byteLength != readbackSettings.byteLength) {
+                throw new Error('byteLength of buffers do not match')
+            }
+
+            // check for actual changes, maybe we should not write to this ESC at all
+            if (compare(escSettings, readbackSettings)) {
+                GUI.log(chrome.i18n.getMessage('writeSetupNoChanges', [ esc + 1 ]));
+                return;
+            }
+
+            // should erase page to 0xFF on SiLabs before writing
+            if (isSiLabs) {
+                await _4way.pageErase(BLHELI_SILABS_EEPROM_OFFSET / BLHELI_SILABS_PAGE_SIZE);
+                // actual write
+                await _4way.write(BLHELI_SILABS_EEPROM_OFFSET, escSettings);
+                GUI.log(chrome.i18n.getMessage('writeSetupBytesWritten', [ esc + 1, escSettings.byteLength ]));
+            } else {
+                // write only changed bytes for Atmel
+                for (var pos = 0; pos < escSettings.byteLength; ++pos) {
+                    var offset = pos
+
+                    // find the longest span of modified bytes
+                    while (escSettings[pos] != readbackSettings[pos]) {
+                        ++pos
+                    }
+
+                    // byte unchanged, continue
+                    if (offset == pos) {
+                        continue
+                    }
+
+                    // write span
+                    await _4way.writeEEprom(offset, escSettings.subarray(offset, pos));
+                    GUI.log(chrome.i18n.getMessage('writeSetupBytesWritten', [ esc + 1, pos - offset ]));
+                }
+            }
+
+            if (isSiLabs) {
+                readbackSettings = (await _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE)).params;
+            } else {
+                readbackSettings = (await _4way.readEEprom(0, BLHELI_LAYOUT_SIZE)).params;
+            }
+
+            if (!compare(escSettings, readbackSettings)) {
+                throw new Error('Failed to verify settings')
+            }
+
+            if (isSiLabs) {
+                await _4way.reset(esc);
+            }
+        } catch (error) {
+            GUI.log(chrome.i18n.getMessage('writeSetupFailedOne', [ esc + 1, error.message ]));
         }
     },
     writeSetup: async function() {
@@ -213,12 +218,11 @@ var Configurator = React.createClass({
         });
 
         try {
-            await this.writeSetupImpl();
+            await this.writeSetupAll();
             GUI.log(chrome.i18n.getMessage('writeSetupFinished'));
         } catch (error) {
-            GUI.log(chrome.i18n.getMessage('writeSetupFailed', [ error.message ]));
+            GUI.log(chrome.i18n.getMessage('writeSetupFailed', [ error.stack ]));
         }
-
 
         await this.readSetup();
 
@@ -263,8 +267,8 @@ var Configurator = React.createClass({
             self = this;
 
         // rough estimate, each location gets erased, written and verified at least once
-        var max_flash_size = isAtmel ? BLHELI_ATMEL_BLB_ADDRESS_8 : BLHELI_SILABS_ADDRESS_SPACE_SIZE,
-            bytes_to_process = max_flash_size * 3,
+        // SimonK does not erase pages, hence the factor of 2
+        var bytes_to_process = flashImage.byteLength * (isAtmel ? 2 : 3),
             bytes_processed = 0;
 
         // start the actual flashing process
@@ -272,8 +276,14 @@ var Configurator = React.createClass({
         // select flashing algorithm given interface mode
         await selectInterfaceAndFlash(initFlashResponse);
 
+        var settingsArray;
+        if (isAtmel) {
+            settingsArray = (await _4way.readEEprom(0, BLHELI_LAYOUT_SIZE)).params;
+        } else {
+            settingsArray = (await _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE)).params;
+        }
         // migrate settings from previous version if asked to
-        const newSettings = blheliSettingsObject((await _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE)).params);
+        const newSettings = blheliSettingsObject(settingsArray);
 
         // ensure mode match
         if (newSettings.MODE === escSettings.MODE) {
@@ -289,7 +299,14 @@ var Configurator = React.createClass({
             allSettings[escIndex] = newSettings;
             self.onUserInput(allSettings);
 
-            await self.writeSetup();
+            GUI.log(chrome.i18n.getMessage('writeSetupStarted'));
+
+            try {
+                await self.writeSetupImpl(escIndex);
+                GUI.log(chrome.i18n.getMessage('writeSetupFinished'));
+            } catch (error) {
+                GUI.log(chrome.i18n.getMessage('writeSetupFailed', [ error.message ]));
+            }
         } else {
             GUI.log('Will not write settings back due to different MODE\n');
 
@@ -307,10 +324,10 @@ var Configurator = React.createClass({
             escMetainfo.interfaceMode = interfaceMode
 
             switch (interfaceMode) {
-                case _4way_modes.SiLBLB: return flashSiLabsBLB(message)
-                // case _4way_modes.AtmBLB:
-                // case _4way_modes.AtmSK:  return flashAtmel(message)
-                default: throw new Error('Flashing with interface mode ' + interfaceMode + ' is not yet implemented')
+                case _4way_modes.SiLBLB: return flashSiLabsBLB(message);
+                case _4way_modes.AtmBLB:
+                case _4way_modes.AtmSK:  return flashAtmel(message);
+                default: throw new Error('Flashing with interface mode ' + interfaceMode + ' is not yet implemented');
             }
         }
 
@@ -368,18 +385,21 @@ var Configurator = React.createClass({
             // write RCALL bootloader_start
             .then(() => {
                 var address = isSimonK ? 0x20 : 0x40,
-                    // @todo for BLHeli we can jump 0x200 bytes further, do it
-                    rcall = [ 0xDF, 0xCD ],
+                    // @todo This is a jump to SimonK bootloader, BLHeli bootloader is 512 bytes further, jump could be optimized
+                    rcall = new Uint8Array([ 0xDF, 0xCD ]),
                     bytes = new Uint8Array(64).fill(0xFF)
 
                 bytes.set(rcall)
 
                 return _4way.write(address, bytes)
+                .then(() => updateProgress(bytes.byteLength))
                 .then(_4way.read.bind(_4way, address, rcall.length))
                 .then(message => {
                     if (!compare(rcall, message.params)) {
                         throw new Error('Failed to verify `RCALL bootloader` write')
                     }
+
+                    updateProgress(bytes.byteLength);
                 })
             })
             // erase first 64 bytes up to RCALL written in the previous step
@@ -387,25 +407,36 @@ var Configurator = React.createClass({
                 var bytes = new Uint8Array(64).fill(0xFF)
 
                 return _4way.write(0, bytes)
+                .then(() => updateProgress(bytes.byteLength))
                 .then(_4way.read.bind(_4way, 0, bytes.byteLength))
                 .then(message => {
                     if (!compare(bytes, message.params)) {
                         throw new Error('Failed to verify erasure of first 64 bytes')
-                    }  
+                    }
+                    updateProgress(bytes.byteLength);
                 })
             })
             // write from 0x80 up to bootloader start
             .then(() => {
                 var begin_address = 0x80,
-                    end_address = BLHELI_ATMEL_BLB_ADDRESS_8
+                    end_address = (() => {
+                        const MCU = findMCU(escMetainfo.signature, BLHELI_ATMEL_MCUS);
+
+                        switch (escMetainfo.interfaceMode) {
+                            case _4way_modes.AtmBLB: return MCU.flash_size - BLHELI_ATMEL_BLB_SIZE;
+                            case _4way_modes.AtmSK: return MCU.flash_size - BLHELI_ATMEL_SK_SIZE;
+                            default: throw Error('unknown interfaceMode ' + escMetainfo.interfaceMode);
+                        }
+                    })(),
                     write_step = isSimonK ? 0x40 : 0x100,
                     verify_step = 0x80,
                     promise = Q()
 
                 // write
                 for (var address = begin_address; address < end_address; address += write_step) {
-                    var end = min(address + write_step, end_address),
-                        write_address = address
+                    var end = Math.min(address + write_step, end_address),
+                        write_address = address;
+                    let bytesToWrite = end - address;
 
                     if (isSimonK) {
                         if (address === begin_address) {
@@ -419,13 +450,13 @@ var Configurator = React.createClass({
                     promise = promise
                     .then(_4way.write.bind(_4way, write_address, flashImage.subarray(address, end)))
                     .then(message => {
-                        updateProgress(message.params.byteLength)
+                        updateProgress(bytesToWrite)
                     })
                 }
 
                 // verify
                 for (let address = begin_address; address < end_address; address += verify_step) {
-                    var bytesToRead = min(address + verify_step, end_address) - address,
+                    var bytesToRead = Math.min(address + verify_step, end_address) - address,
                         read_address = address
 
                     if (isSimonK) {
@@ -457,9 +488,12 @@ var Configurator = React.createClass({
                 if (isSimonK) {
                     return _4way.write(0, flashImage.subarray(0, 0x40))
                     .then(message => {
-                        updateProgress(message.params.byteLength)
+                        updateProgress(0x40);
                     })
                     .then(_4way.write.bind(_4way, 0xFFFF, flashImage.subarray(0x40, 0x80)))
+                    .then(message => {
+                        updateProgress(0x40);
+                    })
                     .then(_4way.read.bind(_4way, 0, 0x80))
                     .then(message => {
                         if (!compare(message.params, flashImage.subarray(0, 0x80))) {
@@ -471,7 +505,7 @@ var Configurator = React.createClass({
                 } else {
                     return _4way.write(0, flashImage.subarray(0, 0x80))
                     .then(message => {
-                        updateProgress(message.params.byteLength)
+                        updateProgress(0x80)
                     })
                     .then(_4way.read.bind(_4way, 0, 0x80))
                     .then(message => {
@@ -493,7 +527,7 @@ var Configurator = React.createClass({
 
                 // read whole EEprom
                 for (let address = beginAddress; address < endAddress; address += step) {
-                    const cmdAddress = address === beginAddress || !SimonK ? address : 0xFFFF;
+                    const cmdAddress = address === beginAddress || !isSimonK ? address : 0xFFFF;
 
                     promise = promise.then(_4way.readEEprom.bind(_4way, cmdAddress, step))
                     .then(message => eeprom.set(message.params, address));
@@ -509,7 +543,7 @@ var Configurator = React.createClass({
                         var offset = pos
 
                         // find the longest span of modified bytes
-                        while (eeprom[pos] != flashImage[pos] && (pos - offset) <= max_bytes_per_write) {
+                        while (eeprom[pos] != eepromImage[pos] && (pos - offset) <= max_bytes_per_write) {
                             ++pos
                         }
 
@@ -520,7 +554,7 @@ var Configurator = React.createClass({
 
                         // write span
                         promise = promise
-                        .then(_4way.writeEEprom.bind(_4way, offset, flashImage.subarray(offset, pos)))
+                        .then(_4way.writeEEprom.bind(_4way, offset, eepromImage.subarray(offset, pos)))
                     }
 
                     return promise
@@ -533,7 +567,7 @@ var Configurator = React.createClass({
         function checkESCAndMCU(message) {
             escSettingArrayTmp = message.params;
 
-            const settings_image = isAtmel ? flashImage : flashImage.subarray(BLHELI_SILABS_EEPROM_OFFSET);
+            const settings_image = isAtmel ? eepromImage : flashImage.subarray(BLHELI_SILABS_EEPROM_OFFSET);
 
             // check LAYOUT
             var target_layout = escSettingArrayTmp.subarray(BLHELI_LAYOUT.LAYOUT.offset, BLHELI_LAYOUT.LAYOUT.offset + BLHELI_LAYOUT.LAYOUT.size),
@@ -709,16 +743,32 @@ var Configurator = React.createClass({
 
         this.setState({ isFlashing: true });
         
-        const interfaceMode = this.state.escMetainfo.find(info => info.available).interfaceMode,
-              isAtmel = [ _4way_modes.AtmBLB, _4way_modes.AtmSK ].includes(interfaceMode);
+        const firstAvailableMetainfo = this.state.escMetainfo[this.state.escsToFlash[0]],
+            interfaceMode = firstAvailableMetainfo.interfaceMode,
+            signature = firstAvailableMetainfo.signature,
+            isAtmel = [ _4way_modes.AtmBLB, _4way_modes.AtmSK ].includes(interfaceMode);
 
-        const maxFlashSize = isAtmel ? BLHELI_ATMEL_BLB_ADDRESS_8 : BLHELI_SILABS_ADDRESS_SPACE_SIZE;
+        const flashSize = (() => {
+            switch (interfaceMode) {
+                case _4way_modes.SiLC2: return BLHELI_SILABS_FLASH_SIZE;
+                case _4way_modes.SiLBLB: {
+                    const MCU = findMCU(signature, BLHELI_S_SILABS_MCUS) || findMCU(signature, BLHELI_SILABS_MCUS);
+                    return MCU.flash_size;
+                }
+                case _4way_modes.AtmBLB:
+                case _4way_modes.AtmSK: {
+                    const MCU = findMCU(signature, BLHELI_ATMEL_MCUS);
+                    return MCU.flash_size;
+                }
+                default: throw Error('unknown interfaceMode ' + interfaceMode);
+            }
+        })();
 
         try {
-            const flash = fillImage(await parseHex(hex), maxFlashSize);
+            const flash = fillImage(await parseHex(hex), flashSize);
             var eeprom;
             if (eep) {
-                eeprom = fillImage(await parseHex(eep), maxFlashSize);
+                eeprom = fillImage(await parseHex(eep), BLHELI_ATMEL_EEPROM_SIZE);
             }
 
             if (!isAtmel) {
@@ -767,8 +817,8 @@ var Configurator = React.createClass({
                     GUI.log(chrome.i18n.getMessage('escFlashingFinished', [ escIndex + 1, elapsedSec ]));
                     googleAnalytics.sendEvent('ESC', 'FlashingFinished', 'After', elapsedSec.toString());
                 } catch (error) {
-                    GUI.log(chrome.i18n.getMessage('escFlashingFailed', [ escIndex + 1, error.message ]));
-                    googleAnalytics.sendEvent('ESC', 'FlashingFailed', 'Error', error.message);
+                    GUI.log(chrome.i18n.getMessage('escFlashingFailed', [ escIndex + 1, error.stack ]));
+                    googleAnalytics.sendEvent('ESC', 'FlashingFailed', 'Error', error.stack);
                 }
 
                 this.setState({
@@ -777,8 +827,8 @@ var Configurator = React.createClass({
                 })
             }
         } catch (error) {
-            GUI.log(chrome.i18n.getMessage('flashingFailedGeneral', [ error.message ]));
-            googleAnalytics.sendEvent('ESC', 'FirmwareValidationFailed', 'Error', error.message);
+            GUI.log(chrome.i18n.getMessage('flashingFailedGeneral', [ error.stack ]));
+            googleAnalytics.sendEvent('ESC', 'FirmwareValidationFailed', 'Error', error.stack);
         }
 
         this.setState({ isFlashing: false });
@@ -858,7 +908,18 @@ var Configurator = React.createClass({
 
         return (
             <div>
-                <div className="checkbox">
+                {this.renderWrappers()}
+            </div>
+        );
+    },
+    renderWrappers: function() {
+        if (this.state.selectingFirmware) {
+            const firstAvailableIndex = this.state.escsToFlash[0];
+            const firstAvailableMetainfo = this.state.escMetainfo[firstAvailableIndex];
+            const firstAvailableEsc = this.state.escSettings[firstAvailableIndex];
+
+            return [
+              <div className="checkbox">
                     <label>
                         <input
                             type="checkbox"
@@ -874,18 +935,7 @@ var Configurator = React.createClass({
                             </span>
                         </span>
                     </label>
-                </div>
-                {this.renderWrappers()}
-            </div>
-        );
-    },
-    renderWrappers: function() {
-        if (this.state.selectingFirmware) {
-            const firstAvailableIndex = this.state.escsToFlash[0];
-            const firstAvailableMetainfo = this.state.escMetainfo[firstAvailableIndex];
-            const firstAvailableEsc = this.state.escSettings[firstAvailableIndex];
-
-            return (
+                </div>,
                 <FirmwareSelector
                     signatureHint={firstAvailableMetainfo.signature}
                     escHint={firstAvailableEsc.LAYOUT}
@@ -893,7 +943,7 @@ var Configurator = React.createClass({
                     onFirmwareLoaded={this.onFirmwareLoaded}
                     onCancel={this.onFirmwareSelectorCancel}
                 />
-            );
+            ];
         }
 
         return (
