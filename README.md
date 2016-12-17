@@ -12,12 +12,11 @@ This software is in development, use it at your own risk. **ALWAYS REMOVE THE PR
 
 * Only BLHeli passthrough supported at the moment, hence only **CleanFlight**,  **BetaFlight**, **INAV** and **TriFlight**
 * Changing settings for any BLHeli_S, BLHeli SiLabs and BLHeli Atmel ESCs with bootloader
-* Flashing BLHeli and BLHeli_S to SiLabs ESCs
+* Flashing BLHeli and BLHeli_S to SiLabs and Atmel ESCs
 
 ## Future plans
 
 * Add declarative UI description for MAIN and MULTI modes
-* Flashing BLHeli to Atmel ESCs, it's already there but not yet tested
 * Full-featured 4-way interface support via BLHeli boxes, with C2-interface support
 * Electron/NW.js wrapper with auto-update
 * Android/iOS version based on the same code-base
