@@ -108,7 +108,7 @@ var Configurator = React.createClass({
                     await _4way.reset(esc);
                 }
             } catch (error) {
-                console.log('ESC', esc + 1, 'read settings failed', error);
+                console.log('ESC', esc + 1, 'read settings failed', error.message);
                 escMetainfo[esc].available = false;
             }
         }
