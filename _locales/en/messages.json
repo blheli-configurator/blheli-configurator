@@ -129,6 +129,25 @@
         "message": "Welcome to <strong>BLHeli - Configurator</strong>, a utility designed to simplify updating and configuring of your ESCs."
     },
 
+    "defaultWelcomeHead": {
+        "message": "Disclaimer"
+    },
+    "defaultWelcomeText": {
+        "message": "The application supports ESCs running BLHeli for Atmel, BLHeli for SiLabs and BLHeli_S.</br><strong>BLHeli FC passthrough</strong> is the only interface currently supported.<br /></br>Should you run into any problems, make sure to use the <strong>Save Debug Log</strong> button and submit a new issue via <a href=\"https://github.com/blheli-configurator/blheli-configurator/issues/new\" title=\"https://github.com\" target=\"_blank\">GitHub</a>.<br /><br/>Application source code can be downloaded from <a href=\"https://github.com/blheli-configurator/blheli-configurator\" title=\"https://www.github.com\" target=\"_blank\">here</a><br /><br />Latest <a href=\"http://www.silabs.com/products/mcu/pages/usbtouartbridgevcpdrivers.aspx\" title=\"http://www.silabs.com\" target=\"_blank\">CP210x Drivers</a> can be downloaded from <a href=\"http://www.silabs.com/products/mcu/pages/usbtouartbridgevcpdrivers.aspx\" title=\"http://www.silabs.com\" target=\"_blank\">here</a><br />Latest <a href=\"http://www.st.com/web/en/catalog/tools/PF257938\" title=\"http://www.st.com\" target=\"_blank\">STM USB VCP Drivers</a> can be downloaded from <a href=\"http://www.st.com/web/en/catalog/tools/PF257938\" title=\"http://www.st.com\" target=\"_blank\">here</a><br />"
+    },
+    "defaultContributingHead": {
+        "message": "Contributing"
+    },
+    "defaultContributingText": {
+        "message": "If you would like to help make BLHeli Configurator even better you can help in many ways, including:<br /><ul><li>Answering other users questions on the forums</li><li>Contributing <a href=\"https://github.com/blheli-configurator/blheli-configurator\" title=\"https://github.com\" target=\"_blank\">code</a> - new features, fixes, improvements</li><li>Submitting <a href=\"https://github.com/blheli-configurator/blheli-configurator/issues/new\" title=\"https://github.com\" target=\"_blank\">issues</a> with detailed description</li><li>Testing the application on your hardware</li><li></li></ul>"
+    },
+    "defaultDonateHead": {
+        "message": "Open Source / Donation Notice"
+    },
+    "defaultDonateText": {
+        "message": "This utility is fully <strong>open source</strong> and is available free of charge to all users.<br />If you found the BLHeli Configurator useful, please consider <strong>supporting</strong> its development by donating."
+    },
+
     "escFeaturesHelp": {
         "message": "<strong>Note:</strong> Make sure you've taken the propellers <strong>OFF</strong> before doing anything on this tab.<br /><strong>Note:</strong> Connect power to the ESCs."
     },
