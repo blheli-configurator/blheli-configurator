@@ -34,7 +34,6 @@ var MSP = {
     callbacks:                  [],
     packet_error:               0,
     unsupported:                0,
-    timeouts_in_a_row:          0,
 
     last_received_timestamp:   null,
     analog_last_received_timestamp: null,
@@ -227,8 +226,6 @@ var MSP = {
             }
         }
 
-        this.timeouts_in_a_row = 0;
-
         // trigger callbacks, cleanup/remove callback after trigger
         for (var i = this.callbacks.length - 1; i >= 0; i--) { // itterating in reverse because we use .splice which modifies array length
             if (i < this.callbacks.length) {
@@ -308,14 +305,6 @@ var MSP = {
         if (!requestExists) {
             obj.timer = setInterval(function () {
                 console.log('MSP data request timed-out: ' + code);
-
-                // try exiting 4-way interface just in case
-                if (++MSP.timeouts_in_a_row > 1) {
-                    MSP.timeouts_in_a_row = 0;
-                    CONFIGURATOR.escActive = true;
-                    _4way.exit().catch(() => {}).finally(() => CONFIGURATOR.escActive = false).done();
-                }
-
                 serial.send(bufferOut, false);
             }, 1000); // we should be able to define timeout in the future
         }

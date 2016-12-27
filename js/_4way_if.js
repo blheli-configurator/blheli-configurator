@@ -178,7 +178,7 @@ var _4way = {
     sendMessagePromised: function(command, params, address, timeout) {
         if (params == undefined) params = [ 0 ];
         if (address == undefined) address = 0;
-        if (timeout == undefined) timeout = 2000;
+        if (timeout == undefined) timeout = 10000;
 
         var self = this,
             message = self.createMessage(command, params, address),
@@ -253,7 +253,7 @@ var _4way = {
 
     writeEEprom: function(address, data) {
         // writing EEprom is real slow on Atmel, hence increased timeout
-        return this.sendMessagePromised(_4way_commands.cmd_DeviceWriteEEprom, data, address, 10000)
+        return this.sendMessagePromised(_4way_commands.cmd_DeviceWriteEEprom, data, address)
     },
 
     reset: function(target) {
