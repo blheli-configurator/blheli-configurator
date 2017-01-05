@@ -69,6 +69,7 @@ var _4way = {
     callbacks:      [],
     // Storage for partially-received messages
     backlog_view:   null,
+    interval:       null,
 
     crc16_xmodem_update: function(crc, byte) {
         crc = crc ^ (byte << 8);
@@ -178,7 +179,7 @@ var _4way = {
     sendMessagePromised: function(command, params, address, timeout) {
         if (params == undefined) params = [ 0 ];
         if (address == undefined) address = 0;
-        if (timeout == undefined) timeout = 10000;
+        if (timeout == undefined) timeout = 5000;
 
         var self = this,
             message = self.createMessage(command, params, address),
@@ -224,7 +225,9 @@ var _4way = {
             }
         }
 
-        console.debug('sending', _4way_command_to_string(command), address.toString(0x10), params)
+        if (command != _4way_commands.cmd_InterfaceTestAlive) {
+            console.debug('sending', _4way_command_to_string(command), address.toString(0x10), params);
+        }
 
         serial.send(message, sendCallback);
 
@@ -264,12 +267,18 @@ var _4way = {
         return this.sendMessagePromised(_4way_commands.cmd_InterfaceExit)
     },
 
+    testAlive: function() {
+        return this.sendMessagePromised(_4way_commands.cmd_InterfaceTestAlive);
+    },
+
     onread: function(readInfo) {
         var self = this;
         var messages = self.parseMessages(readInfo.data);
 
         messages.forEach(function (message) {
-            console.debug('received', _4way_command_to_string(message.command), _4way_ack_to_string(message.ack), message.address.toString(0x10), message.params)
+            if (message.command != _4way_commands.cmd_InterfaceTestAlive) {
+                console.debug('received', _4way_command_to_string(message.command), _4way_ack_to_string(message.ack), message.address.toString(0x10), message.params);
+            }
 
             for (var i = self.callbacks.length - 1; i >= 0; --i) {
                 if (i < self.callbacks.length) {
@@ -293,7 +302,21 @@ var _4way = {
     },
 
     cleanup: function() {
-        this.callbacks = [],
-        this.backlog_view = null
+        this.callbacks = [];
+        this.backlog_view = null;
+        if (this.interval) {
+            clearInterval(this.interval);
+            this.interval = null;
+        }
+    },
+
+    start: function() {
+        this.interval = setInterval(() => {
+            try {
+                _4way.testAlive().catch(() => {}).done();
+            } catch (error) {
+
+            }
+        }, 1000);
     }
 };
