@@ -168,6 +168,7 @@ function onOpen(openInfo) {
                                         // set flag to allow messages redirect to 4way-if handler
                                         CONFIGURATOR.escActive = true;
                                         _4way.cleanup();
+                                        _4way.start();
 
                                         GUI.allowedTabs = GUI.defaultAllowedTabsWhenConnected.slice();
 
