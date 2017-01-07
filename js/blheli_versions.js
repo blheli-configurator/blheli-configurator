@@ -3,13 +3,17 @@
 var BLHELI_S_SILABS_BASE_URL = 'https://raw.githubusercontent.com/bitdump/BLHeli/{0}/BLHeli_S SiLabs/Hex files/{1}_REV{3}.HEX';
 var BLHELI_S_SILABS_VERSIONS = [
 	{
+		version: '16.6', name: '16.6', commit: 'a873f7c963af3138aa3225e6ca929442bcfeab6c', url: BLHELI_S_SILABS_BASE_URL,
+		key: '16.6'
+	},
+	{
 		version: '16.5', name: '16.5', commit: '1c56c45d759533c20dfc5be2c49ae07bc80e39b9', url: BLHELI_S_SILABS_BASE_URL,
 		key: '16.5'
 	},
 	{
-		version: '16.53', name: '16.53', commit: 'b8e9e44fe118355876653179e5eb31493e525ab2',
+		version: '16.53', name: '16.53', commit: '1bf3d915f67e838b9985c0e61b7b838966838184',
 		url: 'https://raw.githubusercontent.com/cleanflight/blheli-multishot/{0}/BLHeli_S SiLabs/Hex files/{1}_REV{3}.HEX',
-		key: '16.53MS_'
+		key: '16.53MS__'
 	},
 	{
 		version: '16.45', name: '16.45', commit: 'e8b56843a95bc2ba217680df341a716250730c74',
@@ -40,6 +44,10 @@ var BLHELI_S_SILABS_VERSIONS = [
 
 var BLHELI_SILABS_BASE_URL = 'https://raw.githubusercontent.com/bitdump/BLHeli/{0}/SiLabs/Hex files/{1}_{2}_REV{3}.HEX';
 var BLHELI_SILABS_VERSIONS = [
+	{
+		version: '14.9', name: '14.9', commit: '0cc6798eda294d502167145a600a7540092f8bb8', url: BLHELI_SILABS_BASE_URL,
+		key: '14.9'
+	},
 	{
 		version: '14.8', name: '14.8', commit: '1d0a8c489ccf09738f3ce895850694b352565af0', url: BLHELI_SILABS_BASE_URL,
 		key: '14.8'
@@ -102,6 +110,10 @@ var BLHELI_SILABS_VERSIONS = [
 
 var BLHELI_ATMEL_BASE_URL = 'https://raw.githubusercontent.com/bitdump/BLHeli/{0}/Atmel/Hex files/{1}_{2}_REV{3}.HEX';
 var BLHELI_ATMEL_VERSIONS = [
+	{
+		version: '14.9', name: '14.9', commit: 'd14033c64f6497ea78e4418d34ee345ee0aa3f0b', url: BLHELI_ATMEL_BASE_URL,
+		key: '14.9'
+	},
 	{
 		version: '14.8', name: '14.8', commit: '1d0a8c489ccf09738f3ce895850694b352565af0', url: BLHELI_ATMEL_BASE_URL,
 		key: '14.8'
