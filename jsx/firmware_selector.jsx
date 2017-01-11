@@ -1,28 +1,22 @@
 'use strict';
 
-var BLHELI_TYPES = {
-    BLHELI_S_SILABS: 'BLHeli_S SiLabs',
-    SILABS: 'SiLabs',
-    ATMEL: 'Atmel'
-};
-
 var FirmwareSelector = React.createClass({
     getInitialState: function() {
         const escHint = this.props.escHint;
 
         var selectedEsc;
-        if (BLHELI_S_SILABS_ESCS.hasOwnProperty(escHint) ||
-            BLHELI_SILABS_ESCS.hasOwnProperty(escHint) ||
-            BLHELI_ATMEL_ESCS.hasOwnProperty(escHint)) {
+        if (this.props.supportedESCs.layouts[BLHELI_TYPES.BLHELI_S_SILABS].hasOwnProperty(escHint) ||
+            this.props.supportedESCs.layouts[BLHELI_TYPES.SILABS].hasOwnProperty(escHint) ||
+            this.props.supportedESCs.layouts[BLHELI_TYPES.ATMEL].hasOwnProperty(escHint)) {
             selectedEsc = escHint;
         }
 
         var type;
-        if (BLHELI_S_SILABS_MCUS.find(x => x.signature === this.props.signatureHint)) {
+        if (findMCU(this.props.signatureHint, this.props.supportedESCs.signatures[BLHELI_TYPES.BLHELI_S_SILABS])) {
             type = BLHELI_TYPES.BLHELI_S_SILABS;
-        } else if (BLHELI_SILABS_MCUS.find(x => x.signature === this.props.signatureHint)) {
+        } else if (findMCU(this.props.signatureHint, this.props.supportedESCs.signatures[BLHELI_TYPES.SILABS])) {
             type = BLHELI_TYPES.SILABS;
-        } else if (BLHELI_ATMEL_MCUS.find(x => x.signature === this.props.signatureHint)) {
+        } else if (findMCU(this.props.signatureHint, this.props.supportedESCs.signatures[BLHELI_TYPES.ATMEL])) {
             type = BLHELI_TYPES.ATMEL;
         } else {
             throw new Error('Unknown MCU signature: ' + this.props.signatureHint.toString(0x10));
@@ -37,24 +31,7 @@ var FirmwareSelector = React.createClass({
         };
     },
     componentWillMount: function() {
-        // try loading from a remote url
-        fetch(BLHELI_VERSIONS_REMOTE)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(response.statusText);
-            }
-
-            return response.json();
-        })
-        .then(json => {
-            // save the newest version
-            setToLocalStorage(BLHELI_VERSIONS_KEY, json);
-            return json;
-        })
-        // load from local storage as there may be a newer version
-        .catch(error => getFromLocalStorage(BLHELI_VERSIONS_KEY))
-        // nothing found in local storage - fall back to builtin version
-        .catch(error => fetch(BLHELI_VERSIONS_LOCAL).then(response => response.json()))
+        fetchJSON(BLHELI_VERSIONS_KEY, BLHELI_VERSIONS_REMOTE, BLHELI_VERSIONS_LOCAL)
         .then(json => this.setState({ versions: json }));
     },
     render: function() {
@@ -105,12 +82,7 @@ var FirmwareSelector = React.createClass({
         );
     },
     renderEscSelect: function() {
-        var description;
-        switch (this.state.type) {
-            case BLHELI_TYPES.BLHELI_S_SILABS: description = BLHELI_S_SILABS_ESCS; break;
-            case BLHELI_TYPES.SILABS: description = BLHELI_SILABS_ESCS; break;
-            case BLHELI_TYPES.ATMEL: description = BLHELI_ATMEL_ESCS; break;
-        }
+        const description = this.props.supportedESCs.layouts[this.state.type];
 
         var escs = [
             <option className="hidden" disabled selected>Select ESC</option>
@@ -207,15 +179,8 @@ var FirmwareSelector = React.createClass({
     },
     onlineFirmwareSelected: async function() {
         const versions = this.state.versions[this.state.type];
-        var escs;
-
-        switch (this.state.type) {
-            case BLHELI_TYPES.BLHELI_S_SILABS: escs = BLHELI_S_SILABS_ESCS; break;
-            case BLHELI_TYPES.SILABS: escs = BLHELI_SILABS_ESCS; break;
-            case BLHELI_TYPES.ATMEL: escs = BLHELI_ATMEL_ESCS; break;
-        }
-
         const version = versions[this.state.selectedVersion];
+        const escs = this.props.supportedESCs.layouts[this.state.type];
 
         const url = version.url.format(
             escs[this.state.selectedEsc].name.replace(/\s/g, '_').toUpperCase(),

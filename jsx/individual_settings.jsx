@@ -23,14 +23,14 @@ var IndividualSettings = React.createClass({
             make = layout;
 
         if (escMetainfo.interfaceMode === _4way_modes.SiLBLB) {
-            if (layout in BLHELI_SILABS_ESCS) {
-                make = BLHELI_SILABS_ESCS[layout].name
-            } else if (layout in BLHELI_S_SILABS_ESCS) {
-                make = BLHELI_S_SILABS_ESCS[layout].name
+            if (layout in this.props.supportedESCs.layouts[BLHELI_TYPES.SILABS]) {
+                make = this.props.supportedESCs.layouts[BLHELI_TYPES.SILABS][layout].name;
+            } else if (layout in this.props.supportedESCs.layouts[BLHELI_TYPES.BLHELI_S_SILABS]) {
+                make = this.props.supportedESCs.layouts[BLHELI_TYPES.BLHELI_S_SILABS][layout].name
             }
         } else {
-            if (layout in BLHELI_ATMEL_ESCS) {
-                make = BLHELI_ATMEL_ESCS[layout].name
+            if (layout in this.props.supportedESCs.layouts[BLHELI_TYPES.ATMEL]) {
+                make = this.props.supportedESCs.layouts[BLHELI_TYPES.ATMEL][layout].name
             }
         }
 
