@@ -36,7 +36,30 @@ var FirmwareSelector = React.createClass({
             type: type
         };
     },
+    componentWillMount: function() {
+        // try loading from a remote url
+        fetch(BLHELI_VERSIONS_REMOTE)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(response.statusText);
+            }
+
+            return response.json();
+        })
+        .then(json => {
+            // save the newest version
+            setToLocalStorage(BLHELI_VERSIONS_KEY, json);
+            return json;
+        })
+        // load from local storage as there may be a newer version
+        .catch(error => getFromLocalStorage(BLHELI_VERSIONS_KEY))
+        // nothing found in local storage - fall back to builtin version
+        .catch(error => fetch(BLHELI_VERSIONS_LOCAL).then(response => response.json()))
+        .then(json => this.setState({ versions: json }));
+    },
     render: function() {
+        if (!this.state.versions) return null;
+
         return (
             <div className="centerWrapper">
                 <div className="gui_box grey">
@@ -141,13 +164,7 @@ var FirmwareSelector = React.createClass({
         }
     },
     renderVersionSelect: function() {
-        var versions;
-
-        switch (this.state.type) {
-            case BLHELI_TYPES.BLHELI_S_SILABS: versions = BLHELI_S_SILABS_VERSIONS; break;
-            case BLHELI_TYPES.SILABS: versions = BLHELI_SILABS_VERSIONS; break;
-            case BLHELI_TYPES.ATMEL: versions = BLHELI_ATMEL_VERSIONS; break;
-        }
+        const versions = this.state.versions[this.state.type];
 
         var options = [];
         versions.forEach((version, idx) => {
@@ -189,21 +206,20 @@ var FirmwareSelector = React.createClass({
         });
     },
     onlineFirmwareSelected: async function() {
-        var versions, escs;
+        const versions = this.state.versions[this.state.type];
+        var escs;
 
         switch (this.state.type) {
-            case BLHELI_TYPES.BLHELI_S_SILABS: versions = BLHELI_S_SILABS_VERSIONS; escs = BLHELI_S_SILABS_ESCS; break;
-            case BLHELI_TYPES.SILABS: versions = BLHELI_SILABS_VERSIONS; escs = BLHELI_SILABS_ESCS; break;
-            case BLHELI_TYPES.ATMEL: versions = BLHELI_ATMEL_VERSIONS; escs = BLHELI_ATMEL_ESCS; break;
+            case BLHELI_TYPES.BLHELI_S_SILABS: escs = BLHELI_S_SILABS_ESCS; break;
+            case BLHELI_TYPES.SILABS: escs = BLHELI_SILABS_ESCS; break;
+            case BLHELI_TYPES.ATMEL: escs = BLHELI_ATMEL_ESCS; break;
         }
 
         const version = versions[this.state.selectedVersion];
 
         const url = version.url.format(
-            version.commit,
             escs[this.state.selectedEsc].name.replace(/\s/g, '_').toUpperCase(),
-            this.state.selectedMode,
-            version.version.replace(/\./g, '_')
+            this.state.selectedMode
         );
 
         const cacheKey = this.state.type === BLHELI_TYPES.BLHELI_S_SILABS ?
@@ -219,12 +235,13 @@ var FirmwareSelector = React.createClass({
 
             googleAnalytics.sendEvent('ESC', 'RemoteFirmwareLoaded', cacheKey);
 
-            this.props.onFirmwareLoaded(hex, eep);
+            console.log(hex.length);
+            //this.props.onFirmwareLoaded(hex, eep);
         } catch (error) {
             GUI.log('Could not load firmware for {0} {1} {2}: <span style="color: red">{3}</span>'.format(
                 escs[this.state.selectedEsc].name,
                 this.state.selectedMode,
-                version.version,
+                version.name,
                 error.message
             ));
 
