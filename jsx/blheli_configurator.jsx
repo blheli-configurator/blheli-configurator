@@ -21,6 +21,9 @@ var Configurator = React.createClass({
     componentWillMount: function() {
         fetchJSON(BLHELI_ESCS_KEY, BLHELI_ESCS_REMOTE, BLHELI_ESCS_LOCAL)
         .then(json => this.setState({ supportedESCs: json }));
+
+        fetchJSON(BLHELI_VERSIONS_KEY, BLHELI_VERSIONS_REMOTE, BLHELI_VERSIONS_LOCAL)
+        .then(json => this.setState({ firmwareVersions: json }));
     },
     onUserInput: function(newSettings) {
         this.setState({
@@ -845,7 +848,7 @@ var Configurator = React.createClass({
         });
     },
     render: function() {
-        if (!this.state.supportedESCs) return null;
+        if (!this.state.supportedESCs || !this.state.firmwareVersions) return null;
 
         return (
             <div className="tab-esc toolbar_fixed_bottom">
@@ -944,6 +947,7 @@ var Configurator = React.createClass({
                 </div>,
                 <FirmwareSelector
                     supportedESCs={this.state.supportedESCs}
+                    firmwareVersions={this.state.firmwareVersions}
                     signatureHint={firstAvailableMetainfo.signature}
                     escHint={firstAvailableEsc.LAYOUT}
                     modeHint={blheliModeToString(firstAvailableEsc.MODE)}

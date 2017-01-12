@@ -30,13 +30,7 @@ var FirmwareSelector = React.createClass({
             type: type
         };
     },
-    componentWillMount: function() {
-        fetchJSON(BLHELI_VERSIONS_KEY, BLHELI_VERSIONS_REMOTE, BLHELI_VERSIONS_LOCAL)
-        .then(json => this.setState({ versions: json }));
-    },
     render: function() {
-        if (!this.state.versions) return null;
-
         return (
             <div className="centerWrapper">
                 <div className="gui_box grey">
@@ -136,7 +130,7 @@ var FirmwareSelector = React.createClass({
         }
     },
     renderVersionSelect: function() {
-        const versions = this.state.versions[this.state.type];
+        const versions = this.props.firmwareVersions[this.state.type];
 
         var options = [];
         versions.forEach((version, idx) => {
@@ -178,7 +172,7 @@ var FirmwareSelector = React.createClass({
         });
     },
     onlineFirmwareSelected: async function() {
-        const versions = this.state.versions[this.state.type];
+        const versions = this.props.firmwareVersions[this.state.type];
         const version = versions[this.state.selectedVersion];
         const escs = this.props.supportedESCs.layouts[this.state.type];
 
