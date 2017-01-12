@@ -1,5 +1,11 @@
 'use strict';
 
+var BLHELI_TYPES = {
+    BLHELI_S_SILABS: 'BLHeli_S SiLabs',
+    SILABS: 'SiLabs',
+    ATMEL: 'Atmel'
+};
+
 var BLHELI_MODES = {
     MAIN:   0xA55A,
     TAIL:   0x5AA5,

@@ -1,5 +1,7 @@
 'use strict';
 
+const METAINFO_UPDATE_INTERVAL_MS = 5 * 60 * 1000;
+
 var Configurator = React.createClass({
     getInitialState: () => {
         return {
@@ -17,6 +19,26 @@ var Configurator = React.createClass({
             flashingEscIndex: undefined,
             flashingEscProgress: 0
         };
+    },
+    componentWillMount: function() {
+        this.updateVersionsMetainfo();
+        const interval = setInterval(this.updateVersionsMetainfo, METAINFO_UPDATE_INTERVAL_MS);
+
+        this.setState({
+            updateInterval: interval
+        });
+    },
+    componentWillUnmount: function() {
+        if (this.state.updateInterval) {
+            clearInterval(this.state.updateInterval);
+        }
+    },
+    updateVersionsMetainfo: function() {
+        fetchJSON(BLHELI_ESCS_KEY, BLHELI_ESCS_REMOTE, BLHELI_ESCS_LOCAL)
+        .then(json => this.setState({ supportedESCs: json }));
+
+        fetchJSON(BLHELI_VERSIONS_KEY, BLHELI_VERSIONS_REMOTE, BLHELI_VERSIONS_LOCAL)
+        .then(json => this.setState({ firmwareVersions: json }));
     },
     onUserInput: function(newSettings) {
         this.setState({
@@ -62,6 +84,18 @@ var Configurator = React.createClass({
     readSetupAll: async function() {
         var escSettings = [],
             escMetainfo = [];
+
+        if (Debug.enabled) {
+            escSettings = [ Debug.getDummySettings(BLHELI_TYPES.BLHELI_S_SILABS) ];
+            escMetainfo = [ Debug.getDummyMetainfo(BLHELI_TYPES.BLHELI_S_SILABS) ];
+
+            this.setState({
+                escSettings: escSettings,
+                escMetainfo: escMetainfo
+            });
+
+            return;
+        }
 
         for (let esc = 0; esc < this.props.escCount; ++esc) {
             escSettings.push({});
@@ -420,7 +454,7 @@ var Configurator = React.createClass({
             .then(() => {
                 var begin_address = 0x80,
                     end_address = (() => {
-                        const MCU = findMCU(escMetainfo.signature, BLHELI_ATMEL_MCUS);
+                        const MCU = findMCU(escMetainfo.signature, this.state.supportedESCs.signatures.Atmel);
 
                         switch (escMetainfo.interfaceMode) {
                             case _4way_modes.AtmBLB: return MCU.flash_size - BLHELI_ATMEL_BLB_SIZE;
@@ -752,12 +786,12 @@ var Configurator = React.createClass({
             switch (interfaceMode) {
                 case _4way_modes.SiLC2: return BLHELI_SILABS_FLASH_SIZE;
                 case _4way_modes.SiLBLB: {
-                    const MCU = findMCU(signature, BLHELI_S_SILABS_MCUS) || findMCU(signature, BLHELI_SILABS_MCUS);
+                    const MCU = findMCU(signature, this.state.supportedESCs.signatures[BLHELI_TYPES.BLHELI_S_SILABS]) || findMCU(signature, this.state.supportedESCs.signatures.SiLabs);
                     return MCU.flash_size;
                 }
                 case _4way_modes.AtmBLB:
                 case _4way_modes.AtmSK: {
-                    const MCU = findMCU(signature, BLHELI_ATMEL_MCUS);
+                    const MCU = findMCU(signature, this.state.supportedESCs.signatures.Atmel);
                     return MCU.flash_size;
                 }
                 default: throw Error('unknown interfaceMode ' + interfaceMode);
@@ -841,6 +875,8 @@ var Configurator = React.createClass({
         });
     },
     render: function() {
+        if (!this.state.supportedESCs || !this.state.firmwareVersions) return null;
+
         return (
             <div className="tab-esc toolbar_fixed_bottom">
                 <div className="content_wrapper">
@@ -937,6 +973,8 @@ var Configurator = React.createClass({
                     </label>
                 </div>,
                 <FirmwareSelector
+                    supportedESCs={this.state.supportedESCs}
+                    firmwareVersions={this.state.firmwareVersions}
                     signatureHint={firstAvailableMetainfo.signature}
                     escHint={firstAvailableEsc.LAYOUT}
                     modeHint={blheliModeToString(firstAvailableEsc.MODE)}
@@ -962,6 +1000,7 @@ var Configurator = React.createClass({
             <CommonSettings
                 escSettings={this.state.escSettings}
                 escMetainfo={this.state.escMetainfo}
+                supportedESCs={this.state.supportedESCs}
                 onUserInput={this.onUserInput}
             />
         );
@@ -977,6 +1016,7 @@ var Configurator = React.createClass({
                     escIndex={idx}
                     escSettings={this.state.escSettings}
                     escMetainfo={this.state.escMetainfo}
+                    supportedESCs={this.state.supportedESCs}
                     onUserInput={this.onUserInput}
                     canFlash={!this.state.isFlashing}
                     isFlashing={this.state.flashingEscIndex === idx}

@@ -86,8 +86,8 @@ var CommonSettings = React.createClass({
                 var options = desc.options;
                 if (desc.name === 'PWM_FREQUENCY') {
                     const layout = settings.LAYOUT;
-                    if (BLHELI_SILABS_ESCS.hasOwnProperty(layout) && !BLHELI_SILABS_ESCS[layout].damped_enabled ||
-                        BLHELI_ATMEL_ESCS.hasOwnProperty(layout) && !BLHELI_ATMEL_ESCS[layout].damped_enabled) {
+                    if (this.props.supportedESCs.layouts.SiLabs.hasOwnProperty(layout) && !this.props.supportedESCs.layouts.SiLabs[layout].damped_enabled ||
+                        this.props.supportedESCs.layouts.Atmel.hasOwnProperty(layout) && !this.props.supportedESCs.layouts.Atmel[layout].damped_enabled) {
                         options = options.slice(0, -1);
                     }
                 }

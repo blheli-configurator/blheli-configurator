@@ -130,28 +130,44 @@ function fillImage(data, size) {
 }
 
 // @todo add Local Storage quota management?
-// @todo think of a scheme for keying files, url is not the best option
 function getFromCache(key, url) {
+    // Look into Local Storage first
+    return getFromLocalStorage(key)
+    .catch(error => {
+        var deferred = Q.defer();
+
+        // File is not present in Local Storage, try GET it
+        $.get(url, content => {
+            // Cache file for further use
+            setToLocalStorage(key, content).then(() => deferred.resolve(content)).done();
+        })
+        .fail(() => deferred.reject(new Error('File is unavailable')));
+
+        return deferred.promise;
+    });
+}
+
+function getFromLocalStorage(key) {
     var deferred = Q.defer();
 
-    // Look into Local Storage first
     chrome.storage.local.get(key, result => {
         const content = result[key];
         if (content) {
             deferred.resolve(content);
         } else {
-            // File is not present in Local Storage, try GET it
-            $.get(url, content => {
-                // Cache file for further use
-                var cacheEntry = {};
-                cacheEntry[key] = content;
-                chrome.storage.local.set(cacheEntry, () => {});
-
-                deferred.resolve(content)
-            })
-            .fail(() => deferred.reject(new Error('File is unavailable')));
+            deferred.reject(new Error('Not found'));
         }
     });
+
+    return deferred.promise;
+}
+
+function setToLocalStorage(key, content) {
+    var deferred = Q.defer();
+
+    var cacheEntry = {};
+    cacheEntry[key] = content;
+    chrome.storage.local.set(cacheEntry, () => deferred.resolve());
 
     return deferred.promise;
 }

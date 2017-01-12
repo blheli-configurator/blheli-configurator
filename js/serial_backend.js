@@ -136,6 +136,27 @@ function onOpen(openInfo) {
 
         FC.resetState();
 
+        function initialized4Way() {
+            // continue as usually
+            CONFIGURATOR.connectionValid = true;
+            // set flag to allow messages redirect to 4way-if handler
+            CONFIGURATOR.escActive = true;
+            _4way.cleanup();
+            _4way.start();
+
+            GUI.allowedTabs = GUI.defaultAllowedTabsWhenConnected.slice();
+
+            onConnect();
+
+            $('#tabs ul.mode-connected .tab_esc a').click();
+        }
+
+        if (Debug.enabled) {
+            ESC_CONFIG = { connectedESCs: 1 };
+            initialized4Way();
+            return;
+        }
+
         // request configuration data
         MSP.send_message(MSP_codes.MSP_API_VERSION, false, false, function () {
             GUI.log(chrome.i18n.getMessage('apiVersionReceived', [CONFIG.apiVersion]));
@@ -162,20 +183,7 @@ function onOpen(openInfo) {
                                 MSP.send_message(MSP_codes.MSP_UID, false, false, function () {
                                     GUI.log(chrome.i18n.getMessage('uniqueDeviceIdReceived', [CONFIG.uid[0].toString(16) + CONFIG.uid[1].toString(16) + CONFIG.uid[2].toString(16)]));
 
-                                    MSP.send_message(MSP_codes.MSP_SET_4WAY_IF, false, false, function () {
-                                        // continue as usually
-                                        CONFIGURATOR.connectionValid = true;
-                                        // set flag to allow messages redirect to 4way-if handler
-                                        CONFIGURATOR.escActive = true;
-                                        _4way.cleanup();
-                                        _4way.start();
-
-                                        GUI.allowedTabs = GUI.defaultAllowedTabsWhenConnected.slice();
-
-                                        onConnect();
-
-                                        $('#tabs ul.mode-connected .tab_esc a').click();
-                                    })
+                                    MSP.send_message(MSP_codes.MSP_SET_4WAY_IF, false, false, initialized4Way)
                                 });
                             });
                         });

@@ -1,28 +1,22 @@
 'use strict';
 
-var BLHELI_TYPES = {
-    BLHELI_S_SILABS: 'BLHeli_S SiLabs',
-    SILABS: 'SiLabs',
-    ATMEL: 'Atmel'
-};
-
 var FirmwareSelector = React.createClass({
     getInitialState: function() {
         const escHint = this.props.escHint;
 
         var selectedEsc;
-        if (BLHELI_S_SILABS_ESCS.hasOwnProperty(escHint) ||
-            BLHELI_SILABS_ESCS.hasOwnProperty(escHint) ||
-            BLHELI_ATMEL_ESCS.hasOwnProperty(escHint)) {
+        if (this.props.supportedESCs.layouts[BLHELI_TYPES.BLHELI_S_SILABS].hasOwnProperty(escHint) ||
+            this.props.supportedESCs.layouts[BLHELI_TYPES.SILABS].hasOwnProperty(escHint) ||
+            this.props.supportedESCs.layouts[BLHELI_TYPES.ATMEL].hasOwnProperty(escHint)) {
             selectedEsc = escHint;
         }
 
         var type;
-        if (BLHELI_S_SILABS_MCUS.find(x => x.signature === this.props.signatureHint)) {
+        if (findMCU(this.props.signatureHint, this.props.supportedESCs.signatures[BLHELI_TYPES.BLHELI_S_SILABS])) {
             type = BLHELI_TYPES.BLHELI_S_SILABS;
-        } else if (BLHELI_SILABS_MCUS.find(x => x.signature === this.props.signatureHint)) {
+        } else if (findMCU(this.props.signatureHint, this.props.supportedESCs.signatures[BLHELI_TYPES.SILABS])) {
             type = BLHELI_TYPES.SILABS;
-        } else if (BLHELI_ATMEL_MCUS.find(x => x.signature === this.props.signatureHint)) {
+        } else if (findMCU(this.props.signatureHint, this.props.supportedESCs.signatures[BLHELI_TYPES.ATMEL])) {
             type = BLHELI_TYPES.ATMEL;
         } else {
             throw new Error('Unknown MCU signature: ' + this.props.signatureHint.toString(0x10));
@@ -82,12 +76,7 @@ var FirmwareSelector = React.createClass({
         );
     },
     renderEscSelect: function() {
-        var description;
-        switch (this.state.type) {
-            case BLHELI_TYPES.BLHELI_S_SILABS: description = BLHELI_S_SILABS_ESCS; break;
-            case BLHELI_TYPES.SILABS: description = BLHELI_SILABS_ESCS; break;
-            case BLHELI_TYPES.ATMEL: description = BLHELI_ATMEL_ESCS; break;
-        }
+        const description = this.props.supportedESCs.layouts[this.state.type];
 
         var escs = [
             <option className="hidden" disabled selected>Select ESC</option>
@@ -141,13 +130,7 @@ var FirmwareSelector = React.createClass({
         }
     },
     renderVersionSelect: function() {
-        var versions;
-
-        switch (this.state.type) {
-            case BLHELI_TYPES.BLHELI_S_SILABS: versions = BLHELI_S_SILABS_VERSIONS; break;
-            case BLHELI_TYPES.SILABS: versions = BLHELI_SILABS_VERSIONS; break;
-            case BLHELI_TYPES.ATMEL: versions = BLHELI_ATMEL_VERSIONS; break;
-        }
+        const versions = this.props.firmwareVersions[this.state.type];
 
         var options = [];
         versions.forEach((version, idx) => {
@@ -189,21 +172,13 @@ var FirmwareSelector = React.createClass({
         });
     },
     onlineFirmwareSelected: async function() {
-        var versions, escs;
-
-        switch (this.state.type) {
-            case BLHELI_TYPES.BLHELI_S_SILABS: versions = BLHELI_S_SILABS_VERSIONS; escs = BLHELI_S_SILABS_ESCS; break;
-            case BLHELI_TYPES.SILABS: versions = BLHELI_SILABS_VERSIONS; escs = BLHELI_SILABS_ESCS; break;
-            case BLHELI_TYPES.ATMEL: versions = BLHELI_ATMEL_VERSIONS; escs = BLHELI_ATMEL_ESCS; break;
-        }
-
+        const versions = this.props.firmwareVersions[this.state.type];
         const version = versions[this.state.selectedVersion];
+        const escs = this.props.supportedESCs.layouts[this.state.type];
 
         const url = version.url.format(
-            version.commit,
             escs[this.state.selectedEsc].name.replace(/\s/g, '_').toUpperCase(),
-            this.state.selectedMode,
-            version.version.replace(/\./g, '_')
+            this.state.selectedMode
         );
 
         const cacheKey = this.state.type === BLHELI_TYPES.BLHELI_S_SILABS ?
@@ -219,12 +194,13 @@ var FirmwareSelector = React.createClass({
 
             googleAnalytics.sendEvent('ESC', 'RemoteFirmwareLoaded', cacheKey);
 
-            this.props.onFirmwareLoaded(hex, eep);
+            console.log(hex.length);
+            //this.props.onFirmwareLoaded(hex, eep);
         } catch (error) {
             GUI.log('Could not load firmware for {0} {1} {2}: <span style="color: red">{3}</span>'.format(
                 escs[this.state.selectedEsc].name,
                 this.state.selectedMode,
-                version.version,
+                version.name,
                 error.message
             ));
 
