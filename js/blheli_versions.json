@@ -6,6 +6,11 @@
 			"key": "16.6"
 		},
 		{
+			"name": "16.65",
+			"url": "https://raw.githubusercontent.com/cleanflight/blheli-multishot/be06870d375f867448cc177fffda47752ae6dea7/BLHeli_S SiLabs/Hex Files/{0}_REV16_65.HEX",
+			"key": "16.65MS"
+		},
+		{
 			"name": "16.5",
 			"url": "https://raw.githubusercontent.com/bitdump/BLHeli/1c56c45d759533c20dfc5be2c49ae07bc80e39b9/BLHeli_S SiLabs/Hex files/{0}_REV16_5.HEX",
 			"key": "16.5"
