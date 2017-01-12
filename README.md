@@ -21,6 +21,10 @@ This software is provided as is, use it at your own risk. **ALWAYS REMOVE THE PR
 * Electron/NW.js wrapper with auto-update
 * Android/iOS version based on the same code-base
 
+## Adding a new BLHeli revision or new supported ESC
+
+You can submit pull requests to js/blheli_versions.json and js/blheli_escs.json files, user installations of BLHeli Configurator will see the changes shortly.
+
 ## Building
 
 This project uses ReactJS, JSX and some modern ECMAScript extensions and depends on `npm` for building.
