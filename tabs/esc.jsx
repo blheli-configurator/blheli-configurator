@@ -26,7 +26,10 @@ TABS.esc = {
         .catch(() => {})
         // now we can return control to MSP or CLI handlers
         .finally(() => {
+            ReactDOM.unmountComponentAtNode(document.getElementById('content'));
+
             CONFIGURATOR.escActive = false;
+
             if (callback) callback();
         })
         .done();

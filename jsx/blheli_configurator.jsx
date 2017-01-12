@@ -1,5 +1,7 @@
 'use strict';
 
+const METAINFO_UPDATE_INTERVAL_MS = 5 * 60 * 1000;
+
 var Configurator = React.createClass({
     getInitialState: () => {
         return {
@@ -19,6 +21,19 @@ var Configurator = React.createClass({
         };
     },
     componentWillMount: function() {
+        this.updateVersionsMetainfo();
+        const interval = setInterval(this.updateVersionsMetainfo, METAINFO_UPDATE_INTERVAL_MS);
+
+        this.setState({
+            updateInterval: interval
+        });
+    },
+    componentWillUnmount: function() {
+        if (this.state.updateInterval) {
+            clearInterval(this.state.updateInterval);
+        }
+    },
+    updateVersionsMetainfo: function() {
         fetchJSON(BLHELI_ESCS_KEY, BLHELI_ESCS_REMOTE, BLHELI_ESCS_LOCAL)
         .then(json => this.setState({ supportedESCs: json }));
 
@@ -69,6 +84,18 @@ var Configurator = React.createClass({
     readSetupAll: async function() {
         var escSettings = [],
             escMetainfo = [];
+
+        if (Debug.enabled) {
+            escSettings = [ Debug.getDummySettings(BLHELI_TYPES.BLHELI_S_SILABS) ];
+            escMetainfo = [ Debug.getDummyMetainfo(BLHELI_TYPES.BLHELI_S_SILABS) ];
+
+            this.setState({
+                escSettings: escSettings,
+                escMetainfo: escMetainfo
+            });
+
+            return;
+        }
 
         for (let esc = 0; esc < this.props.escCount; ++esc) {
             escSettings.push({});
