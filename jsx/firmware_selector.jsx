@@ -176,8 +176,9 @@ var FirmwareSelector = React.createClass({
         const version = versions[this.state.selectedVersion];
         const escs = this.props.supportedESCs.layouts[this.state.type];
 
+        // @todo this replace-based conversion does not work for some ESC files, add a lookup table
         const url = version.url.format(
-            escs[this.state.selectedEsc].name.replace(/\s/g, '_').toUpperCase(),
+            escs[this.state.selectedEsc].name.replace(/[\s-]/g, '_').toUpperCase(),
             this.state.selectedMode
         );
 
@@ -194,7 +195,10 @@ var FirmwareSelector = React.createClass({
 
             googleAnalytics.sendEvent('ESC', 'RemoteFirmwareLoaded', cacheKey);
 
-            console.log(hex.length);
+            if (Debug.enabled) {
+                console.log('loaded hex', hex.length, eep ? 'eep ' + eep.length: '');
+                return;
+            }
             //this.props.onFirmwareLoaded(hex, eep);
         } catch (error) {
             GUI.log('Could not load firmware for {0} {1} {2}: <span style="color: red">{3}</span>'.format(
