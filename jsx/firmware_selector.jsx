@@ -199,7 +199,8 @@ var FirmwareSelector = React.createClass({
                 console.log('loaded hex', hex.length, eep ? 'eep ' + eep.length: '');
                 return;
             }
-            //this.props.onFirmwareLoaded(hex, eep);
+
+            this.props.onFirmwareLoaded(hex, eep);
         } catch (error) {
             GUI.log('Could not load firmware for {0} {1} {2}: <span style="color: red">{3}</span>'.format(
                 escs[this.state.selectedEsc].name,
