@@ -20,9 +20,9 @@ var BLHELI_S_SETTINGS_LAYOUT_33 = [
     {
         name: 'TEMPERATURE_PROTECTION', type: 'enum', label: 'escTemperatureProtection',
         options: [
-            { value: '0', label: 'Disabled' }, { value: '1', label: '90C' },
-            { value: '2', label: '100 C' }, { value: '3', label: '110 C' },
-            { value: '4', label: '120 C' }, { value: '5', label: '120 C' },
+            { value: '0', label: 'Disabled' }, { value: '1', label: '80C' },
+            { value: '2', label: '90 C' }, { value: '3', label: '100 C' },
+            { value: '4', label: '110 C' }, { value: '5', label: '120 C' },
             { value: '6', label: '130 C' }, { value: '7', label: '140 C' }
         ]
     },
