@@ -235,7 +235,7 @@ var _4way = {
     },
 
     initFlash: function(target) {
-        return this.sendMessagePromised(_4way_commands.cmd_DeviceInitFlash, [ target ], 0)
+        return this.sendMessagePromised(_4way_commands.cmd_DeviceInitFlash, [ target ], 0).delay(250)
     },
 
     pageErase: function(page) {
