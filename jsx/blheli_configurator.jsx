@@ -454,7 +454,7 @@ var Configurator = React.createClass({
             .then(() => {
                 var begin_address = 0x80,
                     end_address = (() => {
-                        const MCU = findMCU(escMetainfo.signature, this.state.supportedESCs.signatures.Atmel);
+                        const MCU = findMCU(escMetainfo.signature, self.state.supportedESCs.signatures.Atmel);
 
                         switch (escMetainfo.interfaceMode) {
                             case _4way_modes.AtmBLB: return MCU.flash_size - BLHELI_ATMEL_BLB_SIZE;
