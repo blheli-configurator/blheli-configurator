@@ -95,8 +95,15 @@ function saveFile(str) {
         }
 
         fileEntry.createWriter(writer => {
-            writer.onwriteend = () => GUI.log('Log file written');
-            writer.write(new Blob([ str ], { type: 'text/plain' }));
+            writer.onwriteend = () => {
+                if (writer.length === 0) {
+                    writer.write(new Blob([ str ], { type: 'text/plain' }));
+                } else {
+                    GUI.log('Log file written');
+                }
+            };
+
+            writer.truncate(0);
         })
     })
 }
