@@ -575,7 +575,7 @@ var BLHELI_S_INDIVIDUAL_SETTINGS = [
         offset: 1000, factor: 4, suffix: ' μs'
     },
     {
-        name: 'PPM_CENTER_THROTTLE', type: 'number', min: 1504, max: 2020, step: 4, label: 'escPPMCenterThrottle',
+        name: 'PPM_CENTER_THROTTLE', type: 'number', min: 1000, max: 2020, step: 4, label: 'escPPMCenterThrottle',
         offset: 1000, factor: 4, suffix: ' μs',
         visibleIf: settings => [ 3, 4 ].includes(settings.MOTOR_DIRECTION)
     }
@@ -598,7 +598,7 @@ var BLHELI_INDIVIDUAL_SETTINGS = [
         offset: 1000, factor: 4, suffix: ' μs'
     },
     {
-        name: 'PPM_CENTER_THROTTLE', type: 'number', min: 1504, max: 2020, step: 4, label: 'escPPMCenterThrottle',
+        name: 'PPM_CENTER_THROTTLE', type: 'number', min: 1000, max: 2020, step: 4, label: 'escPPMCenterThrottle',
         offset: 1000, factor: 4, suffix: ' μs',
         visibleIf: settings => settings.MOTOR_DIRECTION === 3
     }
