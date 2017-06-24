@@ -1,6 +1,11 @@
 {
 	"BLHeli_S SiLabs": [
 		{
+			"name": "16.66 DSHOT commands",
+			"url": "https://raw.githubusercontent.com/brycedjohnson/blheli-multishot/d3b88814f2e21672652c5398748bf4b18913c1ad/BLHeli_S SiLabs/Hex Files/{0}_REV16_66.HEX",
+			"key": "16.66"
+		},
+		{
 			"name": "16.6",
 			"url": "https://raw.githubusercontent.com/bitdump/BLHeli/a873f7c963af3138aa3225e6ca929442bcfeab6c/BLHeli_S SiLabs/Hex files/{0}_REV16_6.HEX",
 			"key": "16.6"
