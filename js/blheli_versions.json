@@ -6,9 +6,9 @@
 			"key": "16.67RC"
 		},
 		{
-			"name": "16.61 DSHOT commands [Official]",
-			"url": "https://raw.githubusercontent.com/bitdump/BLHeli/b33b84a3b7dc598f20049972adefcfcfc69bd718/BLHeli_S SiLabs/Rev16.61 Dshotprog test code/Hex/{0}_REV16_61.HEX",
-			"key": "16.61"
+			"name": "16.63 DSHOT commands [Official]",
+			"url": "https://raw.githubusercontent.com/bitdump/BLHeli/b3255629fa6a3f93c2a392c1ba317213275d09cc/BLHeli_S SiLabs/Rev16.63 Dshotprog test code/Hex/{0}_REV16_63.HEX",
+			"key": "16.63"
 		},
 		{
 			"name": "16.6",
