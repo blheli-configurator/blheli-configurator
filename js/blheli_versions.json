@@ -7,8 +7,8 @@
 		},
 		{
 			"name": "16.63 DSHOT commands [Official]",
-			"url": "https://raw.githubusercontent.com/bitdump/BLHeli/b3255629fa6a3f93c2a392c1ba317213275d09cc/BLHeli_S SiLabs/Rev16.63 Dshotprog test code/Hex/{0}_REV16_63.HEX",
-			"key": "16.63"
+			"url": "https://raw.githubusercontent.com/bitdump/BLHeli/faf7712e99ac82852b716ddfeccf02f2428e3bbf/BLHeli_S SiLabs/Rev16.63 Dshotprog test code/Hex/{0}_REV16_63.HEX",
+			"key": "16.63_"
 		},
 		{
 			"name": "16.6",
