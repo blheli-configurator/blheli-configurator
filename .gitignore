@@ -26,4 +26,13 @@ chrome-user-data
 *.sublime-workspace
 .idea
 *.iml
-.vscode
+node_modules/
+npm-debug.log
+cache/
+apps/
+dist/
+debug/
+release/
+
+# artefacts for Visual Studio Code
+/.vscode/
