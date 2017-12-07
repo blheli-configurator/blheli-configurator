@@ -21,6 +21,7 @@ var distDir = './dist/';
 var appsDir = './apps/';
 var debugDir = './debug/';
 var releaseDir = './release/';
+var jsBuildDir = './js/build/'
 
 // -----------------
 // Helper functions
@@ -112,13 +113,7 @@ gulp.task('clean-dist', function () {
 });
 
 gulp.task('clean-build-js', function() {
-    return del([
-        './js/base_components.js',
-        './js/individual_settings.js',
-        './js/common_settings.js',
-        './js/firmware_selector.js',
-        './js/blheli_configurator.js'
-    ], { force: true }); 
+    return del([jsBuildDir + '*.js'], { force: true }); 
 });
 
 gulp.task('clean-apps', function () { 
@@ -182,11 +177,7 @@ gulp.task('dist', ['clean-dist', 'build-js'], function () {
         './js/blheli_defaults.js',
         './js/fetch_json.js',
         // Configurator components
-        './js/base_components.js',
-        './js/individual_settings.js',
-        './js/common_settings.js',
-        './js/firmware_selector.js',
-        './js/blheli_configurator.js',
+        './js/build/*.js',
         // Tabs
         './main.js',
         './tabs/landing.js',
