@@ -1,5 +1,10 @@
 'use strict';
 
+// Fix for nw.js which has regeneratorRuntime defined in global.
+if (window.regeneratorRuntime == undefined) {
+    window.regeneratorRuntime = global.regeneratorRuntime;
+}
+
 var FirmwareSelector = React.createClass({
     getInitialState: function() {
         const escHint = this.props.escHint;

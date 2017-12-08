@@ -128,6 +128,14 @@ gulp.task('clean-release', function () {
     return del([releaseDir + '**'], { force: true }); 
 });
 
+gulp.task('clean-nwjs-cache', function () { 
+    return del(['./cache/**'], { force: true }); 
+});
+
+gulp.task('clean-node-modules', function () { 
+    return del(['./node_modules/**'], { force: true }); 
+});
+
 // Real work for dist task. Done in another task to call it via
 // run-sequence.
 gulp.task('dist', ['clean-dist', 'build-js'], function () {
@@ -201,8 +209,14 @@ gulp.task('dist', ['clean-dist', 'build-js'], function () {
 });
 
 // Build JS with Babel
-gulp.task('build-js', ['clean-build-js'], function(done) {
-    return exec('npm run build', function() {
+gulp.task('build-js',  function(done) {
+    exec('npm run build', function(err) {
+        if (err) {
+            console.log('Error building NW apps: ' + err);
+            runSequence('clean-apps', function() {
+                process.exit(1);
+            });
+        }
         done()
     });
 });
