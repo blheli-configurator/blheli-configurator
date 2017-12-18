@@ -6,7 +6,8 @@
   "bg-script": "eventPage.js",
   "default_locale": "en",
   "window": {
-    "show": false
+    "show": false,
+    "icon": "images/icon_128.png"
   },
   "repository": {
     "type": "git",

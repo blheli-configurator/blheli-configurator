@@ -29,10 +29,10 @@ var jsBuildDir = './js/build/'
 
 // Get platform from commandline args
 // #
-// # gulp <task> [<platform>]+        Run only for platform(s) (with <platform> one of --linux64, --osx64, or --win32 --chromeos)
+// # gulp <task> [<platform>]+        Run only for platform(s) (with <platform> one of --linux64, --linux32, --osx64, --win32, --win64, or --chromeos)
 // # 
 function getPlatforms(includeChromeOs) {
-    var supportedPlatforms = ['linux64', 'osx64', 'win32'];
+    var supportedPlatforms = ['linux64', 'linux32', 'osx64', 'win32', 'win64'];
     var platforms = [];
     var regEx = /--(\w+)/;
     for (var i = 3; i < process.argv.length; i++) {
@@ -44,8 +44,8 @@ function getPlatforms(includeChromeOs) {
                 platforms.push(arg);
             }
         } else {
-             console.log('Unknown platform: ' + arg);
-             process.exit();
+            console.log(`Your current platform (${os.platform()}) is not a supported build platform. Please specify platform to build for on the command line.`);
+            process.exit();
         }
     }  
 
@@ -80,8 +80,12 @@ function getRunDebugAppCommand() {
         return 'open ' + path.join(debugDir, pkg.name, 'osx64', pkg.name + '.app');
 
         break;
-    case 'linux':
+    case 'linux64':
         return path.join(debugDir, pkg.name, 'linux64', pkg.name);
+
+        break;
+    case 'linux32':
+        return path.join(debugDir, pkg.name, 'linux32', pkg.name);
 
         break;
     case 'win32':
@@ -276,24 +280,10 @@ gulp.task('debug', ['dist', 'clean-debug'], function (done) {
     });
 });
 
-// Create distribution package for windows platform
-function release_win32() {
-    var src = path.join(appsDir, pkg.name, 'win32');
-    var output = fs.createWriteStream(path.join(releaseDir, get_release_filename('win32', 'zip')));
-    var archive = archiver('zip', {
-        zlib: { level: 9 }
-    });
-    archive.on('warning', function (err) { throw err; });
-    archive.on('error', function (err) { throw err; });
-    archive.pipe(output);
-    archive.directory(src, 'BLHeli Configurator');
-    return archive.finalize();
-}
-
-// Create distribution package for linux platform
-function release_linux64() {
-    var src = path.join(appsDir, pkg.name, 'linux64');
-    var output = fs.createWriteStream(path.join(releaseDir, get_release_filename('linux64', 'zip')));
+// Create distribution package for windows and linux platforms
+function release(arch) {
+    var src = path.join(appsDir, pkg.name, arch);
+    var output = fs.createWriteStream(path.join(releaseDir, get_release_filename(arch, 'zip')));
     var archive = archiver('zip', {
         zlib: { level: 9 }
     });
@@ -363,15 +353,23 @@ gulp.task('release', ['apps', 'clean-release'], function () {
     }
 
     if (platforms.indexOf('linux64') !== -1) {
-        release_linux64();
+        release('linux64');
     }
 
+    if (platforms.indexOf('linux32') !== -1) {
+        release('linux32');
+    }
+        
     if (platforms.indexOf('osx64') !== -1) {
         release_osx64();
     }
 
     if (platforms.indexOf('win32') !== -1) {
-        release_win32();
+        release('win32');
+    }
+    
+    if (platforms.indexOf('win64') !== -1) {
+        release('win64');
     }
 });
 
