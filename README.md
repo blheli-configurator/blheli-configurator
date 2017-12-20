@@ -49,8 +49,10 @@ npm run build
 
 The tasks are defined in `gulpfile.js` and can be run either via `gulp <task-name>` (if the command is in PATH or via `../node_modules/gulp/bin/gulp.js <task-name>`:
 
-1. Optional, install gulp `npm install --global gulp-cli`.
-2. Run `gulp <taskname> [[platform] [platform] ...]`.
+1. Install babel-cli `npm install --global babel-cli`. 
+2. Create folder `mkdir js/build` from project root.
+3. Install gulp `npm install --global gulp-cli`.
+4. Run `gulp <taskname> [[platform] [platform] ...]`.
 
 List of possible values of `<task-name>`:
 * **dist** copies all the JS and CSS files in the `./dist` folder.
