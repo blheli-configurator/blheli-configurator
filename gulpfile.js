@@ -214,6 +214,13 @@ gulp.task('dist', ['clean-dist', 'build-js'], function () {
 
 // Build JS with Babel
 gulp.task('build-js',  function(done) {
+    fs.mkdir(jsBuildDir, '0775', function(err) {
+        if (err) {
+            if (err.code !== 'EEXIST') {
+                throw err;
+            }
+        }
+    });
     exec('npm run build', function(err) {
         if (err) {
             console.log('Error building NW apps: ' + err);
