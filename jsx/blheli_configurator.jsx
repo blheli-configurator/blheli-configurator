@@ -2,6 +2,11 @@
 
 const METAINFO_UPDATE_INTERVAL_MS = 5 * 60 * 1000;
 
+// Fix for nw.js which has regeneratorRuntime defined in global.
+if (window.regeneratorRuntime == undefined) {
+    window.regeneratorRuntime = global.regeneratorRuntime;
+}
+
 var Configurator = React.createClass({
     getInitialState: () => {
         return {
