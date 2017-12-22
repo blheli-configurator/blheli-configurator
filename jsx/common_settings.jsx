@@ -20,6 +20,15 @@ var CommonSettings = React.createClass({
         this.props.onUserInput(escSettings);
     },
     renderControls: function() {
+        // notify about BLHeli_32 (no) support
+        for (let i = 0; i < this.props.escMetainfo.length; ++i) {
+            if (this.props.escMetainfo[i].available && this.props.escMetainfo[i].interfaceMode == _4way_modes.ARMBLB) {
+                return (
+                    <h3>BLHeli_32 not supported (yet), thank BLHeli team</h3>
+                );
+            }
+        }
+
         // filter escSettings to sieve unavailable ones
         const availableSettings = this.props.escSettings.filter((i, idx) => this.props.escMetainfo[idx].available);
 
