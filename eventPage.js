@@ -12,7 +12,8 @@ function startApplication() {
         innerBounds: {
             minWidth: 1024,
             minHeight: 550
-        }
+        },
+        icon: 'images/icon_128.png'
     }, function (createdWindow) {
         createdWindow.contentWindow.addEventListener('load', function () {
             createdWindow.contentWindow.catch_startup_time(applicationStartTime);
