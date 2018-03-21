@@ -12,9 +12,11 @@ function startApplication() {
         innerBounds: {
             minWidth: 1024,
             minHeight: 550
-        },
-        icon: 'images/icon_128.png'
+        }
     }, function (createdWindow) {
+        if (getChromeVersion() >= 54) {
+            createdWindow.icon = 'images/icon_128.png';
+        }
         createdWindow.contentWindow.addEventListener('load', function () {
             createdWindow.contentWindow.catch_startup_time(applicationStartTime);
         });
@@ -78,3 +80,9 @@ chrome.notifications.onButtonClicked.addListener(function (notificationId, butto
         startApplication();
     }
 });
+
+function getChromeVersion () {     
+    var raw = navigator.userAgent.match(/Chrom(e|ium)\/([0-9]+)\./);
+
+    return raw ? parseInt(raw[2], 10) : false;
+}
