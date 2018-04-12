@@ -23,7 +23,7 @@ This software is provided as is, use it at your own risk. **ALWAYS REMOVE THE PR
 
 You can submit pull requests to js/blheli_versions.json and js/blheli_escs.json files, user installations of BLHeli Configurator will see the changes shortly.
 
-## Installing BLHeli
+## Installing BLHeli Configurator
 
 ### Standalone
 
