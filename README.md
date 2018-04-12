@@ -2,8 +2,6 @@
 
 Google Chrome application for BLHeli firmware flashing and configuration.
 
-[![available in the Chrome web store](https://developer.chrome.com/webstore/images/ChromeWebStore_Badge_v2_206x58.png)](https://chrome.google.com/webstore/detail/blheli-configurator/mejfjggmbnocnfibbibmoogocnjbcjnk)
-
 ## Disclaimer
 
 This software is provided as is, use it at your own risk. **ALWAYS REMOVE THE PROPELLERS** and power your ESCs via a **current-limiting** device or power supply.
@@ -24,6 +22,19 @@ This software is provided as is, use it at your own risk. **ALWAYS REMOVE THE PR
 ## Adding a new BLHeli revision or new supported ESC
 
 You can submit pull requests to js/blheli_versions.json and js/blheli_escs.json files, user installations of BLHeli Configurator will see the changes shortly.
+
+## Installing BLHeli Configurator
+
+### Standalone
+
+Download the appropriate installer for your platform from [Releases](https://github.com/blheli-configurator/blheli-configurator/releases).
+
+### Via Chrome Web Store
+
+[![available in the Chrome web store](https://developer.chrome.com/webstore/images/ChromeWebStore_Badge_v2_206x58.png)](https://chrome.google.com/webstore/detail/blheli-configurator/mejfjggmbnocnfibbibmoogocnjbcjnk)
+
+ 1. Visit [Chrome Web Store](https://chrome.google.com/webstore/detail/blheli-configurator/mejfjggmbnocnfibbibmoogocnjbcjnk)
+ 2. Click + **Add to Chrome**
 
 ## Building (Chrome App)
 
