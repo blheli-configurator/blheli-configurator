@@ -6,11 +6,6 @@
 			"key": "16.7"
 		},
 		{
-			"name": "16.67RC [blheli-multishot]",
-			"url": "https://raw.githubusercontent.com/brycedjohnson/blheli-multishot/589c51825e3d86910256131261dadd66f70f25b9/BLHeli_S SiLabs/Hex Files/{0}_REV16_67.HEX",
-			"key": "16.67RC"
-		},
-		{
 			"name": "16.6 [Official]",
 			"url": "https://raw.githubusercontent.com/bitdump/BLHeli/a873f7c963af3138aa3225e6ca929442bcfeab6c/BLHeli_S SiLabs/Hex files/{0}_REV16_6.HEX",
 			"key": "16.6"
@@ -24,11 +19,6 @@
 			"name": "16.5 [Official]",
 			"url": "https://raw.githubusercontent.com/bitdump/BLHeli/1c56c45d759533c20dfc5be2c49ae07bc80e39b9/BLHeli_S SiLabs/Hex files/{0}_REV16_5.HEX",
 			"key": "16.5"
-		},
-		{
-			"name": "16.53 [blheli-multishot]",
-			"url": "https://raw.githubusercontent.com/cleanflight/blheli-multishot/1bf3d915f67e838b9985c0e61b7b838966838184/BLHeli_S SiLabs/Hex files/{0}_REV16_53.HEX",
-			"key": "16.53MS__"
 		},
 		{
 			"name": "16.45 [blheli-multishot]",
