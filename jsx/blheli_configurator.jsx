@@ -816,10 +816,11 @@ var Configurator = React.createClass({
                 // Check instruction at the start of address space
                 const firstBytes = flash.subarray(0, 3);
                 const ljmpReset = new Uint8Array([ 0x02, 0x19, 0xFD ]);
-
+                const ljmpCheckBootload = new Uint8Array([ 0x02, 0x19, 0xE0 ]);
                 // BLHeli_S uses #BLHELI$.
                 // @todo add additional sanitize here to prevent user from flashing BLHeli_S on BLHeli ESC and vice versa
-                if (!(MCU.includes('#BLHELI#') || MCU.includes('#BLHELI$')) || !compare(firstBytes, ljmpReset)) {
+                if (!(MCU.includes('#BLHELI#') || MCU.includes('#BLHELI$')) ||
+                    (!compare(firstBytes, ljmpReset) && !compare(firstBytes, ljmpCheckBootload))) {
                     throw new Error(chrome.i18n.getMessage('hexInvalidSiLabs'));
                 }
             } else {
