@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=BLHeli Configurator
+Comment=Cross-platform configuration tool for BLHeli-based electronic speed controllers
+Exec=/opt/blheli/blheli-configurator/blheli-configurator
+Icon=/opt/blheli/blheli-configurator/icon/blheli_icon_128.png
+Terminal=false
+Type=Application
