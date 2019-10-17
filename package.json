@@ -27,7 +27,7 @@
     "gulp": "~3.9.1",
     "gulp-concat": "~2.6.1",
     "gulp-install": "^1.1.0",
-    "i18next": "3.4.1",
+    "i18next": "3.4.4",
     "inflection": "1.12.0",
     "jquery-ui-npm": "1.12.0",
     "nw-builder": "^3.5.7",
