@@ -80,12 +80,8 @@ function getRunDebugAppCommand() {
         return 'open ' + path.join(debugDir, pkg.name, 'osx64', pkg.name + '.app');
 
         break;
-    case 'linux64':
+    case 'linux':
         return path.join(debugDir, pkg.name, 'linux64', pkg.name);
-
-        break;
-    case 'linux32':
-        return path.join(debugDir, pkg.name, 'linux32', pkg.name);
 
         break;
     case 'win32':
