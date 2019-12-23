@@ -181,7 +181,9 @@ gulp.task('dist', ['clean-dist', 'build-js'], function () {
         './js/blheli_eeprom_layout.js',
         './js/blheli_settings_description.js',
         './js/blheli_escs.js',
+        './js/blheli_escs.json',
         './js/blheli_versions.js',
+        './js/blheli_versions.json',
         './js/blheli_defaults.js',
         './js/fetch_json.js',
         // Configurator components
