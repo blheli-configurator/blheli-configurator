@@ -3,14 +3,37 @@
         "message": "0"
     },
 
-    "options_title": {
+    "optionsTitle": {
         "message": "Application Options"
     },
-    "options_receive_app_notifications": {
+    "optionsReceiveAppNotifications": {
         "message": "Receive desktop <strong>notification</strong> when application updates"
     },
-    "options_improve_configurator": {
+    "optionsImproveConfigurator": {
         "message": "Send anonymous usage data to the developer team"
+    },
+
+    "portTitle": {
+        "message": "Port",
+        "description": "Title of the port selection"
+    },
+    "portOptionManual": {
+        "message": "Manual",
+        "description": "Manual option in the selection of ports"
+    },
+
+    "baudRateSelection": {
+        "message": "Baud Rate",
+        "description": "Title of the baud rate selection"
+    },
+
+    "showLog": {
+        "message": "Show Log",
+        "description": "Option to show the log in the UI"
+    },
+    "hideLog": {
+        "message": "Hide Log",
+        "description": "Option to hide the log in the UI"
     },
 
     "connect": {
@@ -23,10 +46,10 @@
         "message": "Disconnect"
     },
     "deviceRebooting": {
-        "message": "Device - <span style=\"color: red\">Rebooting</span>"
+        "message": "Device - <span class=\"message-negative\">Rebooting</span>"
     },
     "deviceReady": {
-        "message": "Device - <span style=\"color: green\">Ready</span>"
+        "message": "Device - <span class=\"message-positive\">Ready</span>"
     },
 
     "tabFirmwareFlasher": {
@@ -40,50 +63,50 @@
     },
 
     "serialPortOpened": {
-        "message": "Serial port <span style=\"color: green\">successfully</span> opened with ID: $1"
+        "message": "Serial port <span class=\"message-positive\">successfully</span> opened with ID: $1"
     },
     "serialPortOpenFail": {
-        "message": "<span style=\"color: red\">Failed</span> to open serial port"
+        "message": "<span class=\"message-negative\">Failed</span> to open serial port"
     },
     "serialPortClosedOk": {
-        "message": "Serial port <span style=\"color: green\">successfully</span> closed"
+        "message": "Serial port <span class=\"message-positive\">successfully</span> closed"
     },
     "serialPortClosedFail": {
-        "message": "<span style=\"color: red\">Failed</span> to close serial port"
+        "message": "<span class=\"message-negative\">Failed</span> to close serial port"
     },
 
     "usbDeviceOpened": {
-        "message": "USB device <span style=\"color: green\">successfully</span> opened with ID: $1"
+        "message": "USB device <span class=\"message-positive\">successfully</span> opened with ID: $1"
     },
     "usbDeviceOpenFail": {
-        "message": "<span style=\"color: red\">Failed</span> to open USB device!"
+        "message": "<span class=\"message-negative\">Failed</span> to open USB device!"
     },
     "usbDeviceClosed": {
-        "message": "USB device <span style=\"color: green\">successfully</span> closed"
+        "message": "USB device <span class=\"message-positive\">successfully</span> closed"
     },
     "usbDeviceCloseFail": {
-        "message": "<span style=\"color: red\">Failed</span> to close USB device"
+        "message": "<span class=\"message-negative\">Failed</span> to close USB device"
     },
     "usbDeviceUdevNotice": {
         "message": "Are <strong>udev rules</strong> installed correctly? See docs for instructions"
     },
 
     "noConfigurationReceived": {
-        "message": "Connection <span style=\"color: red\">failed</span>, ensure that you have selected the <span style=\"color: yellow\">correct port</span> or <span style=\"color: yellow\">restart</span> your device."
+        "message": "Connection <span class=\"message-negative\">failed</span>, ensure that you have selected the <span class=\"message-emphasis\">correct port</span> or <span class=\"message-emphasis\">restart</span> your device."
     },
     "firmwareVersionNotSupported": {
-        "message": "This firmware version is <span style=\"color: red\">not supported</span>. Please upgrade to firmware that supports api version <strong>$1</strong> or higher. Use CLI for backup before flashing.  CLI backup/restore procedure is in the documention."
+        "message": "This firmware version is <span class=\"message-negative\">not supported</span>. Please upgrade to firmware that supports api version <strong>$1</strong> or higher. Use CLI for backup before flashing.  CLI backup/restore procedure is in the documention."
     },
 
     "blheliPassthroughNotSupported": {
-        "message": "This firmware version does <span style=\"color: red\">not support BLHeli passthrough</span>. Please upgrade to a newer version using a FC Configurator specific to your firmware."
+        "message": "This firmware version does <span class=\"message-negative\">not support BLHeli passthrough</span>. Please upgrade to a newer version using a FC Configurator specific to your firmware."
     },
 
     "tabSwitchConnectionRequired": {
         "message": "You need to <strong>connect</strong> before you can view any of the tabs."
     },
     "tabSwitchWaitForOperation": {
-        "message": "You <span style=\"color: red\">can't</span> do this right now, please wait for current operation to finish ..."
+        "message": "You <span class=\"message-negative\">can't</span> do this right now, please wait for current operation to finish ..."
     },
 
     "tabSwitchUpgradeRequired": {
@@ -93,10 +116,10 @@
         "message": "Firmware Version: <strong>$1</strong>"
     },
     "apiVersionReceived": {
-        "message": "MultiWii API version <span style=\"color: green\">received</span> - <strong>$1</strong>"
+        "message": "MultiWii API version <span class=\"message-positive\">received</span> - <strong>$1</strong>"
     },
     "uniqueDeviceIdReceived": {
-        "message": "Unique device ID <span style=\"color: green\">received</span> - <strong>0x$1</strong>"
+        "message": "Unique device ID <span class=\"message-positive\">received</span> - <strong>0x$1</strong>"
     },
     "boardInfoReceived": {
         "message": "Board: <strong>$1</strong>, version: <strong>$2</strong>"
@@ -108,21 +131,25 @@
         "message": "Flight controller info, identifier: <strong>$1</strong>, version: <strong>$2</strong>"
     },
 
-    "statusbar_port_utilization": {
+    "statusbarPortUtilization": {
         "message": "Port utilization:"
     },
-    "statusbar_usage_download": {
+    "statusbarUsageDownload": {
         "message": "D: $1%"
     },
-    "statusbar_usage_upload": {
+    "statusbarUsageUpload": {
         "message": "U: $1%"
     },
-    "statusbar_packet_error": {
+    "statusbarPacketError": {
         "message": "Packet error:"
+    },
+    "waitingForData": {
+        "message": "Waiting for data ...",
+        "description": "Text that appears while loading"
     },
 
     "eeprom_saved_ok": {
-        "message": "EEPROM <span style=\"color: green\">saved</span>"
+        "message": "EEPROM <span class=\"message-positive\">saved</span>"
     },
 
     "defaultWelcomeIntro": {
@@ -258,10 +285,10 @@
         "message": "Reading setup"
     },
     "readSetupFinished": {
-        "message": "Reading setup <span style=\"color: green\">finished</span>"
+        "message": "Reading setup <span class=\"message-positive\">finished</span>"
     },
     "readSetupFailed": {
-        "message": "Reading setup <span style=\"color: red\">failed</span>: <strong>$1</strong>"
+        "message": "Reading setup <span class=\"message-negative\">failed</span>: <strong>$1</strong>"
     },
 
     "writeSetupStarted": {
@@ -274,33 +301,33 @@
         "message": "ESC $1: <strong>$2 byte(s)</strong> written"
     },
     "writeSetupFinished": {
-        "message": "Writing setup <span style=\"color: green\">finished</span>"
+        "message": "Writing setup <span class=\"message-positive\">finished</span>"
     },
     "writeSetupFailedOne": {
-        "message": "ESC $1: writing setup <span style=\"color: red\">failed</span>: <strong>$2</strong>"
+        "message": "ESC $1: writing setup <span class=\"message-negative\">failed</span>: <strong>$2</strong>"
     },
     "writeSetupFailed": {
-        "message": "Writing setup <span style=\"color: red\">failed</span>: <strong>$1</strong>"
+        "message": "Writing setup <span class=\"message-negative\">failed</span>: <strong>$1</strong>"
     },
 
     "layoutMismatch": {
-        "message": "LAYOUT found <span style=\"color: red\">$1</span>, <strong>$2</strong> expected"
+        "message": "LAYOUT found <span class=\"message-negative\">$1</span>, <strong>$2</strong> expected"
     },
     "mcuMismatch": {
-        "message": "MCU found <span style=\"color: red\">$1</span>, <strong>$2</strong> expected"
+        "message": "MCU found <span class=\"message-negative\">$1</span>, <strong>$2</strong> expected"
     },
 
     "escFlashingStarted": {
         "message": "ESC $1: flashing <strong>started</strong>"
     },
     "escFlashingFinished": {
-        "message": "ESC $1: flashing <span style=\"color: green\">finished</span> in <strong>$2</strong> seconds"
+        "message": "ESC $1: flashing <span class=\"message-positive\">finished</span> in <strong>$2</strong> seconds"
     },
     "escFlashingFailed": {
-        "message": "ESC $1: flashing <span style=\"color: red\">failed</span> - <strong>$2</strong>"
+        "message": "ESC $1: flashing <span class=\"message-negative\">failed</span> - <strong>$2</strong>"
     },
     "flashingFailedGeneral": {
-        "message": "Flashing <span style=\"color: red\">failed</span>: <strong>$1</strong>"
+        "message": "Flashing <span class=\"message-negative\">failed</span>: <strong>$1</strong>"
     },
 
     "resetDefaults": {
