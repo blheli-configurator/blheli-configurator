@@ -247,11 +247,44 @@
     "escIgnoreInappropriateMCULayoutWarning": {
         "message": "(Flashing inappropriate firmware may damage your ESC, do so at your own risk)"
     },
+	"escDirectionReversed": {
+		"message": "Direction Reversed"
+	},
+	"escBidirectionalMode": {
+		"message": "Bidirectional Mode"
+	},
+	"escSinusoidalStartup": {
+		"message": "Sinusoidal Startup"
+	},
+	"escComplementaryPwm": {
+		"message": "Complementary PWM"
+	},
+	"escVariablePwmFrequency": {
+		"message": "Variable PWM Frequency"
+	},
+	"escStuckRotorProtection": {
+		"message": "Stuck Rotor Protection"
+	},
+	"escTimingAdvance": {
+		"message": "Timing Advance (degrees)"
+	},
+	"escPwmFrequency": {
+		"message": "PWM Frequency (kHz)"
+	},
+	"escMotorKv": {
+		"message": "Motor KV"
+	},
+	"escMotorPoles": {
+		"message": "Motor Poles"
+	},
     "buttonCancel": {
         "message": "Cancel"
     },
     "hexInvalidSiLabs": {
         "message": "HEX does not look like a valid SiLabs BLHeli flash file"
+    },
+    "hexInvalidArm": {
+        "message": "HEX does not look like a valid ARM Open ESC flash file"
     },
 
     "readSetupStarted": {
