@@ -236,6 +236,7 @@ gulp.task('apps', ['dist', 'clean-apps'], function (done) {
     console.log('Release build.');
 
     var builder = new NwBuilder({
+        version: '0.49.1',
         files: './dist/**/*',
         buildDir: appsDir,
         platforms: platforms,
