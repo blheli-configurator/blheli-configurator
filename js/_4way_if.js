@@ -45,8 +45,7 @@ var _4way_modes = {
     SiLBLB: 1,
     AtmBLB: 2,
     AtmSK:  3,
-    ARMBLB: 4
-
+    ARMBLB: 4,
 };
 
 function _4way_command_to_string(command) {

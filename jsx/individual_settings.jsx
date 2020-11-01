@@ -20,7 +20,8 @@ var IndividualSettings = React.createClass({
             escMetainfo = this.props.escMetainfo[this.props.escIndex],
             layout = (escSettings.LAYOUT || '').trim(),
             name = escSettings.NAME.trim(),
-            make = layout;
+            make = layout,
+			bootloaderRevision = null;
 
         if (escMetainfo.interfaceMode === _4way_modes.SiLBLB) {
             if (layout in this.props.supportedBlheliESCs.layouts[BLHELI_TYPES.SILABS]) {
@@ -30,14 +31,15 @@ var IndividualSettings = React.createClass({
             }
         } else if (escMetainfo.interfaceMode === _4way_modes.ARMBLB) {
 			// No ESC layouts for ARM (Open ESC)
+			bootloaderRevision = escSettings.BOOT_LOADER_REVISION;
 		} else {
             if (layout in this.props.supportedBlheliESCs.layouts[BLHELI_TYPES.ATMEL]) {
                 make = this.props.supportedBlheliESCs.layouts[BLHELI_TYPES.ATMEL][layout].name
             }
         }
 
-        return 'ESC ' + (this.props.escIndex + 1) + ': ' + make + ', ' +
-            escSettings.MAIN_REVISION + '.' + escSettings.SUB_REVISION + (name.length > 0 ? ', ' + name : '');
+        return `ESC ${(this.props.escIndex + 1)}: ` + (make ? `${make}, ` : '') +
+            `${escSettings.MAIN_REVISION}.${escSettings.SUB_REVISION}` + (name.length > 0 ? `, ${name}` : '') + (bootloaderRevision !== null ? ` (bootloader version ${bootloaderRevision})` : '');
     },
     renderControls: function() {
         const escSettings = this.props.escSettings[this.props.escIndex];
