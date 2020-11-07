@@ -38,14 +38,14 @@ Download the appropriate installer for your platform from [Releases](https://git
 
 ## Building (Chrome App)
 
-This project uses ReactJS, JSX and some modern ECMAScript extensions and depends on `npm` for building.
+This project uses ReactJS, JSX and some modern ECMAScript extensions and depends on `yarn` for building.
 Following the initial checkout, you have to run:
 ```
-npm install
+yarn
 ```
 After that, to actually compile all the required .jsx files, run:
 ```
-npm run build
+yarn build
 ```
 
 ## Native app build via NW.js
@@ -53,16 +53,14 @@ npm run build
 ### Development
 
 1. Install node.js
-2. Change to project folder and run `npm install`.
-3. Run `npm start` to build & run the debug flavor.
+2. Change to project folder and run `yarn`.
+3. Run `yarn start` to build & run the debug flavor.
 
 ### App build and release
 
 The tasks are defined in `gulpfile.js` and can be run either via `gulp <task-name>` (if the command is in PATH or via `../node_modules/gulp/bin/gulp.js <task-name>`:
 
-1. Install babel-cli `npm install --global babel-cli`. 
-2. Install gulp `npm install --global gulp-cli`.
-4. Run `gulp <taskname> [[platform] [platform] ...]`.
+1. Run `yarn gulp <taskname> [[platform] [platform] ...]`.
 
 List of possible values of `<task-name>`:
 * **dist** copies all the JS and CSS files in the `./dist` folder.
