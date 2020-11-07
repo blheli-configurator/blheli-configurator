@@ -18,33 +18,41 @@ var IndividualSettings = React.createClass({
     getTitle: function() {
         var escSettings = this.props.escSettings[this.props.escIndex],
             escMetainfo = this.props.escMetainfo[this.props.escIndex],
-            layout = escSettings.LAYOUT.trim(),
+            layout = (escSettings.LAYOUT || '').trim(),
             name = escSettings.NAME.trim(),
-            make = layout;
+            make = layout,
+			bootloaderRevision = null;
 
         if (escMetainfo.interfaceMode === _4way_modes.SiLBLB) {
-            if (layout in this.props.supportedESCs.layouts[BLHELI_TYPES.SILABS]) {
-                make = this.props.supportedESCs.layouts[BLHELI_TYPES.SILABS][layout].name;
-            } else if (layout in this.props.supportedESCs.layouts[BLHELI_TYPES.BLHELI_S_SILABS]) {
-                make = this.props.supportedESCs.layouts[BLHELI_TYPES.BLHELI_S_SILABS][layout].name
+            if (layout in this.props.supportedBlheliESCs.layouts[BLHELI_TYPES.SILABS]) {
+                make = this.props.supportedBlheliESCs.layouts[BLHELI_TYPES.SILABS][layout].name;
+            } else if (layout in this.props.supportedBlheliESCs.layouts[BLHELI_TYPES.BLHELI_S_SILABS]) {
+                make = this.props.supportedBlheliESCs.layouts[BLHELI_TYPES.BLHELI_S_SILABS][layout].name
             }
-        } else {
-            if (layout in this.props.supportedESCs.layouts[BLHELI_TYPES.ATMEL]) {
-                make = this.props.supportedESCs.layouts[BLHELI_TYPES.ATMEL][layout].name
+        } else if (escMetainfo.interfaceMode === _4way_modes.ARMBLB) {
+			// No ESC layouts for ARM (Open ESC)
+			bootloaderRevision = escSettings.BOOT_LOADER_REVISION;
+		} else {
+            if (layout in this.props.supportedBlheliESCs.layouts[BLHELI_TYPES.ATMEL]) {
+                make = this.props.supportedBlheliESCs.layouts[BLHELI_TYPES.ATMEL][layout].name
             }
         }
 
-        return 'ESC ' + (this.props.escIndex + 1) + ': ' + make + ', ' +
-            escSettings.MAIN_REVISION + '.' + escSettings.SUB_REVISION + (name.length > 0 ? ', ' + name : '');
+        return `ESC ${(this.props.escIndex + 1)}: ` + (make ? `${make}, ` : '') +
+            `${escSettings.MAIN_REVISION}.${escSettings.SUB_REVISION}` + (name.length > 0 ? `, ${name}` : '') + (bootloaderRevision !== null ? ` (bootloader version ${bootloaderRevision})` : '');
     },
     renderControls: function() {
         const escSettings = this.props.escSettings[this.props.escIndex];
+		const metainfo = this.props.escMetainfo[this.props.escIndex];
 
         var rows = [];
 
+		const settingsDescriptions = metainfo.interfaceMode === _4way_modes.ARMBLB ? OPEN_ESC_INDIVIDUAL_SETTINGS_DESCRIPTIONS : BLHELI_INDIVIDUAL_SETTINGS_DESCRIPTIONS;
+
+
         // Check that the layout revision is valid
-        if (BLHELI_INDIVIDUAL_SETTINGS_DESCRIPTIONS.hasOwnProperty(escSettings.LAYOUT_REVISION)) {
-            rows = BLHELI_INDIVIDUAL_SETTINGS_DESCRIPTIONS[escSettings.LAYOUT_REVISION].base.map(setting => {
+        if (settingsDescriptions.hasOwnProperty(escSettings.LAYOUT_REVISION)) {
+            rows = settingsDescriptions[escSettings.LAYOUT_REVISION].base.map(setting => {
                 if (setting.visibleIf && !setting.visibleIf(escSettings)) {
                     return null;
                 }

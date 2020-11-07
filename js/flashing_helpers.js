@@ -62,10 +62,10 @@ function selectFile(ext) {
                 var reader = new FileReader();
 
                 reader.onprogress = function (e) {
-                    if (e.total > 32 * 1024) {
-                        // 32 KiB
-                        deferred.reject('File size limit of 32 KiB exceeded');
-                    }
+//                    if (e.total > 32 * 1024) {
+//                        // 32 KiB
+//                        deferred.reject('File size limit of 32 KiB exceeded');
+//                    }
                 };
 
                 reader.onloadend = function (e) {
@@ -112,12 +112,13 @@ function saveFile(str) {
 }
 
 // Fills a memory image of ESC MCU's address space with target firmware
-function fillImage(data, size) {
+function fillImage(data, size, flashOffset) {
     var image = new Uint8Array(size).fill(0xFF);
 
     data.data.forEach(function (block) {
+		let address = block.address - flashOffset;
         // Check preconditions
-        if (block.address >= image.byteLength) {
+        if (address >= image.byteLength) {
             // if (block.address == BLHELI_SILABS_BOOTLOADER_ADDRESS) {
             //     GUI.log('Block at 0x' + block.address.toString(0x10) + ' of 0x' + block.bytes.toString(0x10) + ' bytes contains bootloader, skipping\n');
             // } else {
@@ -127,13 +128,13 @@ function fillImage(data, size) {
             return;
         }
 
-        if (block.address + block.bytes >= image.byteLength) {}
+        if (address + block.bytes >= image.byteLength) {}
         // GUI.log('Block at 0x' + block.address.toString(0x10) + ' spans past the end of target address space\n');
 
 
         // block.data may be too large, select maximum allowed size
-        var clamped_length = Math.min(block.bytes, image.byteLength - block.address);
-        image.set(block.data.slice(0, clamped_length), block.address);
+        var clamped_length = Math.min(block.bytes, image.byteLength - address);
+        image.set(block.data.slice(0, clamped_length), address);
     });
 
     return image;

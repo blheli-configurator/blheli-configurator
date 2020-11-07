@@ -185,6 +185,13 @@ gulp.task('dist', ['clean-dist', 'build-js'], function () {
         './js/blheli_versions.js',
         './js/blheli_versions.json',
         './js/blheli_defaults.js',
+        './js/open_esc_escs.js',
+        './js/open_esc_escs.json',
+        './js/open_esc_versions.js',
+        './js/open_esc_versions.json',
+        './js/open_esc_defaults.js',
+        './js/open_esc_eeprom_layout.js',
+        './js/open_esc_settings_description.js',
         './js/fetch_json.js',
         // Configurator components
         './js/build/*.js',

@@ -1,0 +1,9 @@
+{
+	"Arm": [
+		{
+			"name": "1.58",
+			"url": "https://raw.githubusercontent.com/AlkaMotors/AM32-MultiRotor-ESC-firmware/master/Release/1_58/{0}_1_58.hex",
+			"key": "1.58"
+		}
+	]
+}

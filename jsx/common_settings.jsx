@@ -22,21 +22,26 @@ var CommonSettings = React.createClass({
     renderControls: function() {
         // notify about BLHeli_32 (no) support
         for (let i = 0; i < this.props.escMetainfo.length; ++i) {
-            if (this.props.escMetainfo[i].available && this.props.escMetainfo[i].interfaceMode == _4way_modes.ARMBLB) {
-                return (
-                    <h3>BLHeli_32 not supported (yet), thank BLHeli team</h3>
-                );
-            }
+//            if (this.props.escMetainfo[i].available && this.props.escMetainfo[i].interfaceMode == _4way_modes.ARMBLB) {
+//                return (
+//                    <h3>BLHeli_32 not supported (yet), thank BLHeli team</h3>
+//                );
+//            }
         }
+
+		const masterMetainfo = this.props.escMetainfo.find(metainfo => metainfo.available);
 
         // filter escSettings to sieve unavailable ones
         const availableSettings = this.props.escSettings.filter((i, idx) => this.props.escMetainfo[idx].available);
+
+		const masterSettings = availableSettings[0],
+			settingsDescriptions = masterMetainfo.interfaceMode === _4way_modes.ARMBLB ? OPEN_ESC_SETTINGS_DESCRIPTIONS : BLHELI_SETTINGS_DESCRIPTIONS;
 
         // ensure all ESCs have supported firmware version
         for (let i = 0; i < availableSettings.length; ++i) {
             const layoutRevision = availableSettings[i].LAYOUT_REVISION.toString();
 
-            if (!(layoutRevision in BLHELI_SETTINGS_DESCRIPTIONS)) {
+            if (!(layoutRevision in settingsDescriptions)) {
                 return (
                     <h3>Version {availableSettings[i].MAIN_REVISION + '.' + availableSettings[i].SUB_REVISION} is unsupported</h3>
                 );
@@ -44,7 +49,7 @@ var CommonSettings = React.createClass({
         }
 
         // ensure all ESCs are MULTI
-        const allMulti = availableSettings.every(settings => settings.MODE === BLHELI_MODES.MULTI);
+        const allMulti = availableSettings.every(settings => !settings.MODE || settings.MODE === BLHELI_MODES.MULTI);
         if (!allMulti) {
             return (
                 <h3>Only MULTI mode currently supported</h3>
@@ -53,18 +58,17 @@ var CommonSettings = React.createClass({
 
         // @todo ensure valid MODE
 
-        const masterSettings = availableSettings[0],
-              layoutRevision = masterSettings.LAYOUT_REVISION,
+        const layoutRevision = masterSettings.LAYOUT_REVISION,
               revision = masterSettings.MAIN_REVISION + '.' + masterSettings.SUB_REVISION,
-              mode = blheliModeToString(masterSettings.MODE);
+			  settingsDescription = masterMetainfo.interfaceMode === _4way_modes.ARMBLB ? settingsDescriptions[layoutRevision] : settingsDescriptions[layoutRevision][blheliModeToString(masterSettings.MODE)];
 
         // find specific UI overrides for this version
-        var overrides = BLHELI_SETTINGS_DESCRIPTIONS[layoutRevision][mode].overrides;
+        var overrides = settingsDescription.overrides;
         if (overrides) {
             overrides = overrides[revision];
         }
 
-        return BLHELI_SETTINGS_DESCRIPTIONS[layoutRevision][mode].base.map(setting => {
+        return settingsDescription.base.map(setting => {
             // @todo move elsewhere
             if (setting.visibleIf && !setting.visibleIf(masterSettings)) {
                 return null;
@@ -95,8 +99,8 @@ var CommonSettings = React.createClass({
                 var options = desc.options;
                 if (desc.name === 'PWM_FREQUENCY') {
                     const layout = settings.LAYOUT;
-                    if (this.props.supportedESCs.layouts.SiLabs.hasOwnProperty(layout) && !this.props.supportedESCs.layouts.SiLabs[layout].damped_enabled ||
-                        this.props.supportedESCs.layouts.Atmel.hasOwnProperty(layout) && !this.props.supportedESCs.layouts.Atmel[layout].damped_enabled) {
+                    if (this.props.supportedBlheliESCs.layouts.SiLabs.hasOwnProperty(layout) && !this.props.supportedBlheliESCs.layouts.SiLabs[layout].damped_enabled ||
+                        this.props.supportedBlheliESCs.layouts.Atmel.hasOwnProperty(layout) && !this.props.supportedBlheliESCs.layouts.Atmel[layout].damped_enabled) {
                         options = options.slice(0, -1);
                     }
                 }
@@ -118,6 +122,8 @@ var CommonSettings = React.createClass({
                         step={desc.step}
                         min={desc.min}
                         max={desc.max}
+						factor={desc.displayFactor}
+						offset={desc.displayOffset}
                         value={settings[desc.name]}
                         label={desc.label}
                         notInSync={notInSync}
