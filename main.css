@@ -36,6 +36,19 @@ a.disabled {
     color: #999;
 }
 
+
+.message-positive {
+    color: green;
+}
+
+.message-emphasis {
+    color: yellow;
+}
+
+.message-negative {
+    color: red;
+}
+
 /* Help-Icon  */
 .helpicon {
     float: right;
