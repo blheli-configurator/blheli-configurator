@@ -76,11 +76,11 @@ var Configurator = React.createClass({
             GUI.log(chrome.i18n.getMessage('readSetupFailed', [ error.stack ]));
         }
 
-		const availableMetainfo = this.state.escMetainfo.filter(metainfo => metainfo.available);
-		if (!availableMetainfo.every(metainfo => metainfo.interfaceMode === availableMetainfo[0].interfaceMode)) {
+        const availableMetainfo = this.state.escMetainfo.filter(metainfo => metainfo.available);
+        if (!availableMetainfo.every(metainfo => metainfo.interfaceMode === availableMetainfo[0].interfaceMode)) {
             throw new Error('Mixing of different ESC types not supported.');
         }
-		const isOpenEsc = availableMetainfo[0] && availableMetainfo[0].interfaceMode === _4way_modes.ARMBLB;
+        const isOpenEsc = availableMetainfo[0] && availableMetainfo[0].interfaceMode === _4way_modes.ARMBLB;
 
         const availableSettings = this.state.escSettings.filter((i, idx) => this.state.escMetainfo[idx].available);
 
@@ -271,7 +271,7 @@ var Configurator = React.createClass({
             }
         } catch (error) {
             GUI.log(chrome.i18n.getMessage('writeSetupFailedOne', [ esc + 1, error.message ]));
-			console.log('Error while writing settings:', error);
+            console.log('Error while writing settings:', error);
         }
     },
     writeSetup: async function() {
@@ -301,7 +301,7 @@ var Configurator = React.createClass({
         var newSettings = [];
 
         this.state.escSettings.forEach((settings, index) => {
-			const metainfo = this.state.escMetainfo[index];
+            const metainfo = this.state.escMetainfo[index];
             if (!metainfo.available) {
                 newSettings.push({})
                 return;
@@ -352,14 +352,18 @@ var Configurator = React.createClass({
         if (isAtmel) {
             settingsArray = (await _4way.readEEprom(0, BLHELI_LAYOUT_SIZE)).params;
         } else if (isArm) {
-			// Reset to get the firmware name / version set by the firmware
+            // Reset to get the firmware name / version set by the firmware
             await _4way.reset(escIndex);
 
-            settingsArray = (await _4way.read(OPEN_ESC_EEPROM_OFFSET, OPEN_ESC_LAYOUT_SIZE)).params;
-            layout = OPEN_ESC_LAYOUT;
+            // Need an init after the reset
+            await _4way.initFlash(escIndex);
+
+              settingsArray = (await _4way.read(OPEN_ESC_EEPROM_OFFSET, OPEN_ESC_LAYOUT_SIZE)).params;
+              layout = OPEN_ESC_LAYOUT;
         } else {
             settingsArray = (await _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE)).params;
         }
+
         // migrate settings from previous version if asked to
         const newSettings = blheliSettingsObject(settingsArray, layout);
 
@@ -646,31 +650,31 @@ var Configurator = React.createClass({
         function flashArm(message) {
             // @todo check device id
 
-			let originalSettings;
+            let originalSettings;
 
             // read the original EEPROM contents
             return _4way.read(OPEN_ESC_EEPROM_OFFSET, OPEN_ESC_LAYOUT_SIZE)
-			// lock firmware booting (set EEPROM byte 0 to 0)
-			.then(message => {
-				originalSettings = message.params;
+            // lock firmware booting (set EEPROM byte 0 to 0)
+            .then(message => {
+                originalSettings = message.params;
 
-				let eepromInfo = new Uint8Array(17).fill(0x00);
-				eepromInfo.set([ originalSettings[1], originalSettings[2] ], 1);
-				eepromInfo.set(ascii2buf('FLASH FAIL  '), 5);
+                let eepromInfo = new Uint8Array(17).fill(0x00);
+                eepromInfo.set([ originalSettings[1], originalSettings[2] ], 1);
+                eepromInfo.set(ascii2buf('FLASH FAIL  '), 5);
 
-				return _4way.write(OPEN_ESC_EEPROM_OFFSET, eepromInfo);
-			})
-			// write the firmware
-			.then(writePages.bind(undefined, 0x04, 0x40, OPEN_ESC_PAGE_SIZE))
-			// write back the original EEPROM contents
-			.then(() => {
-				// unlock firmware booting
-				originalSettings[0] = 0x01;
-				originalSettings.fill(0x00, 3, 5);
-				originalSettings.set(ascii2buf('NOT READY   '), 5);
+                return _4way.write(OPEN_ESC_EEPROM_OFFSET, eepromInfo);
+            })
+            // write the firmware
+            .then(writePages.bind(undefined, 0x04, 0x40, OPEN_ESC_PAGE_SIZE))
+            // write back the original EEPROM contents
+            .then(() => {
+                // unlock firmware booting
+                originalSettings[0] = 0x01;
+                originalSettings.fill(0x00, 3, 5);
+                originalSettings.set(ascii2buf('NOT READY   '), 5);
 
-				return _4way.write(OPEN_ESC_EEPROM_OFFSET, originalSettings);
-			});
+                return _4way.write(OPEN_ESC_EEPROM_OFFSET, originalSettings);
+            });
         }
 
         var escSettingArrayTmp;
@@ -860,39 +864,39 @@ var Configurator = React.createClass({
             isAtmel = [ _4way_modes.AtmBLB, _4way_modes.AtmSK ].includes(interfaceMode),
             isArm = interfaceMode === _4way_modes.ARMBLB;
 
-		let flashOffset = 0;
-		let firmwareStart = 0;
+        let flashOffset = 0;
+        let firmwareStart = 0;
         const flashSize = (() => {
-			let MCU;
+            let MCU;
             switch (interfaceMode) {
                 case _4way_modes.SiLC2:
-					return BLHELI_SILABS_FLASH_SIZE;
+                    return BLHELI_SILABS_FLASH_SIZE;
                 case _4way_modes.SiLBLB: {
                     MCU = findMCU(signature, this.state.supportedBlheliESCs.signatures[BLHELI_TYPES.BLHELI_S_SILABS]) || findMCU(signature, this.state.supportedBlheliESCs.signatures.SiLabs);
 
-					break;
+                    break;
                 }
                 case _4way_modes.AtmBLB:
                 case _4way_modes.AtmSK: {
                     MCU = findMCU(signature, this.state.supportedBlheliESCs.signatures.Atmel);
 
-					break;
+                    break;
                 }
                 case _4way_modes.ARMBLB: {
                     MCU = findMCU(signature, this.state.supportedOpenEscESCs.signatures.Arm);
 
-					break;
+                    break;
                 }
                 default:
-					throw Error('unknown interfaceMode ' + interfaceMode);
+                    throw Error('unknown interfaceMode ' + interfaceMode);
             }
 
-			if (MCU.flash_offset) {
-				flashOffset = parseInt(MCU.flash_offset);
-			}
-			if (MCU.firmware_start) {
-				firmwareStart = parseInt(MCU.firmware_start);
-			}
+            if (MCU.flash_offset) {
+                flashOffset = parseInt(MCU.flash_offset);
+            }
+            if (MCU.firmware_start) {
+                firmwareStart = parseInt(MCU.firmware_start);
+            }
 
             return MCU.flash_size;
         })();
@@ -903,11 +907,11 @@ var Configurator = React.createClass({
 
             if (isArm) {
                 let hexImage = await parseHex(hex);
-				let endAddress = hexImage.data[hexImage.data.length - 1].address + hexImage.data[hexImage.data.length - 1].bytes;
+                let endAddress = hexImage.data[hexImage.data.length - 1].address + hexImage.data[hexImage.data.length - 1].bytes;
                 flash = fillImage(hexImage, endAddress - flashOffset, flashOffset);
 
-			    //TODO: Also check for the firmware name
-				// But we first need to get this moved to a fixed location
+                //TODO: Also check for the firmware name
+                // But we first need to get this moved to a fixed location
                 const firstBytes = flash.subarray(firmwareStart, firmwareStart + 4);
                 const vecTabStart = new Uint8Array([ 0x00, 0x20, 0x00, 0x20 ]);
                 if (!compare(firstBytes, vecTabStart)) {
