@@ -23,6 +23,8 @@ var debugDir = './debug/';
 var releaseDir = './release/';
 var jsBuildDir = './js/build/'
 
+const nwVersion = '0.49.1';
+
 // -----------------
 // Helper functions
 // -----------------
@@ -243,7 +245,7 @@ gulp.task('apps', ['dist', 'clean-apps'], function (done) {
     console.log('Release build.');
 
     var builder = new NwBuilder({
-        version: '0.49.1',
+        version: nwVersion,
         files: './dist/**/*',
         buildDir: appsDir,
         platforms: platforms,
@@ -270,6 +272,7 @@ gulp.task('debug', ['dist', 'clean-debug'], function (done) {
     console.log('Debug build.');
 
     var builder = new NwBuilder({
+        version: nwVersion,
         files: './dist/**/*',
         buildDir: debugDir,
         platforms: platforms,
