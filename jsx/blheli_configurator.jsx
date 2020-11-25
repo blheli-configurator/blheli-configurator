@@ -918,7 +918,8 @@ var Configurator = React.createClass({
                     throw new Error(chrome.i18n.getMessage('hexInvalidArm'));
                 }
             } else if (!isAtmel) {
-                eeprom = fillImage(await parseHex(eep), BLHELI_ATMEL_EEPROM_SIZE, flashOffset);
+                flash = fillImage(await parseHex(hex), flashSize, flashOffset);
+
                 // Check pseudo-eeprom page for BLHELI signature
                 const MCU = buf2ascii(flash.subarray(BLHELI_SILABS_EEPROM_OFFSET).subarray(BLHELI_LAYOUT.MCU.offset).subarray(0, BLHELI_LAYOUT.MCU.size));
                 // Check instruction at the start of address space
@@ -932,7 +933,7 @@ var Configurator = React.createClass({
                     throw new Error(chrome.i18n.getMessage('hexInvalidSiLabs'));
                 }
             } else {
-                flash = fillImage(await parseHex(hex), flashSize, flashOffset);
+                eeprom = fillImage(await parseHex(eep), BLHELI_ATMEL_EEPROM_SIZE, flashOffset);
 
                 // @todo check first 2 bytes of flash as well
 
