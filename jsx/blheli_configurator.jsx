@@ -391,6 +391,9 @@ var Configurator = React.createClass({
             } catch (error) {
                 GUI.log(chrome.i18n.getMessage('writeSetupFailed', [ error.message ]));
             }
+
+            // read settings back
+            await self.readSetup();
         } else {
             GUI.log('Will not write settings back due to different MODE\n');
 
