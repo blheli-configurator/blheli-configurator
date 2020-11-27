@@ -45,7 +45,8 @@
     "start": "gulp debug",
     "_postinstall": "platform-dependent-modules",
     "postinstall": "yarn _postinstall",
-    "gulp": "gulp"
+    "gulp": "gulp",
+	"test": "echo \"No tests yet.\""
   },
   "config": {
     "platformDependentModules": {

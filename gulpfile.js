@@ -352,7 +352,12 @@ function release_osx64() {
 }
 
 // Create distributable .zip files in ./release
-gulp.task('release', ['apps', 'clean-release'], function () {
+gulp.task('release', ['do-release']);
+
+//TODO: Refactor this so we can build releases with debug mode built in
+gulp.task('debug-release', ['do-release']);
+
+gulp.task('do-release', ['apps', 'clean-release'], function () {
     fs.mkdir(releaseDir, '0775', function(err) {
         if (err) {
             if (err.code !== 'EEXIST') {
