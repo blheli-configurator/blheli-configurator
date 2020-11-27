@@ -339,7 +339,7 @@ function release_osx64() {
                     { 'x': 192, 'y': 344, 'type': 'file', 'path': pkg.name + '.app', 'name': 'BLHeli Configurator.app' }
                 ],
                 background: path.join(__dirname, 'images/dmg-background.png'),
-                format: 'UDZO',
+                format: 'ULFO',
                 window: {
                     size: {
                         width: 638,
