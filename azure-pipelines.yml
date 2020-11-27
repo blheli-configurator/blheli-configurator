@@ -1,0 +1,154 @@
+# Builds BLHeli Configurator on Windows, Linux and OSX platforms.
+#
+# After building, artifacts are released to a seperate repository.
+#
+# Azure Pipelines requires the following extensions to be installed:
+# - GitHub Tool: https://marketplace.visualstudio.com/items?itemName=marcelo-formentao.github-tools
+#
+# You'll also need to setup the follwing pipeline variables: 
+#     "releaseNotes" - This is used to add the release notes in the windows job in the build stage so they can be published as part of the github release in the release stage
+#     "endpoint" - The name of the github endpoint link setup in AzDo - setup when linking AzDo and GitHub
+#     "owner" - The owner of the repository to release to e.g. blheli-configurator
+#     "repoName" - The name of the repository to release to e.g. blheli-configurator-nightly
+
+
+variables:
+  owner: blheli-configurator
+  repoName: blheli-configurator-nightlies
+  debugReleaseNotes: This is a nightly build off the tip of 'master'. It may be unstable and result in corrupted configurations or data loss. **Use only for testing.**
+  releaseNotes: This is a release build. It does not contain the debug console.
+
+parameters:
+  - name: releaseBuild
+    type: boolean
+    default: false
+
+name: $(Date:yyyyMMdd).$(BuildID)
+trigger:
+  batch: true
+  branches:
+    include:
+    - master
+pr: none
+
+stages:
+- stage: Build
+  jobs:
+
+  - job: 'Windows'
+    pool:
+      vmImage: 'vs2017-win2016'
+
+    steps:
+    - task: UseNode@1
+      inputs:
+        version: '10.16.3'
+      displayName: 'Install Node.js 10.16.3'
+    - script: yarn install
+      displayName: 'Run yarn install'
+    - script: yarn test
+      displayName: 'Run yarn test'
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFormat: 'VSTest'
+        testResultsFiles: '**/test_results.xml'
+        testRunTitle: 'Windows'
+        buildPlatform: 'Win32'
+    - script: yarn gulp release --win32
+      displayName: 'Run yarn release for win32'
+      condition: and(succeeded(), eq('${{ parameters.releaseBuild }}', true))
+    - script: yarn gulp debug-release --win32
+      displayName: 'Run yarn debug release for win32'
+      condition: and(succeeded(), eq('${{ parameters.releaseBuild }}', false))
+    - powershell: Set-Content -Path '$(System.DefaultWorkingDirectory)/release/log.txt' -Value $env:BUILD_SOURCEVERSIONMESSAGE
+    - task: PublishPipelineArtifact@1
+      displayName: 'Publish Windows release'
+      inputs:
+        targetPath: '$(System.DefaultWorkingDirectory)/release'
+        artifact: 'blheli-configurator-windows'
+
+  - job: 'MacOS'
+    pool:
+      vmImage: 'macos-10.15'
+
+    steps:
+    - task: UseNode@1
+      inputs:
+        version: '10.16.3'
+      displayName: 'Install Node.js 10.16.3'
+    - script: npm install -g gulp
+      displayName: 'Install Gulp'
+    - script: yarn install
+      displayName: 'Run yarn install'
+    - script: yarn gulp release --osx64
+      displayName: 'Run yarn release for OSX64'
+      condition: and(succeeded(), eq('${{ parameters.releaseBuild }}', true))
+    - script: yarn gulp debug-release --osx64
+      displayName: 'Run yarn debug release for OSX64'
+      condition: and(succeeded(), eq('${{ parameters.releaseBuild }}', false))
+    - task: PublishPipelineArtifact@1
+      displayName: 'Publish MacOS release'
+      inputs: 
+          artifactName: blheli-configurator-macos
+          targetPath: '$(System.DefaultWorkingDirectory)/release'
+
+  - job: 'Linux'
+    pool:
+      vmImage: 'ubuntu-16.04'
+
+    steps:
+    - task: UseNode@1
+      inputs:
+        version: '10.16.3'
+      displayName: 'Install Node.js 10.16.3'
+    - script: yarn install
+      displayName: 'Run yarn install'
+    - script: yarn gulp release --linux64
+      displayName: 'Run yarn release for linux64'
+      condition: and(succeeded(), eq('${{ parameters.releaseBuild }}', true))
+    - script: yarn gulp debug-release --linux64
+      displayName: 'Run yarn debug release for linux64'
+      condition: and(succeeded(), eq('${{ parameters.releaseBuild }}', false))
+    - script: cd $(System.DefaultWorkingDirectory)/release; find -mindepth 1 -maxdepth 1 -type d -exec rm -r {} \;
+      displayName: 'Clean release folders'
+    - task: PublishPipelineArtifact@1
+      displayName: 'Publish Linux release'
+      inputs: 
+        artifactName: blheli-configurator-linux
+        targetPath: '$(System.DefaultWorkingDirectory)/release'
+
+
+- stage: Release
+  jobs:
+  - job: Release
+
+    steps:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        targetPath: '$(Pipeline.Workspace)'
+    - powershell: Write-Output ("##vso[task.setvariable variable=changelog;]$(gc $(Pipeline.Workspace)/blheli-configurator-windows/log.txt)")
+    - powershell: Write-Output ("##vso[task.setvariable variable=releaseNotes;]$(debugReleaseNotes)")
+      condition: and(succeeded(), eq('${{ parameters.releaseBuild }}', false))
+    - task: GitHubReleasePublish@1
+      inputs:
+        githubEndpoint: '$(endpoint)'
+        manuallySetRepository: true
+        githubOwner: '$(owner)'
+        githubRepositoryName: '$(repoName)'
+        githubReleaseNotes: |+
+          $(releaseNotes)
+
+          $(changelog)
+        githubReleaseDraft: false
+        githubReleasePrerelease: false
+        githubIgnoreAssets: false
+        githubReleaseAsset: |
+          $(Pipeline.Workspace)/blheli-configurator-windows/**
+          $(Pipeline.Workspace)/blheli-configurator-macos/**
+          $(Pipeline.Workspace)/blheli-configurator-linux/**
+        githubReuseRelease: true
+        githubReuseDraftOnly: true
+        githubSkipDuplicatedAssets: false
+        githubEditRelease: false
+        githubDeleteEmptyTag: false
