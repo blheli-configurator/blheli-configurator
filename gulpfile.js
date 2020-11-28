@@ -12,10 +12,12 @@ var NwBuilder = require('nw-builder');
 
 var gulp = require('gulp');
 var concat = require('gulp-concat');
-var install = require("gulp-install");
 var runSequence = require('run-sequence');
 var os = require('os');
 var exec = require('child_process').exec;
+var yarn = require("gulp-yarn");
+var babel = require('gulp-babel');
+var flatten = require('gulp-flatten');
 
 var distDir = './dist/';
 var appsDir = './apps/';
@@ -110,25 +112,33 @@ gulp.task('clean', function () {
     return runSequence('clean-dist', 'clean-build-js', 'clean-apps', 'clean-debug', 'clean-release');
 });
 
-gulp.task('clean-dist', function () { 
+gulp.task('clean-dist', clean_dist);
+
+function clean_dist() {
     return del([distDir + '**'], { force: true }); 
-});
+};
 
 gulp.task('clean-build-js', function() {
     return del([jsBuildDir + '*.js'], { force: true }); 
 });
 
-gulp.task('clean-apps', function () { 
+gulp.task('clean-apps', clean_apps);
+
+function clean_apps() {
     return del([appsDir + '**'], { force: true }); 
-});
+};
 
-gulp.task('clean-debug', function () { 
+gulp.task('clean-debug', clean_debug);
+
+function clean_debug() {
     return del([debugDir + '**'], { force: true }); 
-});
+};
 
-gulp.task('clean-release', function () { 
+gulp.task('clean-release', clean_release);
+
+function clean_release() {
     return del([releaseDir + '**'], { force: true }); 
-});
+};
 
 gulp.task('clean-nwjs-cache', function () { 
     return del(['./cache/**'], { force: true }); 
@@ -140,7 +150,9 @@ gulp.task('clean-node-modules', function () {
 
 // Real work for dist task. Done in another task to call it via
 // run-sequence.
-gulp.task('dist', ['clean-dist', 'build-js'], function () {
+const doDist = gulp.series(gulp.parallel(clean_dist, build_js), do_dist, do_yarn);
+
+function do_dist() {
     var distSources = [
         // CSS files
         './main.css',
@@ -200,10 +212,10 @@ gulp.task('dist', ['clean-dist', 'build-js'], function () {
         // Tabs
         './main.js',
         './tabs/landing.js',
-        './tabs/esc.js',
 
         // everything else
         './package.json', // For NW.js
+        './yarn.lock', // To install the runtime dependencies
         './manifest.json', // For Chrome app
         './eventPage.js',
         './*.html',
@@ -213,34 +225,33 @@ gulp.task('dist', ['clean-dist', 'build-js'], function () {
         './css/opensans_webfontkit/*.{eot,svg,ttf,woff,woff2}'
     ];
     return gulp.src(distSources, { base: '.' })
+        .pipe(gulp.dest(distDir));
+};
+
+function do_yarn() {
+    return gulp.src([`${distDir}/package.json`, `${distDir}/yarn.lock`])
         .pipe(gulp.dest(distDir))
-        .pipe(install({
-            npm: '--production --ignore-scripts'
-        }));;
-});
+        .pipe(yarn({
+            production: true,
+    }));
+};
+
+gulp.task('dist', doDist);
 
 // Build JS with Babel
-gulp.task('build-js',  function(done) {
-    fs.mkdir(jsBuildDir, '0775', function(err) {
-        if (err) {
-            if (err.code !== 'EEXIST') {
-                throw err;
-            }
-        }
-    });
-    exec('npm run build', function(err) {
-        if (err) {
-            console.log('Error building NW apps: ' + err);
-            runSequence('clean-apps', function() {
-                process.exit(1);
-            });
-        }
-        done()
-    });
-});
+gulp.task('build-js', build_js);
+
+function build_js() {
+    return gulp.src('**/*.jsx')
+        .pipe(flatten())
+        .pipe(babel())
+        .pipe(gulp.dest(jsBuildDir));
+};
 
 // Create runable app directories in ./apps
-gulp.task('apps', ['dist', 'clean-apps'], function (done) {
+const doApps = gulp.series(gulp.parallel(doDist, clean_apps), do_apps);
+
+function do_apps(done) {
     var platforms = getPlatforms();
     console.log('Release build.');
 
@@ -264,10 +275,14 @@ gulp.task('apps', ['dist', 'clean-apps'], function (done) {
         }
         done();
     });
-});
+};
+
+gulp.task('apps', doApps);
 
 // Create debug app directories in ./debug
-gulp.task('debug', ['dist', 'clean-debug'], function (done) {
+const debugBuild = gulp.series(gulp.parallel(doDist, clean_debug), do_debug);
+
+function do_debug(done) {
     var platforms = getPlatforms();
     console.log('Debug build.');
 
@@ -294,7 +309,9 @@ gulp.task('debug', ['dist', 'clean-debug'], function (done) {
         exec(run);
         done();
     });
-});
+};
+
+gulp.task('debug', debugBuild);
 
 // Create distribution package for windows and linux platforms
 function release(arch) {
@@ -352,12 +369,12 @@ function release_osx64() {
 }
 
 // Create distributable .zip files in ./release
-gulp.task('release', ['do-release']);
+gulp.task('release', gulp.series(gulp.parallel(doApps, clean_release), do_release));
 
 //TODO: Refactor this so we can build releases with debug mode built in
-gulp.task('debug-release', ['do-release']);
+gulp.task('debug-release', gulp.series(gulp.parallel(doApps, clean_release), do_release));
 
-gulp.task('do-release', ['apps', 'clean-release'], function () {
+function do_release(done) {
     fs.mkdir(releaseDir, '0775', function(err) {
         if (err) {
             if (err.code !== 'EEXIST') {
@@ -392,6 +409,8 @@ gulp.task('do-release', ['apps', 'clean-release'], function () {
     if (platforms.indexOf('win64') !== -1) {
         release('win64');
     }
-});
 
-gulp.task('default', ['debug']);
+    done();
+};
+
+gulp.task('default', debugBuild);
