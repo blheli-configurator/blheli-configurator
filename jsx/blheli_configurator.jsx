@@ -1,6 +1,7 @@
 'use strict';
 
 const METAINFO_UPDATE_INTERVAL_MS = 5 * 60 * 1000;
+const OPEN_ESC_RESET_DELAY_MS = 3 * 1000;
 
 // Fix for nw.js which has regeneratorRuntime defined in global.
 if (window.regeneratorRuntime == undefined) {
@@ -159,7 +160,7 @@ var Configurator = React.createClass({
                 googleAnalytics.sendEvent('ESC', 'PPM_MIN_THROTTLE', settings.PPM_MIN_THROTTLE);
                 googleAnalytics.sendEvent('ESC', 'PPM_MAX_THROTTLE', settings.PPM_MAX_THROTTLE);
 
-                if (isSiLabs || isArm) {
+                if (isSiLabs) {
                     await _4way.reset(esc);
                 }
             } catch (error) {
@@ -266,8 +267,10 @@ var Configurator = React.createClass({
                 throw new Error('Failed to verify settings')
             }
 
-            if (isSiLabs || isArm) {
+            if (isSiLabs) {
                 await _4way.reset(esc);
+            } else if (isArm) {
+                await _4way.reset(esc).delay(OPEN_ESC_RESET_DELAY_MS);
             }
         } catch (error) {
             GUI.log(chrome.i18n.getMessage('writeSetupFailedOne', [ esc + 1, error.message ]));
@@ -353,13 +356,14 @@ var Configurator = React.createClass({
             settingsArray = (await _4way.readEEprom(0, BLHELI_LAYOUT_SIZE)).params;
         } else if (isArm) {
             // Reset to get the firmware name / version set by the firmware
-            await _4way.reset(escIndex);
+            // Needs a delay for the ESC to finish initialisation
+            await _4way.reset(escIndex).delay(OPEN_ESC_RESET_DELAY_MS);
 
-            // Need an init after the reset
+            // Init after the reset
             await _4way.initFlash(escIndex);
 
-              settingsArray = (await _4way.read(OPEN_ESC_EEPROM_OFFSET, OPEN_ESC_LAYOUT_SIZE)).params;
-              layout = OPEN_ESC_LAYOUT;
+            settingsArray = (await _4way.read(OPEN_ESC_EEPROM_OFFSET, OPEN_ESC_LAYOUT_SIZE)).params;
+            layout = OPEN_ESC_LAYOUT;
         } else {
             settingsArray = (await _4way.read(BLHELI_SILABS_EEPROM_OFFSET, BLHELI_LAYOUT_SIZE)).params;
         }
@@ -965,7 +969,8 @@ var Configurator = React.createClass({
                     await this.flashFirmwareImpl(escIndex, escSettings, escMetainfo, flash, eeprom,
                         progress => {
                             this.setState({ flashingEscProgress: progress })
-                        });
+                        }
+                    );
 
                     const elapsedSec = (Date.now() - startTimestamp) * 1.0e-3;
                     GUI.log(chrome.i18n.getMessage('escFlashingFinished', [ escIndex + 1, elapsedSec ]));
