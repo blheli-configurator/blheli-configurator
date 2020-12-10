@@ -1,7 +1,7 @@
 'use strict';
 
 const METAINFO_UPDATE_INTERVAL_MS = 5 * 60 * 1000;
-const OPEN_ESC_RESET_DELAY_MS = 3 * 1000;
+const OPEN_ESC_RESET_DELAY_MS = 1000;
 
 // Fix for nw.js which has regeneratorRuntime defined in global.
 if (window.regeneratorRuntime == undefined) {
@@ -341,9 +341,17 @@ var Configurator = React.createClass({
             self = this;
 
         // rough estimate, each location gets erased, written and verified at least once
-        // SimonK does not erase pages, hence the factor of 2
-        var bytes_to_process = flashImage.byteLength * ((isAtmel || isArm) ? 2 : 3),
-            bytes_processed = 0;
+        let bytesToProcess;
+        if (isAtmel) {
+            // SimonK does not erase pages, hence the factor of 2
+            bytesToProcess = flashImage.byteLength * 2;
+        } else if (isArm) {
+            // No erase, start flashing after the boot loader area
+            bytesToProcess = (flashImage.byteLength - (flashImage.firmwareStart ? flashImage.firmwareStart : 0)) * 2;
+        } else {
+            bytesToProcess = flashImage.byteLength * 3;
+        }
+        let bytesProcessed = 0;
 
         // start the actual flashing process
         const initFlashResponse = await _4way.initFlash(escIndex);
@@ -406,8 +414,8 @@ var Configurator = React.createClass({
         }
 
         function updateProgress(bytes) {
-            bytes_processed += bytes;
-            notifyProgress(Math.min(Math.ceil(100 * bytes_processed / bytes_to_process), 100));
+            bytesProcessed += bytes;
+            notifyProgress(Math.min(Math.ceil(100 * bytesProcessed / bytesToProcess), 100));
         }
 
         function selectInterfaceAndFlash(message) {
@@ -948,6 +956,10 @@ var Configurator = React.createClass({
                 if (!MCU.includes('#BLHELI#')) {
                     throw new Error('EEP does not look like a valid Atmel BLHeli EEprom file');
                 }
+            }
+
+            if (firmwareStart) {
+                flash.firmwareStart = firmwareStart;
             }
 
             // @todo perform some sanity checks on size of flash
