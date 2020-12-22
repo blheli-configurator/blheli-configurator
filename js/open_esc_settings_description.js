@@ -26,7 +26,8 @@ var OPEN_ESC_SETTINGS_LAYOUT_0 = [
         name: 'STARTUP_POWER', type: 'number', min: 50, max: 150, step: 1, label: 'escStartupPower'
     },
     {
-        name: 'PWM_FREQUENCY', type: 'number', min: 24, max: 48, step: 1, label: 'escPwmFrequency'
+        name: 'PWM_FREQUENCY', type: 'number', min: 24, max: 48, step: 1, label: 'escPwmFrequency',
+        visibleIf: settings => settings.VARIABLE_PWM_FREQUENCY === 0
     },
     {
         name: 'BRAKE_ON_STOP', type: 'bool', label: 'escBrakeOnStop'
