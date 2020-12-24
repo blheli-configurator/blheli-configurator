@@ -292,6 +292,9 @@
 	"escStuckRotorProtection": {
 		"message": "Stuck Rotor Protection"
 	},
+	"escStallProtection": {
+		"message": "Stall Protection"
+	},
 	"escTimingAdvance": {
 		"message": "Timing Advance (degrees)"
 	},

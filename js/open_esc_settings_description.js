@@ -14,6 +14,9 @@ var OPEN_ESC_SETTINGS_LAYOUT_0 = [
         name: 'STUCK_ROTOR_PROTECTION', type: 'bool', label: 'escStuckRotorProtection'
     },
     {
+        name: 'STALL_PROTECTION', type: 'bool', label: 'escStallProtection'
+    },
+    {
         name: 'TIMING_ADVANCE', type: 'number', min: 0, max: 22.5, step: 7.5, label: 'escTimingAdvance', displayFactor: 7.5
     },
     {

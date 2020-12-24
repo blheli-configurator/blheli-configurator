@@ -29,4 +29,5 @@ const OPEN_ESC_LAYOUT = {
     MOTOR_KV:                   {   offset: 0x1a, size: 1   },
     MOTOR_POLES:                {   offset: 0x1b, size: 1   },
     BRAKE_ON_STOP:              {   offset: 0x1c, size: 1   },
+    STALL_PROTECTION:           {   offset: 0x1d, size: 1   },
 };
