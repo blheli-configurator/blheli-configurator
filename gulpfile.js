@@ -399,7 +399,7 @@ function do_release(done) {
     }
         
     if (platforms.indexOf('osx64') !== -1) {
-        release_osx64();
+        release('osx64');
     }
 
     if (platforms.indexOf('win32') !== -1) {
