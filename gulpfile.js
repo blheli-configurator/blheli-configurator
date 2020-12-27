@@ -343,10 +343,10 @@ function release_chromeos() {
 
 // Create distribution package for macOS platform
 function release_osx64() {
-    var appdmg = require('gulp-appdmg');
+    var macdmg = require('gulp-macdmg');
 
     return gulp.src([])
-        .pipe(appdmg({
+        .pipe(macdmg({
             target: path.join(releaseDir, get_release_filename('macOS', 'dmg')),
             basepath: path.join(appsDir, pkg.name, 'osx64'),
             specification: {
