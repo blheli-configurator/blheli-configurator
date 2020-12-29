@@ -24,12 +24,18 @@ parameters:
     default: false
 
 name: $(Date:yyyyMMdd).$(BuildID)
+
 trigger:
   batch: true
   branches:
     include:
     - master
-pr: none
+
+pr:
+  drafts: false
+  branches:
+    include:
+    - master
 
 stages:
 - stage: Build

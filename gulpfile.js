@@ -345,7 +345,7 @@ function release_chromeos() {
 function release_osx64() {
     var appdmg = require('gulp-appdmg');
 
-    return gulp.src([])
+    return gulp.src(['.'])
         .pipe(appdmg({
             target: path.join(releaseDir, get_release_filename('macOS', 'dmg')),
             basepath: path.join(appsDir, pkg.name, 'osx64'),
