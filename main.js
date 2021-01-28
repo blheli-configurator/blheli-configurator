@@ -135,6 +135,8 @@ $(document).ready(function () {
     chrome.storage.local.get('logopen', function (result) {
         if (result.logopen) {
             $("#showlog").trigger('click');
+         } else {
+            $("#showlog").text(chrome.i18n.getMessage('showLog'));
          }
     });
 
