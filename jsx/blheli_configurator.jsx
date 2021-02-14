@@ -379,7 +379,7 @@ var Configurator = React.createClass({
         // migrate settings from previous version if asked to
         const newSettings = blheliSettingsObject(settingsArray, layout);
 
-        if (!isArm) {
+        if (isArm) {
             GUI.log('No need to migrate settings for Open ESC (yet).');
         } else if (newSettings.MODE === escSettings.MODE) {
             // ensure mode match
