@@ -67,16 +67,15 @@ var Number = React.createClass({
         );
     },
     handleChange: function(component, value) {
-        var value = parseInt(value);
-        if (this.props.offset && this.props.factor) {
-            value = Math.floor((value - this.props.offset) / this.props.factor);
+        if (this.props.offset || this.props.factor) {
+            value = Math.floor((value - (this.props.offset || 0)) / (this.props.factor || 1));
         }
 
         this.props.onChange(component.props.name, value);
     },
     getDisplayValue: function() {
-        if (this.props.offset && this.props.factor) {
-            return this.props.factor * this.props.value + this.props.offset;
+        if (this.props.offset || this.props.factor) {
+            return this.props.factor * (this.props.value || 1) + (this.props.offset || 0);
         }
 
         return this.props.value;

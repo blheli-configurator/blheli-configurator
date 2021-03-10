@@ -1,0 +1,18 @@
+{
+    "layouts": {
+        "Arm": {
+            "FD6288": { "name": "FD6288 based", "fileName": "FD6288" },
+            "HGLRC60A": { "name": "HGLRC 60A", "fileName": "HGLRC60A" },
+            "IFLIGHT": { "name": "iFlight 50A", "fileName": "IFLIGHT" },
+            "MP6531": { "name": "MP6531 based", "fileName": "MP6531" },
+            "SISKIN": { "name": "Sunrise Siskin", "fileName": "SISKIN" },
+            "TMOTOR45A": { "name": "T-motor 45A", "fileName": "TMOTOR45A" },
+            "TMOTOR55A": { "name": "T-motor 55A", "fileName": "TMOTOR55A" }
+        }
+    },
+    "signatures": {
+        "Arm": [
+            { "name": "STM32F051", "signature": "0x1f06", "page_size": 1024, "flash_size": 65536, "flash_offset": "0x08000000", "firmware_start": "0x1000" }
+        ]
+    }
+}

@@ -10,19 +10,21 @@ var FirmwareSelector = React.createClass({
         const escHint = this.props.escHint;
 
         var selectedEsc;
-        if (this.props.supportedESCs.layouts[BLHELI_TYPES.BLHELI_S_SILABS].hasOwnProperty(escHint) ||
-            this.props.supportedESCs.layouts[BLHELI_TYPES.SILABS].hasOwnProperty(escHint) ||
-            this.props.supportedESCs.layouts[BLHELI_TYPES.ATMEL].hasOwnProperty(escHint)) {
+        if (this.props.supportedBlheliESCs.layouts[BLHELI_TYPES.BLHELI_S_SILABS].hasOwnProperty(escHint) ||
+            this.props.supportedBlheliESCs.layouts[BLHELI_TYPES.SILABS].hasOwnProperty(escHint) ||
+            this.props.supportedBlheliESCs.layouts[BLHELI_TYPES.ATMEL].hasOwnProperty(escHint)) {
             selectedEsc = escHint;
         }
 
         var type;
-        if (findMCU(this.props.signatureHint, this.props.supportedESCs.signatures[BLHELI_TYPES.BLHELI_S_SILABS])) {
+        if (findMCU(this.props.signatureHint, this.props.supportedBlheliESCs.signatures[BLHELI_TYPES.BLHELI_S_SILABS])) {
             type = BLHELI_TYPES.BLHELI_S_SILABS;
-        } else if (findMCU(this.props.signatureHint, this.props.supportedESCs.signatures[BLHELI_TYPES.SILABS])) {
+        } else if (findMCU(this.props.signatureHint, this.props.supportedBlheliESCs.signatures[BLHELI_TYPES.SILABS])) {
             type = BLHELI_TYPES.SILABS;
-        } else if (findMCU(this.props.signatureHint, this.props.supportedESCs.signatures[BLHELI_TYPES.ATMEL])) {
+        } else if (findMCU(this.props.signatureHint, this.props.supportedBlheliESCs.signatures[BLHELI_TYPES.ATMEL])) {
             type = BLHELI_TYPES.ATMEL;
+        } else if (findMCU(this.props.signatureHint, this.props.supportedOpenEscESCs.signatures[OPEN_ESC_TYPES.ARM])) {
+            type = OPEN_ESC_TYPES.ARM;
         } else {
             throw new Error('Unknown MCU signature: ' + this.props.signatureHint.toString(0x10));
         }
@@ -51,7 +53,7 @@ var FirmwareSelector = React.createClass({
                                 href="#"
                                 className={
                                     this.state.selectedEsc &&
-                                    (this.state.type === BLHELI_TYPES.BLHELI_S_SILABS || this.state.selectedMode) &&
+                                    ([ BLHELI_TYPES.BLHELI_S_SILABS, OPEN_ESC_TYPES.ARM ].includes(this.state.type) || this.state.selectedMode) &&
                                     this.state.selectedVersion !== -1 ? "" : "disabled"
                                 }
                                 onClick={this.onlineFirmwareSelected}
@@ -81,7 +83,7 @@ var FirmwareSelector = React.createClass({
         );
     },
     renderEscSelect: function() {
-        const description = this.props.supportedESCs.layouts[this.state.type];
+        const description = this.props.supportedBlheliESCs.layouts[this.state.type] || this.props.supportedOpenEscESCs.layouts[this.state.type];
 
         var escs = [
             <option className="hidden" disabled selected>Select ESC</option>
@@ -109,7 +111,7 @@ var FirmwareSelector = React.createClass({
     },
     renderModeSelect: function() {
         // Display only for BLHeli
-        if (this.state.type !== BLHELI_TYPES.BLHELI_S_SILABS) {
+        if (this.state.type === BLHELI_TYPES.SILABS || this.state.type === BLHELI_TYPES.ATMEL) {
             var modes = [
                 <option className="hidden" disabled selected>Select Mode</option>
             ];
@@ -135,7 +137,7 @@ var FirmwareSelector = React.createClass({
         }
     },
     renderVersionSelect: function() {
-        const versions = this.props.firmwareVersions[this.state.type];
+        const versions = this.props.blheliFirmwareVersions[this.state.type] || this.props.openEscFirmwareVersions[this.state.type];
 
         var options = [];
         versions.forEach((version, idx) => {
@@ -177,13 +179,13 @@ var FirmwareSelector = React.createClass({
         });
     },
     onlineFirmwareSelected: async function() {
-        const versions = this.props.firmwareVersions[this.state.type];
+        const versions = this.props.blheliFirmwareVersions[this.state.type] || this.props.openEscFirmwareVersions[this.state.type];
         const version = versions[this.state.selectedVersion];
-        const escs = this.props.supportedESCs.layouts[this.state.type];
+        const escs = this.props.supportedBlheliESCs.layouts[this.state.type] || this.props.supportedOpenEscESCs.layouts[this.state.type];
 
         // @todo this replace-based conversion does not work for some ESC files, add a lookup table
         const url = version.url.format(
-            escs[this.state.selectedEsc].name.replace(/[\s-]/g, '_').toUpperCase(),
+            escs[this.state.selectedEsc].fileName || escs[this.state.selectedEsc].name.replace(/[\s-]/g, '_').toUpperCase(),
             this.state.selectedMode
         );
 

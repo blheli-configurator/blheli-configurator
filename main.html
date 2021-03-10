@@ -42,6 +42,11 @@
 <script type="text/javascript" src="./js/blheli_escs.js"></script>
 <script type="text/javascript" src="./js/blheli_versions.js"></script>
 <script type="text/javascript" src="./js/blheli_defaults.js"></script>
+<script type="text/javascript" src="./js/open_esc_eeprom_layout.js"></script>
+<script type="text/javascript" src="./js/open_esc_settings_description.js"></script>
+<script type="text/javascript" src="./js/open_esc_escs.js"></script>
+<script type="text/javascript" src="./js/open_esc_versions.js"></script>
+<script type="text/javascript" src="./js/open_esc_defaults.js"></script>
 <script type="text/javascript" src="./js/fetch_json.js"></script>
 <!-- configurator components -->
 <script type="text/javascript" src="./js/build/base_components.js"></script>
@@ -62,7 +67,7 @@
                 <div class="logo_text">
                 </div>
             </div>
-            <a id="options" href="#" i18n_title="options_title"></a>
+            <a id="options" href="#" i18n_title="optionsTitle"></a>
             <div id="port-picker">
                 <div class="connect_controls" id="connectbutton">
                     <div class="connect_b">
@@ -72,13 +77,13 @@
                 </div>
                 <div id="portsinput">
                     <div class="dropdown dropdown-dark">
-                        <select class="dropdown-select" id="port" title="Port">
-                            <option value="manual">Manual</option>
+                        <select class="dropdown-select" id="port" i18n_title="Port">
+                            <option value="manual" i18n="portOptionManual" />
                             <!-- port list gets generated here -->
                         </select>
                     </div>
                     <div class="dropdown dropdown-dark">
-                        <select class="dropdown-select" id="baud" title="Baud Rate">
+                        <select class="dropdown-select" id="baud" i18n_title="baudRateSelection">
                             <option value="115200" selected="selected">115200</option>
                             <option value="57600">57600</option>
                             <option value="38400">38400</option>
@@ -92,8 +97,10 @@
                         </select>
                     </div>
                     <div id="port-override-option">
-                        <label for="port-override">Port: <input id="port-override" type="text"
-                            value="/dev/rfcomm0" /></label>
+                        <label for="port-override">
+                            <span i18n="portTitle"></span> 
+                            <input id="port-override" type="text" value="/dev/rfcomm0" />
+                        </label>
                     </div>
                 </div>
             </div>
@@ -103,7 +110,7 @@
         <div class="clear-both"></div>
         <div id="log">
             <div class="logswitch">
-                <a href="#" id="showlog">Show Log</a>
+                <a href="#" id="showlog" ></a>
             </div>
             <div id="scrollicon"></div>
             <div class="wrapper"></div>
@@ -111,10 +118,10 @@
         <div class="tab_container">
             <div id="tabs">
                 <ul class="mode-disconnected">
-                    <li class="tab_landing"><a href="#" i18n="tabLanding" class="tabicon ic_welcome" title="Welcome"></a></li>
+                    <li class="tab_landing"><a href="#" i18n="tabLanding" class="tabicon ic_welcome" i18n_title="tabLanding"></a></li>
                 </ul>
                 <ul class="mode-connected">
-                    <li class="tab_esc"><a href="#" i18n="tabESC" class="tabicon ic_cli" title="ESCs"></a></li>
+                    <li class="tab_esc"><a href="#" i18n="tabESC" class="tabicon ic_cli" i18n_title="tabESC"></a></li>
                 </ul>
             </div>
             <div class="clear-both"></div>
@@ -122,11 +129,11 @@
         <div id="content"></div>
         <div id="status-bar">
             <div>
-                <span i18n="statusbar_port_utilization"></span> <span class="port_usage_down">D: 0%</span> <span
+                <span i18n="statusbarPortUtilization"></span> <span class="port_usage_down">D: 0%</span> <span
                     class="port_usage_up">U: 0%</span>
             </div>
             <div>
-                <span i18n="statusbar_packet_error"></span> <span class="packet-error">0</span>
+                <span i18n="statusbarPacketError"></span> <span class="packet-error">0</span>
             </div>
             <div class="version">
                 <!-- configuration version generated here -->
@@ -134,7 +141,7 @@
         </div>
         <div id="cache">
             <div class="data-loading">
-                <p>Waiting for data ...</p>
+                <p i18n="waitingForData"></p>
             </div>
         </div>
     </div>

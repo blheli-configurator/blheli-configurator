@@ -45,8 +45,7 @@ var _4way_modes = {
     SiLBLB: 1,
     AtmBLB: 2,
     AtmSK:  3,
-    ARMBLB: 4
-
+    ARMBLB: 4,
 };
 
 function _4way_command_to_string(command) {
@@ -72,6 +71,7 @@ var _4way = {
     // Storage for partially-received messages
     backlog_view:   null,
     interval:       null,
+    last_command_timestamp: 0,
 
     crc16_xmodem_update: function(crc, byte) {
         crc = crc ^ (byte << 8);
@@ -231,6 +231,8 @@ var _4way = {
             console.debug('sending', _4way_command_to_string(command), address.toString(0x10), params);
         }
 
+        this.last_command_timestamp = Date.now();
+
         serial.send(message, sendCallback);
 
         return deferred.promise;
@@ -313,12 +315,15 @@ var _4way = {
     },
 
     start: function() {
-        this.interval = setInterval(() => {
-            try {
-                _4way.testAlive().catch(() => {}).done();
-            } catch (error) {
+        let self = this;
 
+        self.interval = setInterval(() => {
+            if (Date.now() - self.last_command_timestamp > 900) {
+                try {
+                    _4way.testAlive().catch(() => {}).done();
+                } catch (error) {
+                }
             }
-        }, 1000);
+        }, 200);
     }
 };
