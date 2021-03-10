@@ -5,5 +5,12 @@
 			"url": "https://raw.githubusercontent.com/AlkaMotors/AM32-MultiRotor-ESC-firmware/master/Release/1_58/{0}_1_58.hex",
 			"key": "1.58"
 		}
+		{
+			"name": "1.65",
+			"url": "https://github.com/AlkaMotors/AM32-MultiRotor-ESC-firmware/releases/download/v1.65/{0}_1.65.hex",
+			"key": "1.65"
+		}
+
+
 	]
 }
