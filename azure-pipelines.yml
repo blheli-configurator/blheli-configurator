@@ -13,8 +13,8 @@
 
 
 variables:
-  owner: alkamotors
-  repoName: bl_config_builds
+  owner: blheli-configurator
+  repoName: blheli-configurator-nightlies
   debugReleaseNotes: This is a nightly build off the tip of 'master'. It may be unstable and result in corrupted configurations or data loss. **Use only for testing.**
   releaseNotes: This is a release build. It does not contain the debug console.
 
