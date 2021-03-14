@@ -307,6 +307,33 @@
 	"escMotorPoles": {
 		"message": "Motor Poles"
 	},
+	"escBeepVolume": {
+		"message": "Beeper Volume"
+	},
+    	"escIntervalTelemetry": {
+		"message": "30ms Telemetry Output"
+	},
+	"escServoLowThreshold": {
+		"message": "Servo Low Threshold"
+	},
+	"escServoHighThreshold": {
+		"message": "Servo High Threshold"
+	},
+	"escServoNeutral": {
+		"message": "Servo Neutral"
+	},
+	"escServoDeadBand": {
+		"message": "Servo Neutral Dead Band"
+	},
+	"escLowVoltageCutoff": {
+		"message": "Low Voltage Cut Off"
+	},
+	"escLowVoltageThreshold": {
+		"message": "Low Voltage Cut-Off Threshold"
+	},
+	"escRcCarReversing": {
+		"message": "Rc Car Style Reversing"
+	},
     "buttonCancel": {
         "message": "Cancel"
     },
