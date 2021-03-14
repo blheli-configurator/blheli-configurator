@@ -30,4 +30,14 @@ const OPEN_ESC_LAYOUT = {
     MOTOR_POLES:                {   offset: 0x1b, size: 1   },
     BRAKE_ON_STOP:              {   offset: 0x1c, size: 1   },
     STALL_PROTECTION:           {   offset: 0x1d, size: 1   },
+    BEEP_VOLUME:                {   offset: 0x1e, size: 1   }, 
+    INTERVAL_TELEMETRY:         {   offset: 0x1f, size: 1   },
+    SERVO_LOW_THRESHOLD:        {   offset: 0x20, size: 1   },
+    SERVO_HIGH_THRESHOLD:       {   offset: 0x21, size: 1   },
+    SERVO_NEUTRAL:              {   offset: 0x22, size: 1   },
+    SERVO_DEAD_BAND:            {   offset: 0x23, size: 1   },
+    LOW_VOLTAGE_CUTOFF:         {   offset: 0x24, size: 1   },
+    LOW_VOLTAGE_THRESHOLD:      {   offset: 0x25, size: 1   },
+    RC_CAR_REVERSING:           {   offset: 0x26, size: 1   },
+
 };
