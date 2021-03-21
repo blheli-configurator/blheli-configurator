@@ -1063,7 +1063,7 @@ var Configurator = React.createClass({
                     <div className={this.state.canResetDefaults ? "btn" : "hidden"}>
                         <a
                             href="#"
-                            className={!this.state.selectingFirmware && !this.state.IsFlashing && this.state.canWrite ? "" : "disabled"}
+                            className={!this.state.selectingFirmware && !this.state.isFlashing && this.state.canWrite ? "" : "disabled"}
                             onClick={this.resetDefaults}
                         >
                             {chrome.i18n.getMessage('resetDefaults')}
