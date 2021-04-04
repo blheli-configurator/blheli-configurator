@@ -16,6 +16,12 @@ TABS.landing.initialize = function (callback) {
         // load changelog content
         $('#changelog .log').load('./changelog.html');
 
+        // Open links in external browser
+        $('a[target=_blank]').click(function () {
+            nw.Shell.openExternal(this.href);
+            return false;
+        });
+
         $('div.welcome a, div.sponsors a').click(function () {
             googleAnalytics.sendEvent('ExternalUrls', 'Click', $(this).prop('href'));
         });
