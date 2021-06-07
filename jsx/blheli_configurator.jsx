@@ -869,6 +869,10 @@ var Configurator = React.createClass({
         });
     },
     flashAll: async function(hex, eep) {
+        if (this.state.isFlashing) {
+            return console.warn('Flashing is already in progress!')
+        }
+
         $('a.connect').addClass('disabled');
 
         this.setState({ isFlashing: true });
